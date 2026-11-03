@@ -17,15 +17,15 @@ func _unhandled_input(event: InputEvent) -> void:
 		if event.button_index == MOUSE_BUTTON_RIGHT:
 			if event.pressed: Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 			else: Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	
+
 	if event.is_action_pressed("ui_cancel"): Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		_yaw -= event.relative.x * mouse_sensitivity
-		
+
 		_pitch -= event.relative.y * mouse_sensitivity
 		_pitch = clamp(_pitch, -PI/2 + 0.01, PI/2 - 0.01)
-		
+
 		rotation = Vector3(_pitch, _yaw, 0)
 
 func _process(delta: float) -> void:
@@ -39,8 +39,8 @@ func _process(delta: float) -> void:
 
 	if direction != Vector3.ZERO:
 		direction = direction.normalized()
-		
+
 		var current_speed := base_speed
 		if Input.is_key_pressed(KEY_SHIFT): current_speed *= fast_multiplier
-		
+
 		global_position += (global_transform.basis * direction) * current_speed * delta

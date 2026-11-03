@@ -1,0 +1,62 @@
+[gd_scene format=3 uid="uid://db4473gxoh8sk"]
+
+[ext_resource type="Script" uid="uid://mri638visx8m" path="res://scripts/debug/telemetry.gd" id="1_g2q0o"]
+[ext_resource type="Script" uid="uid://bdbc868kpiykc" path="res://scripts/debug/friction_circle.gd" id="2_51srx"]
+[ext_resource type="Script" uid="uid://c7doqgftobsg3" path="res://scripts/debug/telemetry_logger.gd" id="3_vohb0"]
+
+[node name="Telemetry" type="CanvasLayer" unique_id=1683315418]
+
+[node name="Control" type="Control" parent="." unique_id=1098802702]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("1_g2q0o")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Control" unique_id=1408052307]
+layout_mode = 0
+offset_left = 19.0
+offset_top = 17.0
+offset_right = 63.0
+offset_bottom = 175.0
+
+[node name="SpeedLabel" type="Label" parent="Control/VBoxContainer" unique_id=2096946158]
+layout_mode = 2
+text = "0.0"
+
+[node name="GForceLabel" type="Label" parent="Control/VBoxContainer" unique_id=278690702]
+layout_mode = 2
+text = "0.0"
+
+[node name="WheelGrid" type="GridContainer" parent="Control/VBoxContainer" unique_id=35030928]
+layout_mode = 2
+columns = 2
+
+[node name="FL" type="Label" parent="Control/VBoxContainer/WheelGrid" unique_id=2134615995]
+layout_mode = 2
+text = "FL"
+
+[node name="FR" type="Label" parent="Control/VBoxContainer/WheelGrid" unique_id=52569694]
+layout_mode = 2
+text = "FR"
+
+[node name="RL" type="Label" parent="Control/VBoxContainer/WheelGrid" unique_id=938188063]
+layout_mode = 2
+text = "RL"
+
+[node name="RR" type="Label" parent="Control/VBoxContainer/WheelGrid" unique_id=427562562]
+layout_mode = 2
+text = "RR"
+
+[node name="FrictionCircle" type="Control" parent="Control" unique_id=1044300125]
+custom_minimum_size = Vector2(200, 200)
+layout_mode = 1
+anchors_preset = 0
+offset_left = 940.0
+offset_top = 17.0
+offset_right = 1140.0
+offset_bottom = 217.0
+script = ExtResource("2_51srx")
+
+[node name="Logger" type="Node" parent="." unique_id=707249097]
+script = ExtResource("3_vohb0")

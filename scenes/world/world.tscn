@@ -4,6 +4,7 @@
 [ext_resource type="Texture2D" uid="uid://be5q370waxn70" path="res://assets/textures/ground/disp.png" id="2_t5ptc"]
 [ext_resource type="Texture2D" uid="uid://c4iuxf2c8214a" path="res://assets/textures/ground/nor.jpg" id="3_bq33v"]
 [ext_resource type="Texture2D" uid="uid://c7ma8ggfipg" path="res://assets/textures/ground/arm.jpg" id="4_j2gmx"]
+[ext_resource type="PackedScene" uid="uid://db4473gxoh8sk" path="res://scenes/ui/telemetry.tscn" id="6_bq33v"]
 [ext_resource type="Script" uid="uid://dvp5aua86h7p4" path="res://scripts/camera/debug_camera.gd" id="6_t5ptc"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_j2gmx"]
@@ -14,64 +15,6 @@ sky_material = SubResource("ProceduralSkyMaterial_j2gmx")
 [sub_resource type="Environment" id="Environment_t5ptc"]
 background_mode = 2
 sky = SubResource("Sky_t5ptc")
-
-[sub_resource type="FastNoiseLite" id="FastNoiseLite_7r4gi"]
-frequency = 0.05
-fractal_octaves = 4
-
-[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_4mrxx"]
-noise = SubResource("FastNoiseLite_7r4gi")
-seamless = true
-seamless_blend_skirt = 0.25
-
-[sub_resource type="Gradient" id="Gradient_4mrxx"]
-colors = PackedColorArray(0, 0, 0, 1, 0.20348836, 0.20348836, 0.20348836, 1)
-
-[sub_resource type="FastNoiseLite" id="FastNoiseLite_k0juu"]
-noise_type = 4
-frequency = 0.03
-fractal_octaves = 3
-
-[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_71j4m"]
-noise = SubResource("FastNoiseLite_k0juu")
-color_ramp = SubResource("Gradient_4mrxx")
-seamless = true
-seamless_blend_skirt = 1.0
-
-[sub_resource type="FastNoiseLite" id="FastNoiseLite_e3hyu"]
-frequency = 0.1
-fractal_octaves = 4
-
-[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_w7kh3"]
-noise = SubResource("FastNoiseLite_e3hyu")
-seamless = true
-as_normal_map = true
-bump_strength = 4.0
-
-[sub_resource type="ORMMaterial3D" id="ORMMaterial3D_e5uuo"]
-albedo_texture = ExtResource("1_v5dby")
-orm_texture = ExtResource("4_j2gmx")
-normal_enabled = true
-normal_texture = ExtResource("3_bq33v")
-heightmap_enabled = true
-heightmap_scale = 1.0
-heightmap_texture = ExtResource("2_t5ptc")
-detail_enabled = true
-detail_mask = SubResource("NoiseTexture2D_71j4m")
-detail_blend_mode = 3
-detail_uv_layer = 1
-detail_albedo = SubResource("NoiseTexture2D_4mrxx")
-detail_normal = SubResource("NoiseTexture2D_w7kh3")
-uv1_scale = Vector3(50, 50, 50)
-
-[sub_resource type="BoxMesh" id="BoxMesh_8rti0"]
-lightmap_size_hint = Vector2i(5004, 2516)
-size = Vector3(190, 1, 1100)
-subdivide_width = 100
-subdivide_height = 100
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_8rti0"]
-size = Vector3(190, 1, 1100)
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_bq33v"]
 albedo_color = Color(0.12, 0.12, 0.13, 1)
@@ -556,7 +499,67 @@ height = 10.0
 [sub_resource type="BoxShape3D" id="BoxShape3D_7tufn"]
 size = Vector3(10, 0.08, 0.4)
 
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_7r4gi"]
+frequency = 0.05
+fractal_octaves = 4
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_4mrxx"]
+noise = SubResource("FastNoiseLite_7r4gi")
+seamless = true
+seamless_blend_skirt = 0.25
+
+[sub_resource type="Gradient" id="Gradient_4mrxx"]
+colors = PackedColorArray(0, 0, 0, 1, 0.20348836, 0.20348836, 0.20348836, 1)
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_k0juu"]
+noise_type = 4
+frequency = 0.03
+fractal_octaves = 3
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_71j4m"]
+noise = SubResource("FastNoiseLite_k0juu")
+color_ramp = SubResource("Gradient_4mrxx")
+seamless = true
+seamless_blend_skirt = 1.0
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_e3hyu"]
+frequency = 0.1
+fractal_octaves = 4
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_w7kh3"]
+noise = SubResource("FastNoiseLite_e3hyu")
+seamless = true
+as_normal_map = true
+bump_strength = 4.0
+
+[sub_resource type="ORMMaterial3D" id="ORMMaterial3D_e5uuo"]
+albedo_texture = ExtResource("1_v5dby")
+orm_texture = ExtResource("4_j2gmx")
+normal_enabled = true
+normal_texture = ExtResource("3_bq33v")
+heightmap_enabled = true
+heightmap_scale = 1.0
+heightmap_texture = ExtResource("2_t5ptc")
+detail_enabled = true
+detail_mask = SubResource("NoiseTexture2D_71j4m")
+detail_blend_mode = 3
+detail_uv_layer = 1
+detail_albedo = SubResource("NoiseTexture2D_4mrxx")
+detail_normal = SubResource("NoiseTexture2D_w7kh3")
+uv1_scale = Vector3(50, 50, 50)
+
+[sub_resource type="BoxMesh" id="BoxMesh_8rti0"]
+lightmap_size_hint = Vector2i(5004, 2516)
+size = Vector3(190, 1, 1100)
+subdivide_width = 100
+subdivide_height = 100
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_8rti0"]
+size = Vector3(190, 1, 1100)
+
 [node name="World" type="Node3D" unique_id=633136770]
+
+[node name="Telemetry" parent="." unique_id=1683315418 instance=ExtResource("6_bq33v")]
 
 [node name="DebugCamera" type="Camera3D" parent="." unique_id=811414314]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 20, 0)
@@ -571,15 +574,6 @@ shadow_enabled = true
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="Environment" unique_id=1347009838]
 environment = SubResource("Environment_t5ptc")
-
-[node name="Ground" type="StaticBody3D" parent="." unique_id=1121558543]
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Ground" unique_id=893325374]
-material_override = SubResource("ORMMaterial3D_e5uuo")
-mesh = SubResource("BoxMesh_8rti0")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Ground" unique_id=878017893]
-shape = SubResource("BoxShape3D_8rti0")
 
 [node name="Tests" type="Node3D" parent="." unique_id=1518008125]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -53.848, 0.6, 500)
@@ -1172,3 +1166,12 @@ mesh = SubResource("CylinderMesh_di5vm")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Tests/BumpTest/Bumps/Bump15" unique_id=371832099]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.04, 0)
 shape = SubResource("BoxShape3D_7tufn")
+
+[node name="Ground" type="StaticBody3D" parent="." unique_id=1121558543]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Ground" unique_id=893325374]
+material_override = SubResource("ORMMaterial3D_e5uuo")
+mesh = SubResource("BoxMesh_8rti0")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Ground" unique_id=878017893]
+shape = SubResource("BoxShape3D_8rti0")

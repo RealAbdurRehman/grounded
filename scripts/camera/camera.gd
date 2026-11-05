@@ -62,7 +62,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"): 
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
-func _process(delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	if current_mode == CameraMode.FLY: _process_debug_fly(delta)
 	elif current_mode == CameraMode.FOLLOW and is_instance_valid(target_vehicle): _process_follow_car(delta)
 
@@ -94,7 +94,9 @@ func _process_follow_car(delta: float) -> void:
 	var target_transform := Transform3D().looking_at(look_target - target_position, Vector3.UP)
 	target_transform.origin = target_position
 
-	global_transform = global_transform.interpolate_with(target_transform, follow_smoothing * delta)
+	var weight = 1.0 - exp(-follow_smoothing * delta)
+	global_position = global_position.lerp(target_transform.origin, weight)
+	global_basis = global_basis.slerp(target_transform.basis, weight)
 
 	_yaw = rotation.y
 	_pitch = rotation.x

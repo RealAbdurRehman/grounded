@@ -91,7 +91,14 @@ func _apply_aerodynamic_drag() -> void:
 		apply_central_force(drag_vector)
 
 func _update_telemetry() -> void:
-	telemetry_hud.update_wheel_telemetry("FL", wheel_fl.suspension_force_n, rad_to_deg(wheel_fl.steer_angle_rad), 0.0, wheel_fl.compression)
-	telemetry_hud.update_wheel_telemetry("FR", wheel_fr.suspension_force_n, rad_to_deg(wheel_fr.steer_angle_rad), 0.0, wheel_fr.compression)
-	telemetry_hud.update_wheel_telemetry("RL", wheel_rl.suspension_force_n, 0.0, 0.0, wheel_rl.compression)
-	telemetry_hud.update_wheel_telemetry("RR", wheel_rr.suspension_force_n, 0.0, 0.0, wheel_rr.compression)
+	var fl_grip := wheel_fl.friction_coef * wheel_fl.suspension_force_n
+	telemetry_hud.update_wheel_telemetry("FL", wheel_fl.suspension_force_n, rad_to_deg(wheel_fl.steer_angle_rad), 0.0, wheel_fl.compression, wheel_fl.longitudinal_force_n, wheel_fl.lateral_force_n, fl_grip)
+
+	var fr_grip := wheel_fr.friction_coef * wheel_fr.suspension_force_n
+	telemetry_hud.update_wheel_telemetry("FR", wheel_fr.suspension_force_n, rad_to_deg(wheel_fr.steer_angle_rad), 0.0, wheel_fr.compression, wheel_fr.longitudinal_force_n, wheel_fr.lateral_force_n, fr_grip)
+
+	var rl_grip := wheel_rl.friction_coef * wheel_rl.suspension_force_n
+	telemetry_hud.update_wheel_telemetry("RL", wheel_rl.suspension_force_n, 0.0, 0.0, wheel_rl.compression, wheel_rl.longitudinal_force_n, wheel_rl.lateral_force_n, rl_grip)
+
+	var rr_grip := wheel_rr.friction_coef * wheel_rr.suspension_force_n
+	telemetry_hud.update_wheel_telemetry("RR", wheel_rr.suspension_force_n, 0.0, 0.0, wheel_rr.compression, wheel_rr.longitudinal_force_n, wheel_rr.lateral_force_n, rr_grip)

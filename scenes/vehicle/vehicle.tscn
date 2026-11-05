@@ -11,6 +11,14 @@ size = Vector3(1.8, 0.7, 4.2)
 
 [node name="RigidBody" type="RigidBody3D" unique_id=429220544 node_paths=PackedStringArray("wheel_fl", "wheel_fr", "wheel_rl", "wheel_rr")]
 script = ExtResource("1_udt0a")
+vehicle_mass = null
+max_engine_force = null
+max_brake_force = null
+max_steer_angle_deg = null
+frontal_area = null
+drag_coefficient = null
+front_arb_stiffness = null
+rear_arb_stiffness = null
 wheel_fl = NodePath("Wheels/WheelFL")
 wheel_fr = NodePath("Wheels/WheelFR")
 wheel_rl = NodePath("Wheels/WheelRL")

@@ -1,13 +1,11 @@
 [gd_scene format=4 uid="uid://csigwx2iwurp6"]
 
-[ext_resource type="Script" uid="uid://mri638visx8m" path="res://scripts/debug/telemetry.gd" id="1_j2gmx"]
 [ext_resource type="Texture2D" uid="uid://cbv4iwr77qvoy" path="res://assets/textures/ground/diff.jpg" id="1_v5dby"]
-[ext_resource type="Script" uid="uid://bdbc868kpiykc" path="res://scripts/debug/friction_circle.gd" id="2_1yooq"]
 [ext_resource type="Texture2D" uid="uid://be5q370waxn70" path="res://assets/textures/ground/disp.png" id="2_t5ptc"]
 [ext_resource type="Texture2D" uid="uid://c4iuxf2c8214a" path="res://assets/textures/ground/nor.jpg" id="3_bq33v"]
-[ext_resource type="Script" uid="uid://c7doqgftobsg3" path="res://scripts/debug/telemetry_logger.gd" id="3_gb53w"]
 [ext_resource type="PackedScene" uid="uid://dr8e42tbw6xk2" path="res://scenes/vehicle/vehicle.tscn" id="3_j2gmx"]
 [ext_resource type="Texture2D" uid="uid://c7ma8ggfipg" path="res://assets/textures/ground/arm.jpg" id="4_j2gmx"]
+[ext_resource type="PackedScene" uid="uid://db4473gxoh8sk" path="res://scenes/ui/telemetry.tscn" id="6_bq33v"]
 [ext_resource type="Script" uid="uid://dvp5aua86h7p4" path="res://scripts/camera/camera.gd" id="6_t5ptc"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_j2gmx"]
@@ -562,63 +560,12 @@ size = Vector3(190, 1, 1100)
 
 [node name="World" type="Node3D" unique_id=633136770]
 
-[node name="Telemetry" type="CanvasLayer" parent="." unique_id=1683315418]
+[node name="Telemetry" parent="." unique_id=1683315418 instance=ExtResource("6_bq33v")]
 
-[node name="Control" type="Control" parent="Telemetry" unique_id=1098802702 node_paths=PackedStringArray("target_vehicle")]
-layout_mode = 3
-anchors_preset = 0
-offset_right = 40.0
-offset_bottom = 40.0
-script = ExtResource("1_j2gmx")
+[node name="Control" parent="Telemetry" index="0" unique_id=1098802702 node_paths=PackedStringArray("target_vehicle")]
 target_vehicle = NodePath("../../Vehicle")
 
-[node name="VBoxContainer" type="VBoxContainer" parent="Telemetry/Control" unique_id=1408052307]
-layout_mode = 0
-offset_left = 19.0
-offset_top = 17.0
-offset_right = 63.0
-offset_bottom = 175.0
-
-[node name="SpeedLabel" type="Label" parent="Telemetry/Control/VBoxContainer" unique_id=2096946158]
-layout_mode = 2
-text = "0.0"
-
-[node name="GForceLabel" type="Label" parent="Telemetry/Control/VBoxContainer" unique_id=278690702]
-layout_mode = 2
-text = "0.0"
-
-[node name="WheelGrid" type="GridContainer" parent="Telemetry/Control/VBoxContainer" unique_id=35030928]
-layout_mode = 2
-columns = 2
-
-[node name="FL" type="Label" parent="Telemetry/Control/VBoxContainer/WheelGrid" unique_id=2134615995]
-layout_mode = 2
-text = "FL"
-
-[node name="FR" type="Label" parent="Telemetry/Control/VBoxContainer/WheelGrid" unique_id=52569694]
-layout_mode = 2
-text = "FR"
-
-[node name="RL" type="Label" parent="Telemetry/Control/VBoxContainer/WheelGrid" unique_id=938188063]
-layout_mode = 2
-text = "RL"
-
-[node name="RR" type="Label" parent="Telemetry/Control/VBoxContainer/WheelGrid" unique_id=427562562]
-layout_mode = 2
-text = "RR"
-
-[node name="FrictionCircle" type="Control" parent="Telemetry/Control" unique_id=1044300125]
-custom_minimum_size = Vector2(200, 200)
-layout_mode = 1
-anchors_preset = 0
-offset_left = 940.0
-offset_top = 17.0
-offset_right = 1140.0
-offset_bottom = 217.0
-script = ExtResource("2_1yooq")
-
-[node name="Logger" type="Node" parent="Telemetry" unique_id=707249097 node_paths=PackedStringArray("target_vehicle")]
-script = ExtResource("3_gb53w")
+[node name="Logger" parent="Telemetry" index="1" unique_id=707249097 node_paths=PackedStringArray("target_vehicle")]
 target_vehicle = NodePath("../../Vehicle")
 
 [node name="Camera" type="Camera3D" parent="." unique_id=811414314 node_paths=PackedStringArray("target_vehicle")]
@@ -638,6 +585,14 @@ environment = SubResource("Environment_t5ptc")
 
 [node name="Vehicle" parent="." unique_id=429220544 node_paths=PackedStringArray("telemetry_hud") instance=ExtResource("3_j2gmx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 525)
+vehicle_mass = 1350.0
+max_engine_force = 7500.0
+max_brake_force = 12000.0
+max_steer_angle_deg = 32.0
+frontal_area = 2.2
+drag_coefficient = 0.38
+front_arb_stiffness = 8000.0
+rear_arb_stiffness = 5000.0
 telemetry_hud = NodePath("../Telemetry/Control")
 
 [node name="Tests" type="Node3D" parent="." unique_id=1518008125]
@@ -1240,3 +1195,6 @@ mesh = SubResource("BoxMesh_8rti0")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Ground" unique_id=878017893]
 shape = SubResource("BoxShape3D_8rti0")
+
+[editable path="Telemetry"]
+[editable path="Vehicle"]

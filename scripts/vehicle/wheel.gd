@@ -16,6 +16,9 @@ extends RayCast3D
 @export_group("Friction")
 @export var friction_coef: float = 1.0
 
+@export_group("Mesh")
+@onready var visual_mesh: MeshInstance3D = $Mesh
+
 var is_grounded: bool = false
 
 var compression: float = 0.0
@@ -30,6 +33,8 @@ var longitudinal_force_n: float = 0.0
 
 var steer_angle_rad: float = 0.0
 var _prev_displacement: float = 0.0
+
+var _spin_angle: float = 0.0
 
 func _ready() -> void:
 	var total_ray_length := suspension_rest_length + wheel_radius
@@ -106,6 +111,14 @@ func update_wheel(chassis: RigidBody3D, delta: float, throttle_input: float, bra
 
 	var total_force: Vector3 = (contact_normal * suspension_force_n) + (wheel_forward * longitudinal_force_n) + (wheel_right * lateral_force_n)
 	chassis.apply_force(total_force, contact_point - chassis.global_position)
+
+	if visual_mesh:
+		var visual_y = -(suspension_rest_length - spring_displacement)
+		visual_mesh.position = Vector3(0, visual_y, 0)
+
+		if is_grounded: _spin_angle += (-v_long / wheel_radius) * delta
+		visual_mesh.rotation.x = _spin_angle
+		visual_mesh.rotation.y = steer_angle_rad
 
 	DebugDraw3D.draw_line(contact_point, contact_point + contact_normal * (suspension_force_n / 1500.0), Color.GREEN)
 	DebugDraw3D.draw_line(contact_point, contact_point + wheel_right * (lateral_force_n / 1500.0), Color.RED)

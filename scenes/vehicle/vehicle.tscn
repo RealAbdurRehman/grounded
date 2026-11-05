@@ -9,16 +9,18 @@ size = Vector3(1.8, 0.7, 4.2)
 [sub_resource type="BoxMesh" id="BoxMesh_8rti0"]
 size = Vector3(1.8, 0.7, 4.2)
 
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_udt0a"]
+albedo_color = Color(0, 0.027755555, 0.07416836, 1)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_8rti0"]
+material = SubResource("StandardMaterial3D_udt0a")
+top_radius = 0.33
+bottom_radius = 0.33
+height = 0.25
+radial_segments = 12
+
 [node name="RigidBody" type="RigidBody3D" unique_id=429220544 node_paths=PackedStringArray("wheel_fl", "wheel_fr", "wheel_rl", "wheel_rr")]
 script = ExtResource("1_udt0a")
-vehicle_mass = null
-max_engine_force = null
-max_brake_force = null
-max_steer_angle_deg = null
-frontal_area = null
-drag_coefficient = null
-front_arb_stiffness = null
-rear_arb_stiffness = null
 wheel_fl = NodePath("Wheels/WheelFL")
 wheel_fr = NodePath("Wheels/WheelFR")
 wheel_rl = NodePath("Wheels/WheelRL")
@@ -40,16 +42,32 @@ script = ExtResource("2_2aj0h")
 is_front = true
 is_driven = false
 
+[node name="Mesh" type="MeshInstance3D" parent="Wheels/WheelFL" unique_id=1564057894]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("CylinderMesh_8rti0")
+
 [node name="WheelFR" type="RayCast3D" parent="Wheels" unique_id=1065968054]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.8, 0.25, -1.35)
 script = ExtResource("2_2aj0h")
 is_front = true
 is_driven = false
 
+[node name="Mesh" type="MeshInstance3D" parent="Wheels/WheelFR" unique_id=1374558037]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("CylinderMesh_8rti0")
+
 [node name="WheelRL" type="RayCast3D" parent="Wheels" unique_id=136557973]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.8, 0.25, 1.35)
 script = ExtResource("2_2aj0h")
 
+[node name="Mesh" type="MeshInstance3D" parent="Wheels/WheelRL" unique_id=1879087921]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("CylinderMesh_8rti0")
+
 [node name="WheelRR" type="RayCast3D" parent="Wheels" unique_id=834798633]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.8, 0.25, 1.35)
 script = ExtResource("2_2aj0h")
+
+[node name="Mesh" type="MeshInstance3D" parent="Wheels/WheelRR" unique_id=1706105306]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("CylinderMesh_8rti0")

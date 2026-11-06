@@ -19,7 +19,7 @@ material = SubResource("StandardMaterial3D_udt0a")
 top_radius = 0.33
 bottom_radius = 0.33
 height = 0.25
-radial_segments = 12
+radial_segments = 16
 
 [node name="RigidBody" type="RigidBody3D" unique_id=429220544]
 script = ExtResource("1_udt0a")

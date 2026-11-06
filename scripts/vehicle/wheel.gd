@@ -46,6 +46,7 @@ func _ready() -> void:
 	exclude_parent = true
 
 func update_wheel(chassis: RigidBody3D, delta: float, drive_torque_nm: float, brake_input: float, max_brake_torque: float) -> void:
+	force_raycast_update()
 	is_grounded = is_colliding()
 
 	if not is_grounded:
@@ -129,7 +130,7 @@ func update_wheel(chassis: RigidBody3D, delta: float, drive_torque_nm: float, br
 		visual_mesh.position = Vector3(0, visual_y, 0)
 		
 		_spin_angle += angular_velocity_rad_s * delta
-		visual_mesh.rotation.x = _spin_angle
+		visual_mesh.rotation.x = -_spin_angle
 		visual_mesh.rotation.y = steer_angle_rad
 
 	DebugDraw3D.draw_line(contact_point, contact_point + contact_normal * (suspension_force_n / 1500.0), Color.GREEN)

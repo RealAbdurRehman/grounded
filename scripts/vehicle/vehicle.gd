@@ -45,8 +45,8 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	_handle_inputs(delta)
 
-	_apply_anti_roll_bars()
 	_update_drivetrain_and_wheels(delta)
+	_apply_anti_roll_bars()
 	_apply_aerodynamic_drag()
 	
 	_update_telemetry()

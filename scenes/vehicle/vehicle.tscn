@@ -2,6 +2,8 @@
 
 [ext_resource type="Script" uid="uid://oku72ohq2gwr" path="res://scripts/vehicle/vehicle.gd" id="1_udt0a"]
 [ext_resource type="Script" uid="uid://cnyyb4kyw2uoj" path="res://scripts/vehicle/wheel.gd" id="2_2aj0h"]
+[ext_resource type="Script" uid="uid://qdtawm0erttj" path="res://scripts/vehicle/engine.gd" id="2_cs81w"]
+[ext_resource type="Script" uid="uid://dwugrbcr8g24y" path="res://scripts/vehicle/drivetrain.gd" id="3_cs81w"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_8rti0"]
 size = Vector3(1.8, 0.7, 4.2)
@@ -19,12 +21,8 @@ bottom_radius = 0.33
 height = 0.25
 radial_segments = 12
 
-[node name="RigidBody" type="RigidBody3D" unique_id=429220544 node_paths=PackedStringArray("wheel_fl", "wheel_fr", "wheel_rl", "wheel_rr")]
+[node name="RigidBody" type="RigidBody3D" unique_id=429220544]
 script = ExtResource("1_udt0a")
-wheel_fl = NodePath("Wheels/WheelFL")
-wheel_fr = NodePath("Wheels/WheelFR")
-wheel_rl = NodePath("Wheels/WheelRL")
-wheel_rr = NodePath("Wheels/WheelRR")
 
 [node name="Collider" type="CollisionShape3D" parent="." unique_id=333000496]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0)
@@ -33,6 +31,12 @@ shape = SubResource("BoxShape3D_8rti0")
 [node name="Mesh" type="MeshInstance3D" parent="." unique_id=856655238]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0)
 mesh = SubResource("BoxMesh_8rti0")
+
+[node name="Engine" type="Node" parent="." unique_id=1472005107]
+script = ExtResource("2_cs81w")
+
+[node name="Drivetrain" type="Node" parent="." unique_id=1060942932]
+script = ExtResource("3_cs81w")
 
 [node name="Wheels" type="Node3D" parent="." unique_id=2027221242]
 

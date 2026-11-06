@@ -3,9 +3,7 @@ extends RigidBody3D
 
 @export_group("Specs")
 @export var vehicle_mass: float = 1350.0
-
-@export var max_engine_force: float = 7500.0
-@export var max_brake_force: float = 12000.0
+@export var max_brake_torque: float = 3200.0 
 @export var max_steer_angle_deg: float = 32.0
 
 @export var frontal_area: float = 2.2
@@ -20,6 +18,9 @@ extends RigidBody3D
 @export var wheel_fr: Wheel
 @export var wheel_rl: Wheel
 @export var wheel_rr: Wheel
+
+@export var engine_node: VehicleEngine
+@export var drivetrain_node: Drivetrain
 
 @export var telemetry_hud: Telemetry
 
@@ -39,9 +40,9 @@ func _physics_process(delta: float) -> void:
 	_handle_inputs(delta)
 
 	_apply_anti_roll_bars()
-	_update_wheels(delta)
+	_update_drivetrain_and_wheels(delta)
 	_apply_aerodynamic_drag()
-
+	
 	_update_telemetry()
 
 func _handle_inputs(delta: float) -> void:
@@ -68,18 +69,27 @@ func _apply_anti_roll_bars() -> void:
 		apply_force(wheel_rl.contact_normal * -rear_arb_force, wheel_rl.contact_point - global_position)
 		apply_force(wheel_rr.contact_normal * rear_arb_force, wheel_rr.contact_point - global_position)
 
-func _update_wheels(delta: float) -> void:
-	var driven_wheel_count := 0
+func _update_drivetrain_and_wheels(delta: float) -> void:
+	var driven_wheels: Array[Wheel] = []
 
-	var wheels: Array[Wheel] = [wheel_fl, wheel_fr, wheel_rl, wheel_rr]
-	for w in wheels:
-		if w.is_driven: driven_wheel_count += 1
+	var total_driven_w: float = 0.0
+	for w in [wheel_fl, wheel_fr, wheel_rl, wheel_rr]:
+		if w.is_driven:
+			driven_wheels.append(w)
+			total_driven_w += abs(w.angular_velocity_rad_s)
 
-	var drive_share: float = max_engine_force / max(driven_wheel_count, 1)
-	var brake_share: float = max_brake_force / 4.0
+	var avg_driven_w: float = total_driven_w / max(driven_wheels.size(), 1)
+	drivetrain_node.handle_transmission(engine_node.current_rpm)
 
-	for w in wheels:
-		w.update_wheel(self, delta, throttle_input, brake_input, drive_share, brake_share)
+	var target_engine_rpm: float = drivetrain_node.calculate_target_engine_rpm(avg_driven_w)
+	var engine_torque: float = engine_node.update_engine(delta, throttle_input, target_engine_rpm, drivetrain_node.is_clutch_engaged())
+
+	var total_wheel_torque: float = drivetrain_node.calculate_wheel_drive_torque(engine_torque)
+	var torque_per_driven_wheel: float = total_wheel_torque / max(driven_wheels.size(), 1)
+
+	for w in [wheel_fl, wheel_fr, wheel_rl, wheel_rr]:
+		var w_drive_torque: float = torque_per_driven_wheel if w.is_driven else 0.0
+		w.update_wheel(self, delta, w_drive_torque, brake_input, max_brake_torque)
 
 func _apply_aerodynamic_drag() -> void:
 	var speed: float = linear_velocity.length()

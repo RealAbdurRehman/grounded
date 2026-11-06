@@ -6,6 +6,7 @@ extends RayCast3D
 @export var is_driven: bool = true
 
 @export var wheel_radius: float = 0.33
+@export var wheel_inertia: float = 1.2
 
 @export_group("Suspension")
 @export var spring_stiffness: float = 30000.0
@@ -32,8 +33,9 @@ var lateral_force_n: float = 0.0
 var longitudinal_force_n: float = 0.0
 
 var steer_angle_rad: float = 0.0
-var _prev_displacement: float = 0.0
+var angular_velocity_rad_s: float = 0.0
 
+var _prev_displacement: float = 0.0
 var _spin_angle: float = 0.0
 
 func _ready() -> void:
@@ -43,7 +45,7 @@ func _ready() -> void:
 	enabled = true
 	exclude_parent = true
 
-func update_wheel(chassis: RigidBody3D, delta: float, throttle_input: float, brake_input: float, drive_force_per_wheel: float, brake_force_per_wheel: float) -> void:
+func update_wheel(chassis: RigidBody3D, delta: float, drive_torque_nm: float, brake_input: float, max_brake_torque: float) -> void:
 	is_grounded = is_colliding()
 
 	if not is_grounded:
@@ -55,6 +57,14 @@ func update_wheel(chassis: RigidBody3D, delta: float, throttle_input: float, bra
 		longitudinal_force_n = 0.0
 
 		_prev_displacement = 0.0
+
+		if is_driven and abs(drive_torque_nm) > 0.1: angular_velocity_rad_s += (drive_torque_nm / wheel_inertia) * delta
+		else: angular_velocity_rad_s = move_toward(angular_velocity_rad_s, 0.0, delta * 8.0)
+
+		if visual_mesh:
+			_spin_angle += angular_velocity_rad_s * delta
+			visual_mesh.rotation.x = _spin_angle
+
 		return
 
 	contact_point = get_collision_point()
@@ -88,20 +98,19 @@ func update_wheel(chassis: RigidBody3D, delta: float, throttle_input: float, bra
 
 	var max_grip: float = friction_coef * suspension_force_n
 
+	var drive_force: float = 0.0
+	if is_driven: drive_force = drive_torque_nm / wheel_radius
+
+	var brake_torque: float = brake_input * max_brake_torque
+	var brake_force: float = 0.0
+	if brake_torque > 0.01 and abs(v_long) > 0.1: brake_force = -sign(v_long) * (brake_torque / wheel_radius)
+
+	var rolling_resistance: float = -0.015 * suspension_force_n * sign(v_long)
+	longitudinal_force_n = drive_force + brake_force + rolling_resistance
+
 	var wheel_share_mass: float = chassis.mass * 0.25
 	var desired_lateral_force: float = -v_lat * (wheel_share_mass / max(delta, 0.0001))
 	lateral_force_n = clamp(desired_lateral_force, -max_grip, max_grip)
-
-	longitudinal_force_n = 0.0
-	if is_driven:
-		longitudinal_force_n += throttle_input * drive_force_per_wheel
-
-	if brake_input > 0.001 and abs(v_long) > 0.1:
-		var desired_brake: float = -sign(v_long) * brake_input * brake_force_per_wheel
-		longitudinal_force_n += desired_brake
-
-	var c_rr: float = 0.015 * suspension_force_n
-	longitudinal_force_n -= c_rr * sign(v_long)
 
 	var total_horizontal_force := Vector2(longitudinal_force_n, lateral_force_n)
 	if total_horizontal_force.length() > max_grip and max_grip > 0.0:
@@ -109,14 +118,16 @@ func update_wheel(chassis: RigidBody3D, delta: float, throttle_input: float, bra
 		longitudinal_force_n = total_horizontal_force.x
 		lateral_force_n = total_horizontal_force.y
 
+	angular_velocity_rad_s = v_long / wheel_radius
+
 	var total_force: Vector3 = (contact_normal * suspension_force_n) + (wheel_forward * longitudinal_force_n) + (wheel_right * lateral_force_n)
 	chassis.apply_force(total_force, contact_point - chassis.global_position)
 
 	if visual_mesh:
 		var visual_y = -(suspension_rest_length - spring_displacement)
 		visual_mesh.position = Vector3(0, visual_y, 0)
-
-		if is_grounded: _spin_angle += (-v_long / wheel_radius) * delta
+		
+		_spin_angle += angular_velocity_rad_s * delta
 		visual_mesh.rotation.x = _spin_angle
 		visual_mesh.rotation.y = steer_angle_rad
 

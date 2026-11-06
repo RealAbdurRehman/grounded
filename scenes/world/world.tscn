@@ -565,7 +565,12 @@ size = Vector3(190, 1, 1100)
 [node name="Control" parent="Telemetry" index="0" unique_id=1098802702 node_paths=PackedStringArray("target_vehicle")]
 target_vehicle = NodePath("../../Vehicle")
 
-[node name="Logger" parent="Telemetry" index="1" unique_id=707249097 node_paths=PackedStringArray("target_vehicle")]
+[node name="Control2" parent="Telemetry" index="1" unique_id=863474613 node_paths=PackedStringArray("engine_node", "drivetrain_node", "target_vehicle")]
+engine_node = NodePath("../../Vehicle/Engine")
+drivetrain_node = NodePath("../../Vehicle/Drivetrain")
+target_vehicle = NodePath("../../Vehicle")
+
+[node name="Logger" parent="Telemetry" index="2" unique_id=707249097 node_paths=PackedStringArray("target_vehicle")]
 target_vehicle = NodePath("../../Vehicle")
 
 [node name="Camera" type="Camera3D" parent="." unique_id=811414314 node_paths=PackedStringArray("target_vehicle")]
@@ -583,16 +588,14 @@ shadow_enabled = true
 [node name="WorldEnvironment" type="WorldEnvironment" parent="Environment" unique_id=1347009838]
 environment = SubResource("Environment_t5ptc")
 
-[node name="Vehicle" parent="." unique_id=429220544 node_paths=PackedStringArray("telemetry_hud") instance=ExtResource("3_j2gmx")]
+[node name="Vehicle" parent="." unique_id=429220544 node_paths=PackedStringArray("wheel_fl", "wheel_fr", "wheel_rl", "wheel_rr", "engine_node", "drivetrain_node", "telemetry_hud") instance=ExtResource("3_j2gmx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 525)
-vehicle_mass = 1350.0
-max_engine_force = 7500.0
-max_brake_force = 12000.0
-max_steer_angle_deg = 32.0
-frontal_area = 2.2
-drag_coefficient = 0.38
-front_arb_stiffness = 8000.0
-rear_arb_stiffness = 5000.0
+wheel_fl = NodePath("Wheels/WheelFL")
+wheel_fr = NodePath("Wheels/WheelFR")
+wheel_rl = NodePath("Wheels/WheelRL")
+wheel_rr = NodePath("Wheels/WheelRR")
+engine_node = NodePath("Engine")
+drivetrain_node = NodePath("Drivetrain")
 telemetry_hud = NodePath("../Telemetry/Control")
 
 [node name="Tests" type="Node3D" parent="." unique_id=1518008125]

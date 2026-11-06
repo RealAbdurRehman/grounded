@@ -10,8 +10,10 @@ var current_mode: CameraMode = CameraMode.FOLLOW
 
 @export_group("Follow Mode")
 @export var target_vehicle: Node3D
-@export var follow_smoothing: float = 4.0
-@export var follow_offset: Vector3 = Vector3(0.0, 2.5, 7.0)
+
+@export var follow_smoothing: float = 16.0
+@export var max_follow_distance: float = 6.0
+@export var follow_offset: Vector3 = Vector3(0.0, 1.25, 4.5)
 
 var _yaw: float = 0.0
 var _pitch: float = 0.0
@@ -97,6 +99,10 @@ func _process_follow_car(delta: float) -> void:
 	var weight = 1.0 - exp(-follow_smoothing * delta)
 	global_position = global_position.lerp(target_transform.origin, weight)
 	global_basis = global_basis.slerp(target_transform.basis, weight)
+
+	var offset_from_car: Vector3 = global_position - target_vehicle.global_position
+	if offset_from_car.length() > max_follow_distance:
+		global_position = target_vehicle.global_position + offset_from_car.normalized() * max_follow_distance
 
 	_yaw = rotation.y
 	_pitch = rotation.x

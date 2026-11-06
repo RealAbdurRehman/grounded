@@ -90,7 +90,8 @@ func update_wheel(chassis: RigidBody3D, delta: float, drive_torque_nm: float, br
 	wheel_forward = (wheel_forward - contact_normal * wheel_forward.dot(contact_normal)).normalized()
 	wheel_right = (wheel_right - contact_normal * wheel_right.dot(contact_normal)).normalized()
 
-	var r: Vector3 = contact_point - chassis.global_position
+	var com_world: Vector3 = chassis.to_global(chassis.center_of_mass)
+	var r: Vector3 = contact_point - com_world
 	var contact_velocity: Vector3 = chassis.linear_velocity + chassis.angular_velocity.cross(r)
 
 	var v_lat: float = contact_velocity.dot(wheel_right)

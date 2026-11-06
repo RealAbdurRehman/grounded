@@ -88,7 +88,7 @@ func _update_drivetrain_and_wheels(delta: float) -> void:
 	drivetrain_node.handle_transmission(engine_node.current_rpm)
 
 	var target_engine_rpm: float = drivetrain_node.calculate_target_engine_rpm(avg_driven_w)
-	var engine_torque: float = engine_node.update_engine(delta, throttle_input, target_engine_rpm, drivetrain_node.is_clutch_engaged())
+	var engine_torque: float = engine_node.update_engine(delta, throttle_input, target_engine_rpm, drivetrain_node.is_clutch_engaged(), drivetrain_node.is_shifting)
 
 	var total_wheel_torque: float = drivetrain_node.calculate_wheel_drive_torque(engine_torque)
 	var torque_per_driven_wheel: float = total_wheel_torque / max(driven_wheels.size(), 1)

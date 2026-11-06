@@ -38,13 +38,14 @@ func calculate_raw_torque(rpm: float) -> float:
 func calculate_power_kw(rpm: float) -> float:
 	return (calculate_raw_torque(rpm) * rpm) / 9549.0
 
-func update_engine(delta: float, throttle_input: float, target_drivetrain_rpm: float, is_clutch_engaged: bool) -> float:
+func update_engine(delta: float, throttle_input: float, target_drivetrain_rpm: float, is_clutch_engaged: bool, is_shifting: bool = false) -> float:
 	if current_rpm >= rev_limiter_rpm: is_rev_limiter_active = true
 	elif current_rpm <= rev_limiter_rpm - 250.0: is_rev_limiter_active = false
 
 	var effective_throttle: float = 0.0 if is_rev_limiter_active else throttle_input
 
-	if not is_clutch_engaged:
+	if is_shifting: current_rpm = lerp(current_rpm, max(target_drivetrain_rpm, idle_rpm), clamp(12.0 * delta, 0.0, 1.0))
+	elif not is_clutch_engaged:
 		var net_torque: float = 0.0
 
 		if effective_throttle > 0.01: net_torque = calculate_raw_torque(current_rpm) * effective_throttle

@@ -2,13 +2,20 @@ class_name Vehicle
 extends RigidBody3D
 
 @export_group("Specs")
+## In Kg.
 @export var vehicle_mass: float = 1350.0
-@export var max_brake_torque: float = 3200.0 
+
+## In Nm.
+@export var max_brake_torque: float = 3200.0
+
 @export var max_steer_angle_deg: float = 32.0
 
+## In square meters.
 @export var frontal_area: float = 2.2
+
 @export var drag_coefficient: float = 0.38
 
+# Controls body roll
 @export_group("Anti Roll Bars")
 @export var front_arb_stiffness: float = 8000.0
 @export var rear_arb_stiffness: float = 5000.0

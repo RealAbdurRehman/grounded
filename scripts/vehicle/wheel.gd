@@ -5,16 +5,23 @@ extends RayCast3D
 @export var is_front: bool = false
 @export var is_driven: bool = true
 
+## Size of the wheel, in meters.
 @export var wheel_radius: float = 0.33
+
+## How hard it is to spin the wheel.
 @export var wheel_inertia: float = 1.2
 
 @export_group("Suspension")
 @export var spring_stiffness: float = 30000.0
+
+## Resists suspension bouncing.
 @export var damper_stiffness: float = 1600.0
 
+## How far the wheel hangs down from the car, in meters.
 @export var suspension_rest_length: float = 0.35
 
 @export_group("Friction")
+## Tire grip.
 @export var friction_coef: float = 1.0
 
 @export_group("Mesh")

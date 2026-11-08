@@ -30,17 +30,21 @@ extends RigidBody3D
 @export var engine_node: VehicleEngine
 @export var drivetrain_node: Drivetrain
 
+@export var center_of_mass_node: Marker3D
+
 @export var telemetry_hud: Telemetry
 
 var throttle_input: float = 0.0
 var brake_input: float = 0.0
 var steer_input: float = 0.0
 
+var _com_applied: Vector3 = Vector3.INF
+
 func _ready() -> void:
 	mass = vehicle_mass
 
 	center_of_mass_mode = RigidBody3D.CENTER_OF_MASS_MODE_CUSTOM
-	center_of_mass = Vector3(0.0, -0.2, 0.0)
+	_sync_center_of_mass()
 
 	continuous_cd = true
 
@@ -49,6 +53,13 @@ func _ready() -> void:
 
 	linear_damp = 0.0
 	angular_damp = 0.0
+
+func _sync_center_of_mass() -> void:
+	var local_com: Vector3 = to_local(center_of_mass_node.global_position)
+	if local_com.is_equal_approx(_com_applied): return
+
+	_com_applied = local_com
+	center_of_mass = local_com
 
 func _physics_process(delta: float) -> void:
 	_handle_inputs(delta)

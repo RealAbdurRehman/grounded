@@ -592,27 +592,58 @@ shadow_enabled = true
 [node name="WorldEnvironment" type="WorldEnvironment" parent="Environment" unique_id=1347009838]
 environment = SubResource("Environment_t5ptc")
 
-[node name="Vehicle" parent="." unique_id=429220544 node_paths=PackedStringArray("wheel_fl", "wheel_fr", "wheel_rl", "wheel_rr", "engine_node", "drivetrain_node", "telemetry_hud") instance=ExtResource("3_j2gmx")]
+[node name="Vehicle" parent="." unique_id=429220544 node_paths=PackedStringArray("wheel_fl", "wheel_fr", "wheel_rl", "wheel_rr", "engine_node", "drivetrain_node", "center_of_mass_node", "telemetry_hud") instance=ExtResource("3_j2gmx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 525)
+brake_bias_front = 0.75
+drag_coefficient = 0.31
 wheel_fl = NodePath("Wheels/WheelFL")
 wheel_fr = NodePath("Wheels/WheelFR")
 wheel_rl = NodePath("Wheels/WheelRL")
 wheel_rr = NodePath("Wheels/WheelRR")
 engine_node = NodePath("Engine")
 drivetrain_node = NodePath("Drivetrain")
+center_of_mass_node = NodePath("Markers/CenterOfMass")
 telemetry_hud = NodePath("../Telemetry/TelemetryDebug")
 
+[node name="Engine" parent="Vehicle" index="2" unique_id=1472005107]
+displacement = 140.0
+boost = 225.0
+cam_peak_rpm = 4000.0
+bandwidth = 3000.0
+flywheel_inertia = 0.2
+engine_braking_factor = 45.0
+
+[node name="Drivetrain" parent="Vehicle" index="3" unique_id=1060942932]
+drivetrain_efficiency = 0.88
+gear_ratios = Array[float]([-3.4, 0.0, 3.6, 2.05, 1.4, 1.05, 0.84, 0.68])
+final_drive_ratio = 3.8
+shift_delay_seconds = 0.2
+auto_upshift_rpm = 5200.0
+auto_downshift_rpm = 1600.0
+
 [node name="WheelFL" parent="Vehicle/Wheels" parent_id_path=PackedInt32Array(429220544, 2027221242) index="0" unique_id=1185262635]
+spring_stiffness = 26000.0
+damper_stiffness = 2300.0
 tire_model = ExtResource("4_1yooq")
+rolling_resistance_coef = 0.012
 
 [node name="WheelFR" parent="Vehicle/Wheels" parent_id_path=PackedInt32Array(429220544, 2027221242) index="1" unique_id=1065968054]
+spring_stiffness = 26000.0
+damper_stiffness = 2300.0
 tire_model = ExtResource("4_1yooq")
+rolling_resistance_coef = 0.012
 
 [node name="WheelRL" parent="Vehicle/Wheels" parent_id_path=PackedInt32Array(429220544, 2027221242) index="2" unique_id=136557973]
+spring_stiffness = 22000.0
+damper_stiffness = 2000.0
 tire_model = ExtResource("4_1yooq")
+rolling_resistance_coef = 0.012
 
 [node name="WheelRR" parent="Vehicle/Wheels" parent_id_path=PackedInt32Array(429220544, 2027221242) index="3" unique_id=834798633]
+spring_stiffness = 22000.0
+damper_stiffness = 2000.0
 tire_model = ExtResource("4_1yooq")
+rolling_resistance_coef = 0.012
 
 [node name="Tests" type="Node3D" parent="." unique_id=1518008125]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -53.848, 0.6, 500)

@@ -10,7 +10,6 @@ var _target_fx: float = 0.0
 var _target_fy: float = 0.0
 
 func _process(delta: float) -> void:
-	
 	fx_norm = lerp(fx_norm, _target_fx, delta * smoothing_speed)
 	fy_norm = lerp(fy_norm, _target_fy, delta * smoothing_speed)
 	queue_redraw()

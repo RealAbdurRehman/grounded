@@ -10,13 +10,19 @@ var _file: FileAccess
 var _timer: float = 0.0
 var _elapsed_time: float = 0.0
 
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
-		if event.keycode == KEY_F1: toggle_logging()
+		if event.keycode == KEY_F1:
+			toggle_logging()
+
 
 func toggle_logging() -> void:
-	if is_logging: stop_logging()
-	else: start_logging()
+	if is_logging:
+		stop_logging()
+	else:
+		start_logging()
+
 
 func start_logging() -> void:
 	var timestamp: String = Time.get_datetime_string_from_system().replace(":", "-")
@@ -26,21 +32,26 @@ func start_logging() -> void:
 		is_logging = true
 		_elapsed_time = 0.0
 
-		_file.store_line("time,speed_kmh,rpm,gear,fl_sr,fl_sa,fl_fx,fl_fy,fl_fz,fr_sr,fr_sa,fr_fx,fr_fy,fr_fz,rl_sr,rl_sa,rl_fx,rl_fy,rl_fz,rr_sr,rr_sa,rr_fx,rr_fy,rr_fz")
+		_file.store_line(
+			"time,speed_kmh,rpm,gear,fl_sr,fl_sa,fl_fx,fl_fy,fl_fz,fr_sr,fr_sa,fr_fx,fr_fy,fr_fz,rl_sr,rl_sa,rl_fx,rl_fy,rl_fz,rr_sr,rr_sa,rr_fx,rr_fy,rr_fz"
+		)
 		print("[TelemetryLogger] Started logging to: ", OS.get_user_data_dir() + "/" + path)
 	else:
 		push_error("Failed to open telemetry file.")
+
 
 func stop_logging() -> void:
 	if is_logging and _file:
 		_file.close()
 		_file = null
-		
+
 		is_logging = false
 		print("[TelemetryLogger] Logging stopped.")
 
+
 func _physics_process(delta: float) -> void:
-	if not is_logging or not target_vehicle or not _file: return
+	if not is_logging or not target_vehicle or not _file:
+		return
 
 	_timer += delta
 	_elapsed_time += delta
@@ -49,12 +60,14 @@ func _physics_process(delta: float) -> void:
 		_timer = 0.0
 		_record_sample()
 
+
 func _record_sample() -> void:
 	var vel: Vector3 = target_vehicle.linear_velocity
 	var speed_kmh: float = vel.length() * 3.6
-	
+
 	var v: Vehicle = target_vehicle as Vehicle
-	if not v: return
+	if not v:
+		return
 
 	var rpm: float = v.engine_node.current_rpm if v.engine_node else 0.0
 	var gear: String = v.drivetrain_node.get_gear_name() if v.drivetrain_node else "?"
@@ -64,12 +77,15 @@ func _record_sample() -> void:
 	parts.append("%8.3f,%6.2f,%5.0f,%s" % [_elapsed_time, speed_kmh, rpm, gear])
 
 	for w in wheels:
-		parts.append(",%+6.4f,%+6.2f,%+8.1f,%+8.1f,%7.1f" % [
-			w.slip_ratio,
-			rad_to_deg(w.slip_angle_rad),
-			w.longitudinal_force_n,
-			w.lateral_force_n,
-			w.suspension_force_n
-		])
+		parts.append(
+			",%+6.4f,%+6.2f,%+8.1f,%+8.1f,%7.1f"
+			% [
+				w.slip_ratio,
+				rad_to_deg(w.slip_angle_rad),
+				w.longitudinal_force_n,
+				w.lateral_force_n,
+				w.suspension_force_n,
+			]
+		)
 
 	_file.store_line("".join(parts))

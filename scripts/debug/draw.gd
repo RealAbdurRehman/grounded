@@ -10,8 +10,10 @@ var _mesh_instance: MeshInstance3D
 
 var _material: StandardMaterial3D
 
+
 func _enter_tree() -> void:
 	instance = self
+
 
 func _ready() -> void:
 	_immediate_mesh = ImmediateMesh.new()
@@ -30,17 +32,28 @@ func _ready() -> void:
 
 	add_child(_mesh_instance)
 
-static func draw_line(from: Vector3, to: Vector3, color: Color = Color.WHITE) -> void:
-	if instance == null: return
-	instance._lines.append({"from": from, "to": to, "color": color})
 
-static func draw_ray(from: Vector3, dir: Vector3, length: float, color: Color = Color.WHITE) -> void:
-	if instance == null: return
-	instance._lines.append({"from": from, "to": from + dir.normalized() * length, "color": color})
+static func draw_line(from: Vector3, to: Vector3, color: Color = Color.WHITE) -> void:
+	if instance == null:
+		return
+	instance._lines.append({ "from": from, "to": to, "color": color })
+
+
+static func draw_ray(
+	from: Vector3,
+	dir: Vector3,
+	length: float,
+	color: Color = Color.WHITE,
+) -> void:
+	if instance == null:
+		return
+	instance._lines.append({ "from": from, "to": from + dir.normalized() * length, "color": color })
+
 
 func _process(_delta: float) -> void:
 	_immediate_mesh.clear_surfaces()
-	if _lines.is_empty(): return
+	if _lines.is_empty():
+		return
 
 	_immediate_mesh.surface_begin(Mesh.PRIMITIVE_LINES)
 	for line in _lines:
@@ -49,5 +62,5 @@ func _process(_delta: float) -> void:
 		_immediate_mesh.surface_add_vertex(line.to)
 
 	_immediate_mesh.surface_end()
-	
+
 	_lines.clear()

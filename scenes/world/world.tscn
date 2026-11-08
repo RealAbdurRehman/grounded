@@ -622,12 +622,14 @@ auto_upshift_rpm = 5200.0
 auto_downshift_rpm = 1600.0
 
 [node name="WheelFL" parent="Vehicle/Wheels" parent_id_path=PackedInt32Array(429220544, 2027221242) index="0" unique_id=1185262635]
+can_steer = true
 spring_stiffness = 26000.0
 damper_stiffness = 2300.0
 tire_model = ExtResource("4_1yooq")
 rolling_resistance_coef = 0.012
 
 [node name="WheelFR" parent="Vehicle/Wheels" parent_id_path=PackedInt32Array(429220544, 2027221242) index="1" unique_id=1065968054]
+can_steer = true
 spring_stiffness = 26000.0
 damper_stiffness = 2300.0
 tire_model = ExtResource("4_1yooq")

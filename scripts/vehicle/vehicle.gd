@@ -85,8 +85,9 @@ func _handle_inputs(delta: float) -> void:
 	steer_input = move_toward(steer_input, target_steer, delta * 4.0)
 
 	var steer_rad := deg_to_rad(steer_input * max_steer_angle_deg)
-	wheel_fl.steer_angle_rad = steer_rad
-	wheel_fr.steer_angle_rad = steer_rad
+	for w in [wheel_fl, wheel_fr, wheel_rl, wheel_rr]:
+		if w.can_steer:
+			w.steer_angle_rad = steer_rad
 
 
 func _apply_anti_roll_bars() -> void:

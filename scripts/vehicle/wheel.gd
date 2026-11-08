@@ -4,6 +4,7 @@ extends RayCast3D
 @export_group("Wheel")
 @export var is_front: bool = false
 @export var is_driven: bool = true
+@export var can_steer: bool = false
 
 ## Size of the wheel, in meters.
 @export var wheel_radius: float = 0.33

@@ -4,6 +4,7 @@
 [ext_resource type="Texture2D" uid="uid://be5q370waxn70" path="res://assets/textures/ground/disp.png" id="2_t5ptc"]
 [ext_resource type="Texture2D" uid="uid://c4iuxf2c8214a" path="res://assets/textures/ground/nor.jpg" id="3_bq33v"]
 [ext_resource type="PackedScene" uid="uid://dr8e42tbw6xk2" path="res://scenes/vehicle/vehicle.tscn" id="3_j2gmx"]
+[ext_resource type="Resource" uid="uid://bm8cqomr2xsjc" path="res://resources/tires/default.tres" id="4_1yooq"]
 [ext_resource type="Texture2D" uid="uid://c7ma8ggfipg" path="res://assets/textures/ground/arm.jpg" id="4_j2gmx"]
 [ext_resource type="PackedScene" uid="uid://db4473gxoh8sk" path="res://scenes/ui/telemetry.tscn" id="6_bq33v"]
 [ext_resource type="Script" uid="uid://dvp5aua86h7p4" path="res://scripts/camera/camera.gd" id="6_t5ptc"]
@@ -562,15 +563,18 @@ size = Vector3(190, 1, 1100)
 
 [node name="Telemetry" parent="." unique_id=1683315418 instance=ExtResource("6_bq33v")]
 
-[node name="Control" parent="Telemetry" index="0" unique_id=1098802702 node_paths=PackedStringArray("target_vehicle")]
+[node name="TelemetryDebug" parent="Telemetry" index="0" unique_id=1098802702 node_paths=PackedStringArray("target_vehicle")]
 target_vehicle = NodePath("../../Vehicle")
 
-[node name="Control2" parent="Telemetry" index="1" unique_id=863474613 node_paths=PackedStringArray("engine_node", "drivetrain_node", "target_vehicle")]
+[node name="EngineDebug" parent="Telemetry" index="1" unique_id=863474613 node_paths=PackedStringArray("engine_node", "drivetrain_node", "target_vehicle")]
 engine_node = NodePath("../../Vehicle/Engine")
 drivetrain_node = NodePath("../../Vehicle/Drivetrain")
 target_vehicle = NodePath("../../Vehicle")
 
-[node name="Logger" parent="Telemetry" index="2" unique_id=707249097 node_paths=PackedStringArray("target_vehicle")]
+[node name="TireDebug" parent="Telemetry" index="2" unique_id=1712736768 node_paths=PackedStringArray("target_vehicle")]
+target_vehicle = NodePath("../../Vehicle")
+
+[node name="Logger" parent="Telemetry" index="3" unique_id=707249097 node_paths=PackedStringArray("target_vehicle")]
 target_vehicle = NodePath("../../Vehicle")
 
 [node name="Camera" type="Camera3D" parent="." unique_id=811414314 node_paths=PackedStringArray("target_vehicle")]
@@ -596,7 +600,19 @@ wheel_rl = NodePath("Wheels/WheelRL")
 wheel_rr = NodePath("Wheels/WheelRR")
 engine_node = NodePath("Engine")
 drivetrain_node = NodePath("Drivetrain")
-telemetry_hud = NodePath("../Telemetry/Control")
+telemetry_hud = NodePath("../Telemetry/TelemetryDebug")
+
+[node name="WheelFL" parent="Vehicle/Wheels" parent_id_path=PackedInt32Array(429220544, 2027221242) index="0" unique_id=1185262635]
+tire_model = ExtResource("4_1yooq")
+
+[node name="WheelFR" parent="Vehicle/Wheels" parent_id_path=PackedInt32Array(429220544, 2027221242) index="1" unique_id=1065968054]
+tire_model = ExtResource("4_1yooq")
+
+[node name="WheelRL" parent="Vehicle/Wheels" parent_id_path=PackedInt32Array(429220544, 2027221242) index="2" unique_id=136557973]
+tire_model = ExtResource("4_1yooq")
+
+[node name="WheelRR" parent="Vehicle/Wheels" parent_id_path=PackedInt32Array(429220544, 2027221242) index="3" unique_id=834798633]
+tire_model = ExtResource("4_1yooq")
 
 [node name="Tests" type="Node3D" parent="." unique_id=1518008125]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -53.848, 0.6, 500)

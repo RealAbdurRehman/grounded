@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="Tire" format=3 uid="uid://bm8cqomr2xsjc"]
+
+[ext_resource type="Script" uid="uid://cebjfe6e5lo5m" path="res://scripts/vehicle/tire.gd" id="1_vy5lg"]
+
+[resource]
+script = ExtResource("1_vy5lg")
+metadata/_custom_type_script = "uid://cebjfe6e5lo5m"

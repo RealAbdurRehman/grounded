@@ -16,6 +16,9 @@ extends Control
 var _wheel_labels: Dictionary = {}
 var _prev_velocity: Vector3 = Vector3.ZERO
 
+func _enter_tree() -> void:
+	add_to_group("telemetry_hud")
+
 func _ready() -> void:
 	for wheel_name in ["FL", "FR", "RL", "RR"]:
 		var lbl: Label = wheel_grid.get_node_or_null(wheel_name)

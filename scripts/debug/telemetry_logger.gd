@@ -22,12 +22,11 @@ func start_logging() -> void:
 	var timestamp: String = Time.get_datetime_string_from_system().replace(":", "-")
 	var path: String = "user://telemetry_%s.csv" % timestamp
 	_file = FileAccess.open(path, FileAccess.WRITE)
-
 	if _file:
 		is_logging = true
 		_elapsed_time = 0.0
 
-		_file.store_line("time,speed_kmh,accel_long,accel_lat,fl_fz,fr_fz,rl_fz,rr_fz")
+		_file.store_line("time,speed_kmh,rpm,gear,fl_sr,fl_sa,fl_fx,fl_fy,fl_fz,fr_sr,fr_sa,fr_fx,fr_fy,fr_fz,rl_sr,rl_sa,rl_fx,rl_fy,rl_fz,rr_sr,rr_sa,rr_fx,rr_fy,rr_fz")
 		print("[TelemetryLogger] Started logging to: ", OS.get_user_data_dir() + "/" + path)
 	else:
 		push_error("Failed to open telemetry file.")
@@ -54,11 +53,23 @@ func _record_sample() -> void:
 	var vel: Vector3 = target_vehicle.linear_velocity
 	var speed_kmh: float = vel.length() * 3.6
 	
-	var line: String = "%8.3f,%6.2f,%6.2f,%6.2f,%6.1f,%6.1f,%6.1f,%6.1f" % [
-		_elapsed_time,
-		speed_kmh,
-		0.0, 0.0,
-		0.0, 0.0, 0.0, 0.0
-	]
+	var v: Vehicle = target_vehicle as Vehicle
+	if not v: return
 
-	_file.store_line(line)
+	var rpm: float = v.engine_node.current_rpm if v.engine_node else 0.0
+	var gear: String = v.drivetrain_node.get_gear_name() if v.drivetrain_node else "?"
+
+	var wheels: Array[Wheel] = [v.wheel_fl, v.wheel_fr, v.wheel_rl, v.wheel_rr]
+	var parts: PackedStringArray = PackedStringArray()
+	parts.append("%8.3f,%6.2f,%5.0f,%s" % [_elapsed_time, speed_kmh, rpm, gear])
+
+	for w in wheels:
+		parts.append(",%+6.4f,%+6.2f,%+8.1f,%+8.1f,%7.1f" % [
+			w.slip_ratio,
+			rad_to_deg(w.slip_angle_rad),
+			w.longitudinal_force_n,
+			w.lateral_force_n,
+			w.suspension_force_n
+		])
+
+	_file.store_line("".join(parts))

@@ -6,7 +6,8 @@ extends RigidBody3D
 @export var vehicle_mass: float = 1350.0
 
 ## In Nm.
-@export var max_brake_torque: float = 3200.0
+@export var max_brake_torque: float = 5000.0
+@export_range(0.3, 0.9) var brake_bias_front: float = 0.7
 
 @export var max_steer_angle_deg: float = 32.0
 
@@ -84,26 +85,37 @@ func _apply_anti_roll_bars() -> void:
 
 func _update_drivetrain_and_wheels(delta: float) -> void:
 	var driven_wheels: Array[Wheel] = []
-
+ 
 	var total_driven_w: float = 0.0
 	for w in [wheel_fl, wheel_fr, wheel_rl, wheel_rr]:
 		if w.is_driven:
 			driven_wheels.append(w)
 			total_driven_w += abs(w.angular_velocity_rad_s)
-
-	var avg_driven_w: float = total_driven_w / max(driven_wheels.size(), 1)
+ 
+	var driven_count: int = max(driven_wheels.size(), 1)
+	var avg_driven_w: float = total_driven_w / driven_count
 	var forward_speed: float = linear_velocity.dot(-global_transform.basis.z)
 	drivetrain_node.handle_transmission(engine_node.current_rpm, forward_speed, avg_driven_w)
-
+ 
 	var target_engine_rpm: float = drivetrain_node.calculate_target_engine_rpm(avg_driven_w)
 	var engine_torque: float = engine_node.update_engine(delta, throttle_input, target_engine_rpm, drivetrain_node.is_clutch_engaged(), drivetrain_node.is_shifting)
-
+ 
 	var total_wheel_torque: float = drivetrain_node.calculate_wheel_drive_torque(engine_torque)
-	var torque_per_driven_wheel: float = total_wheel_torque / max(driven_wheels.size(), 1)
-
+	var torque_per_driven_wheel: float = total_wheel_torque / driven_count
+ 
+	var reflected_inertia: float = 0.0
+	if drivetrain_node.is_clutch_engaged():
+		var total_ratio: float = drivetrain_node.get_current_ratio() * drivetrain_node.final_drive_ratio
+		reflected_inertia = engine_node.flywheel_inertia * total_ratio * total_ratio / driven_count
+ 
 	for w in [wheel_fl, wheel_fr, wheel_rl, wheel_rr]:
 		var w_drive_torque: float = torque_per_driven_wheel if w.is_driven else 0.0
-		w.update_wheel(self, delta, w_drive_torque, brake_input, max_brake_torque)
+		var w_reflected: float = reflected_inertia if w.is_driven else 0.0
+ 
+		var axle_share: float = brake_bias_front if w.is_front else (1.0 - brake_bias_front)
+		var w_brake_torque: float = brake_input * max_brake_torque * axle_share * 0.5
+ 
+		w.update_wheel(self, delta, w_drive_torque, w_brake_torque, w_reflected)
 
 func _apply_aerodynamic_drag() -> void:
 	var speed: float = linear_velocity.length()
@@ -115,14 +127,19 @@ func _apply_aerodynamic_drag() -> void:
 		apply_central_force(drag_vector)
 
 func _update_telemetry() -> void:
-	var fl_grip := wheel_fl.friction_coef * wheel_fl.suspension_force_n
-	telemetry_hud.update_wheel_telemetry("FL", wheel_fl.suspension_force_n, rad_to_deg(wheel_fl.steer_angle_rad), 0.0, wheel_fl.compression, wheel_fl.longitudinal_force_n, wheel_fl.lateral_force_n, fl_grip)
+	if not telemetry_hud: return
 
-	var fr_grip := wheel_fr.friction_coef * wheel_fr.suspension_force_n
-	telemetry_hud.update_wheel_telemetry("FR", wheel_fr.suspension_force_n, rad_to_deg(wheel_fr.steer_angle_rad), 0.0, wheel_fr.compression, wheel_fr.longitudinal_force_n, wheel_fr.lateral_force_n, fr_grip)
-
-	var rl_grip := wheel_rl.friction_coef * wheel_rl.suspension_force_n
-	telemetry_hud.update_wheel_telemetry("RL", wheel_rl.suspension_force_n, 0.0, 0.0, wheel_rl.compression, wheel_rl.longitudinal_force_n, wheel_rl.lateral_force_n, rl_grip)
-
-	var rr_grip := wheel_rr.friction_coef * wheel_rr.suspension_force_n
-	telemetry_hud.update_wheel_telemetry("RR", wheel_rr.suspension_force_n, 0.0, 0.0, wheel_rr.compression, wheel_rr.longitudinal_force_n, wheel_rr.lateral_force_n, rr_grip)
+	var ids: Array[String] = ["FL", "FR", "RL", "RR"]
+	var wheels: Array[Wheel] = [wheel_fl, wheel_fr, wheel_rl, wheel_rr]
+ 
+	for i in range(4):
+		var w: Wheel = wheels[i]
+		telemetry_hud.update_wheel_telemetry(ids[i],
+			w.suspension_force_n,
+			rad_to_deg(w.slip_angle_rad),
+			w.slip_ratio,
+			w.compression,
+			w.longitudinal_force_n,
+			w.lateral_force_n,
+			w.grip_limit_n
+		)

@@ -4,10 +4,11 @@
 [ext_resource type="Script" uid="uid://bdbc868kpiykc" path="res://scripts/debug/friction_circle.gd" id="2_51srx"]
 [ext_resource type="Script" uid="uid://c8w2pckrnqllq" path="res://scripts/debug/engine_debug.gd" id="3_l381d"]
 [ext_resource type="Script" uid="uid://c7doqgftobsg3" path="res://scripts/debug/telemetry_logger.gd" id="3_vohb0"]
+[ext_resource type="Script" uid="uid://1wtxbkgdam8i" path="res://scripts/debug/tire_debug.gd" id="4_klrao"]
 
 [node name="Telemetry" type="CanvasLayer" unique_id=1683315418]
 
-[node name="Control" type="Control" parent="." unique_id=1098802702]
+[node name="TelemetryDebug" type="Control" parent="." unique_id=1098802702]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -17,42 +18,42 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("1_g2q0o")
 
-[node name="VBoxContainer" type="VBoxContainer" parent="Control" unique_id=1408052307]
+[node name="VBoxContainer" type="VBoxContainer" parent="TelemetryDebug" unique_id=1408052307]
 layout_mode = 0
 offset_left = 19.0
 offset_top = 17.0
 offset_right = 63.0
 offset_bottom = 175.0
 
-[node name="SpeedLabel" type="Label" parent="Control/VBoxContainer" unique_id=2096946158]
+[node name="SpeedLabel" type="Label" parent="TelemetryDebug/VBoxContainer" unique_id=2096946158]
 layout_mode = 2
 text = "0.0"
 
-[node name="GForceLabel" type="Label" parent="Control/VBoxContainer" unique_id=278690702]
+[node name="GForceLabel" type="Label" parent="TelemetryDebug/VBoxContainer" unique_id=278690702]
 layout_mode = 2
 text = "0.0"
 
-[node name="WheelGrid" type="GridContainer" parent="Control/VBoxContainer" unique_id=35030928]
+[node name="WheelGrid" type="GridContainer" parent="TelemetryDebug/VBoxContainer" unique_id=35030928]
 layout_mode = 2
 columns = 2
 
-[node name="FL" type="Label" parent="Control/VBoxContainer/WheelGrid" unique_id=2134615995]
+[node name="FL" type="Label" parent="TelemetryDebug/VBoxContainer/WheelGrid" unique_id=2134615995]
 layout_mode = 2
 text = "FL"
 
-[node name="FR" type="Label" parent="Control/VBoxContainer/WheelGrid" unique_id=52569694]
+[node name="FR" type="Label" parent="TelemetryDebug/VBoxContainer/WheelGrid" unique_id=52569694]
 layout_mode = 2
 text = "FR"
 
-[node name="RL" type="Label" parent="Control/VBoxContainer/WheelGrid" unique_id=938188063]
+[node name="RL" type="Label" parent="TelemetryDebug/VBoxContainer/WheelGrid" unique_id=938188063]
 layout_mode = 2
 text = "RL"
 
-[node name="RR" type="Label" parent="Control/VBoxContainer/WheelGrid" unique_id=427562562]
+[node name="RR" type="Label" parent="TelemetryDebug/VBoxContainer/WheelGrid" unique_id=427562562]
 layout_mode = 2
 text = "RR"
 
-[node name="MarginContainer" type="MarginContainer" parent="Control" unique_id=2071982146]
+[node name="MarginContainer" type="MarginContainer" parent="TelemetryDebug" unique_id=2071982146]
 layout_mode = 1
 anchors_preset = 3
 anchor_left = 1.0
@@ -66,31 +67,31 @@ grow_vertical = 0
 theme_override_constants/margin_right = 20
 theme_override_constants/margin_bottom = 20
 
-[node name="FrictionGrid" type="GridContainer" parent="Control/MarginContainer" unique_id=35972371]
+[node name="FrictionGrid" type="GridContainer" parent="TelemetryDebug/MarginContainer" unique_id=35972371]
 layout_mode = 2
 columns = 2
 
-[node name="CircleFL" type="Control" parent="Control/MarginContainer/FrictionGrid" unique_id=1044300125]
+[node name="CircleFL" type="Control" parent="TelemetryDebug/MarginContainer/FrictionGrid" unique_id=1044300125]
 custom_minimum_size = Vector2(100, 100)
 layout_mode = 2
 script = ExtResource("2_51srx")
 
-[node name="CircleFR" type="Control" parent="Control/MarginContainer/FrictionGrid" unique_id=1720558231]
+[node name="CircleFR" type="Control" parent="TelemetryDebug/MarginContainer/FrictionGrid" unique_id=1720558231]
 custom_minimum_size = Vector2(100, 100)
 layout_mode = 2
 script = ExtResource("2_51srx")
 
-[node name="CircleRL" type="Control" parent="Control/MarginContainer/FrictionGrid" unique_id=492537710]
+[node name="CircleRL" type="Control" parent="TelemetryDebug/MarginContainer/FrictionGrid" unique_id=492537710]
 custom_minimum_size = Vector2(100, 100)
 layout_mode = 2
 script = ExtResource("2_51srx")
 
-[node name="CircleRR" type="Control" parent="Control/MarginContainer/FrictionGrid" unique_id=2107809380]
+[node name="CircleRR" type="Control" parent="TelemetryDebug/MarginContainer/FrictionGrid" unique_id=2107809380]
 custom_minimum_size = Vector2(100, 100)
 layout_mode = 2
 script = ExtResource("2_51srx")
 
-[node name="Control2" type="Control" parent="." unique_id=863474613]
+[node name="EngineDebug" type="Control" parent="." unique_id=863474613]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -99,7 +100,19 @@ offset_top = 424.0
 offset_right = -743.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 script = ExtResource("3_l381d")
+
+[node name="TireDebug" type="Control" parent="." unique_id=1712736768]
+layout_mode = 3
+anchor_left = 0.7178819
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("4_klrao")
+metadata/_edit_use_anchors_ = true
 
 [node name="Logger" type="Node" parent="." unique_id=707249097]
 script = ExtResource("3_vohb0")

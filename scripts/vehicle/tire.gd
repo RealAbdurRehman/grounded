@@ -50,7 +50,7 @@ extends Resource
 @export var low_speed_start: float = 1.0
 
 ## Below this speed, a simpler grip model is used to stop the car from vibrating. In meters per second.
-@export var low_speed_threshold: float = 0.01
+@export var low_speed_threshold: float = 3.0
 
 @export var low_speed_lat_saturation: float = 0.5
 

@@ -9,6 +9,9 @@ extends Resource
 @export var max_brake_torque: float = 5000.0
 @export_range(0.3, 0.9) var brake_bias_front: float = 0.75
 
+@export var brake_pedal_rate: float = 4.0
+@export var brake_overrides_throttle: bool = true
+
 @export var max_steer_angle_deg: float = 32.0
 
 ## In square meters.

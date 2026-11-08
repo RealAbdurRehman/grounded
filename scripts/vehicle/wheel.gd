@@ -43,8 +43,8 @@ var _spin_angle: float = 0.0
 
 
 func _ready() -> void:
-	var rest_length: float = suspension_config.suspension_rest_length if suspension_config else 0.35
-	var radius: float = suspension_config.wheel_radius if suspension_config else 0.33
+	var rest_length: float = suspension_config.suspension_rest_length
+	var radius: float = suspension_config.wheel_radius
 	var total_ray_length := rest_length + radius
 	target_position = Vector3(0, -total_ray_length, 0)
 
@@ -62,11 +62,12 @@ func update_wheel(
 	force_raycast_update()
 	is_grounded = is_colliding()
 
-	var radius: float = suspension_config.wheel_radius if suspension_config else 0.33
-	var base_inertia: float = suspension_config.wheel_inertia if suspension_config else 1.2
-	var rest_len: float = suspension_config.suspension_rest_length if suspension_config else 0.35
-	var k_spring: float = suspension_config.spring_stiffness if suspension_config else 30000.0
-	var k_damper: float = suspension_config.damper_stiffness if suspension_config else 1600.0
+	var radius: float = suspension_config.wheel_radius
+	var base_inertia: float = suspension_config.wheel_inertia
+	var rest_len: float = suspension_config.suspension_rest_length
+
+	var k_spring: float = suspension_config.spring_stiffness
+	var k_damper: float = suspension_config.damper_stiffness
 
 	var inertia: float = base_inertia + reflected_inertia
 
@@ -108,63 +109,66 @@ func update_wheel(
 	var speed_long: float = absf(v_long)
 
 	var fz: float = suspension_force_n
-	grip_limit_n = tire_model.peak_force_n(fz) * friction_coef if tire_model else 0.0
+	grip_limit_n = tire_model.peak_force_n(fz) * friction_coef
 
-	var alpha: float = atan2(
-		-v_lat,
-		maxf(speed_long, tire_model.slip_speed_floor if tire_model else 0.5),
-	)
+	var alpha: float = atan2(-v_lat, maxf(speed_long, tire_model.slip_speed_floor))
 
-	var speed_denominator: float = maxf(
-		speed_long,
-		tire_model.slip_speed_floor if tire_model else 0.5,
-	)
+	var speed_denominator: float = maxf(speed_long, tire_model.slip_speed_floor)
 	var kappa_now: float = (angular_velocity_rad_s * radius - v_long) / speed_denominator
 
-	var f_now: Vector2 = Vector2.ZERO
-	if tire_model:
-		f_now = tire_model.compute_forces(kappa_now, alpha, v_lat, speed_long, fz, friction_coef)
-
+	var f_now: Vector2 = tire_model.compute_forces(
+		kappa_now,
+		alpha,
+		v_lat,
+		speed_long,
+		fz,
+		friction_coef,
+	)
 	var kappa_step: float = 0.02
-	var f_step: Vector2 = Vector2.ZERO
-	if tire_model:
-		f_step = tire_model.compute_forces(
-			kappa_now + kappa_step,
-			alpha,
-			v_lat,
-			speed_long,
-			fz,
-			friction_coef,
-		)
+	var f_step: Vector2 = tire_model.compute_forces(
+		kappa_now + kappa_step,
+		alpha,
+		v_lat,
+		speed_long,
+		fz,
+		friction_coef,
+	)
 
-	var dFx_dkappa: float = (f_step.x - f_now.x) / kappa_step
-	var dFx_dw: float = dFx_dkappa * (radius / speed_denominator)
+	var force_slope: float = maxf((f_step.x - f_now.x) / kappa_step, 0.0)
+	var stiffness_w: float = force_slope * radius / speed_denominator
 
-	var f_rr: float = 0.0
-	if absf(v_long) > 0.1:
-		f_rr = -rolling_resistance_coef * fz * signf(v_long)
+	var implicit_inertia: float = inertia + delta * radius * stiffness_w
+	var w_new: float = (
+		angular_velocity_rad_s + delta * (drive_torque_nm - radius * f_now.x) / implicit_inertia
+	)
 
-	var T_drive: float = drive_torque_nm
-	var T_brake: float = -signf(angular_velocity_rad_s) * brake_torque_nm
-	var T_tire: float = -(f_now.x + f_rr) * radius
-	var T_net: float = T_drive + T_brake + T_tire
-
-	var denom: float = inertia - delta * (-dFx_dw * radius)
-	var delta_w: float = (delta * T_net) / maxf(denom, inertia * 0.1)
-
-	if brake_torque_nm > 0.0 and absf(angular_velocity_rad_s) > 0.01:
-		if signf(angular_velocity_rad_s + delta_w) != signf(angular_velocity_rad_s):
-			delta_w = -angular_velocity_rad_s
-
-	angular_velocity_rad_s += delta_w
+	w_new = move_toward(w_new, 0.0, delta * brake_torque_nm / implicit_inertia)
+	angular_velocity_rad_s = w_new
 
 	var kappa_new: float = (angular_velocity_rad_s * radius - v_long) / speed_denominator
-	var f_final: Vector2 = Vector2.ZERO
-	if tire_model:
-		f_final = tire_model.compute_forces(kappa_new, alpha, v_lat, speed_long, fz, friction_coef)
+	var f_final: Vector2 = tire_model.compute_forces(
+		kappa_new,
+		alpha,
+		v_lat,
+		speed_long,
+		fz,
+		friction_coef,
+	)
+	var fx: float = f_final.x
+	var fy: float = f_final.y
 
-	longitudinal_force_n = f_final.x + f_rr
-	lateral_force_n = f_final.y
+	var mass_share: float = chassis.mass * 0.25
+	if absf(v_lat) > 0.0001 and fy * v_lat < 0.0:
+		fy = fy * mass_share * absf(v_lat) / (mass_share * absf(v_lat) + delta * absf(fy))
+
+	var wheel_surface_speed: float = absf(angular_velocity_rad_s * radius)
+	if fx * v_long < 0.0 and wheel_surface_speed < speed_long:
+		fx = fx * mass_share * speed_long / (mass_share * speed_long + delta * absf(fx))
+
+	fx += -rolling_resistance_coef * fz * clampf(v_long / 0.5, -1.0, 1.0)
+
+	longitudinal_force_n = fx
+	lateral_force_n = fy
 	slip_ratio = kappa_new
 	slip_angle_rad = alpha
 
@@ -219,21 +223,18 @@ func _handle_airborne(
 
 	_prev_displacement = 0.0
 
-	var T_drive: float = drive_torque_nm
-	var T_brake: float = -signf(angular_velocity_rad_s) * brake_torque_nm
 	var T_bearing: float = -signf(angular_velocity_rad_s) * minf(
 		absf(angular_velocity_rad_s) * 0.5,
 		5.0,
 	)
-
-	var T_net: float = T_drive + T_brake + T_bearing
-	var delta_w: float = (T_net / maxf(inertia, 0.001)) * delta
-
-	if brake_torque_nm > 0.0 and absf(angular_velocity_rad_s) > 0.01:
-		if signf(angular_velocity_rad_s + delta_w) != signf(angular_velocity_rad_s):
-			delta_w = -angular_velocity_rad_s
-
-	angular_velocity_rad_s += delta_w
+	var w_free: float = (
+		angular_velocity_rad_s + ((drive_torque_nm + T_bearing) / maxf(inertia, 0.001)) * delta
+	)
+	angular_velocity_rad_s = move_toward(
+		w_free,
+		0.0,
+		delta * brake_torque_nm / maxf(inertia, 0.001),
+	)
 
 	if visual_mesh:
 		_spin_angle += angular_velocity_rad_s * delta

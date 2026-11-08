@@ -39,9 +39,6 @@ func _ready() -> void:
 
 
 func _sync_center_of_mass() -> void:
-	if not center_of_mass_node:
-		return
-
 	var local_com: Vector3 = to_local(center_of_mass_node.global_position)
 	if local_com.is_equal_approx(_com_applied):
 		return
@@ -61,8 +58,18 @@ func _physics_process(delta: float) -> void:
 
 
 func _handle_inputs(delta: float) -> void:
-	throttle_input = Input.get_action_strength("throttle")
-	brake_input = Input.get_action_strength("brake")
+	var throttle_target: float = Input.get_action_strength("throttle")
+	var brake_target: float = Input.get_action_strength("brake")
+
+	var pedal_rate: float = config.brake_pedal_rate
+	if brake_target < brake_input:
+		pedal_rate *= 3.0
+	brake_input = move_toward(brake_input, brake_target, delta * pedal_rate)
+
+	var override: float = 0.0
+	if config.brake_overrides_throttle:
+		override = clampf((brake_input - 0.1) / 0.3, 0.0, 1.0)
+	throttle_input = throttle_target * (1.0 - override)
 
 	var target_steer := Input.get_action_strength("steer_left") - Input.get_action_strength(
 		"steer_right"
@@ -72,7 +79,7 @@ func _handle_inputs(delta: float) -> void:
 	var max_steer: float = config.max_steer_angle_deg
 	var steer_rad := deg_to_rad(steer_input * max_steer)
 	for w in [wheel_fl, wheel_fr, wheel_rl, wheel_rr]:
-		if w and w.can_steer:
+		if w.can_steer:
 			w.steer_angle_rad = steer_rad
 
 
@@ -160,9 +167,6 @@ func _apply_aerodynamic_drag() -> void:
 
 
 func _update_telemetry() -> void:
-	if not telemetry_hud:
-		return
-
 	var ids: Array[String] = ["FL", "FR", "RL", "RR"]
 	var wheels: Array[Wheel] = [wheel_fl, wheel_fr, wheel_rl, wheel_rr]
 

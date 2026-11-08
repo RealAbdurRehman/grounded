@@ -12,6 +12,8 @@ extends Resource
 @export var brake_pedal_rate: float = 4.0
 @export var brake_overrides_throttle: bool = true
 
+@export var throttle_ramp_speed: float = 6.0
+
 @export var max_steer_angle_deg: float = 32.0
 
 ## In square meters.

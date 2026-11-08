@@ -69,7 +69,14 @@ func _handle_inputs(delta: float) -> void:
 	var override: float = 0.0
 	if config.brake_overrides_throttle:
 		override = clampf((brake_input - 0.1) / 0.3, 0.0, 1.0)
-	throttle_input = throttle_target * (1.0 - override)
+
+	var final_throttle_target: float = throttle_target * (1.0 - override)
+
+	var throttle_rate: float = config.throttle_ramp_speed
+	if final_throttle_target < throttle_input:
+		throttle_rate *= 2.0
+
+	throttle_input = move_toward(throttle_input, final_throttle_target, delta * throttle_rate)
 
 	var target_steer := Input.get_action_strength("steer_left") - Input.get_action_strength(
 		"steer_right"

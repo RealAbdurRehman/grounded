@@ -10,8 +10,7 @@ var is_rev_limiter_active: bool = false
 
 
 func _ready() -> void:
-	if config:
-		current_rpm = config.idle_rpm
+	current_rpm = config.idle_rpm
 
 
 func calculate_raw_torque(rpm: float) -> float:

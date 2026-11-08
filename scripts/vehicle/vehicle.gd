@@ -24,8 +24,7 @@ var _com_applied: Vector3 = Vector3.INF
 
 
 func _ready() -> void:
-	if config:
-		mass = config.vehicle_mass
+	mass = config.vehicle_mass
 
 	center_of_mass_mode = RigidBody3D.CENTER_OF_MASS_MODE_CUSTOM
 	_sync_center_of_mass()
@@ -70,7 +69,7 @@ func _handle_inputs(delta: float) -> void:
 	)
 	steer_input = move_toward(steer_input, target_steer, delta * 4.0)
 
-	var max_steer: float = config.max_steer_angle_deg if config else 32.0
+	var max_steer: float = config.max_steer_angle_deg
 	var steer_rad := deg_to_rad(steer_input * max_steer)
 	for w in [wheel_fl, wheel_fr, wheel_rl, wheel_rr]:
 		if w and w.can_steer:
@@ -140,8 +139,8 @@ func _update_drivetrain_and_wheels(delta: float) -> void:
 		var w_drive_torque: float = torque_per_driven_wheel if w.is_driven else 0.0
 		var w_reflected: float = reflected_inertia if w.is_driven else 0.0
 
-		var brake_torque_base: float = config.max_brake_torque if config else 5000.0
-		var brake_bias: float = config.brake_bias_front if config else 0.7
+		var brake_torque_base: float = config.max_brake_torque
+		var brake_bias: float = config.brake_bias_front
 		var axle_share: float = brake_bias if w.is_front else (1.0 - brake_bias)
 		var w_brake_torque: float = brake_input * brake_torque_base * axle_share * 0.5
 

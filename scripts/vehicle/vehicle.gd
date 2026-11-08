@@ -18,8 +18,8 @@ extends RigidBody3D
 
 # Controls body roll
 @export_group("Anti Roll Bars")
-@export var front_arb_stiffness: float = 8000.0
-@export var rear_arb_stiffness: float = 5000.0
+@export var front_arb_stiffness: float = 4500.0
+@export var rear_arb_stiffness: float = 3000.0
 
 @export_group("References")
 @export var wheel_fl: Wheel

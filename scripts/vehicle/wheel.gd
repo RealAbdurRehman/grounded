@@ -162,7 +162,7 @@ func update_wheel(
 		fy = fy * mass_share * absf(v_lat) / (mass_share * absf(v_lat) + delta * absf(fy))
 
 	var wheel_surface_speed: float = absf(angular_velocity_rad_s * radius)
-	if fx * v_long < 0.0 and wheel_surface_speed < speed_long:
+	if brake_torque_nm > 0.0 and fx * v_long < 0.0 and wheel_surface_speed < speed_long:
 		fx = fx * mass_share * speed_long / (mass_share * speed_long + delta * absf(fx))
 
 	fx += -rolling_resistance_coef * fz * clampf(v_long / 0.5, -1.0, 1.0)

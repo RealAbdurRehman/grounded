@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="ChassisConfig" format=3 uid="uid://csea6d050ekf1"]
+
+[ext_resource type="Script" uid="uid://bwprdmk5kupc6" path="res://scripts/vehicle/configs/chassis.gd" id="1_5chv3"]
+
+[resource]
+script = ExtResource("1_5chv3")
+metadata/_custom_type_script = "uid://bwprdmk5kupc6"

@@ -5,9 +5,13 @@
 [ext_resource type="Texture2D" uid="uid://c4iuxf2c8214a" path="res://assets/textures/ground/nor.jpg" id="3_bq33v"]
 [ext_resource type="PackedScene" uid="uid://dr8e42tbw6xk2" path="res://scenes/vehicle/vehicle.tscn" id="3_j2gmx"]
 [ext_resource type="Resource" uid="uid://bm8cqomr2xsjc" path="res://resources/tires/default.tres" id="4_1yooq"]
+[ext_resource type="Script" uid="uid://bwprdmk5kupc6" path="res://scripts/vehicle/configs/chassis.gd" id="4_gb53w"]
 [ext_resource type="Texture2D" uid="uid://c7ma8ggfipg" path="res://assets/textures/ground/arm.jpg" id="4_j2gmx"]
+[ext_resource type="Script" uid="uid://bkel8e4frgv51" path="res://scripts/vehicle/configs/engine.gd" id="5_gb53w"]
+[ext_resource type="Script" uid="uid://l2tns4vcug28" path="res://scripts/vehicle/configs/drivetrain.gd" id="6_5qq27"]
 [ext_resource type="PackedScene" uid="uid://db4473gxoh8sk" path="res://scenes/ui/telemetry.tscn" id="6_bq33v"]
 [ext_resource type="Script" uid="uid://dvp5aua86h7p4" path="res://scripts/camera/camera.gd" id="6_t5ptc"]
+[ext_resource type="Script" uid="uid://mnsyudn5vsag" path="res://scripts/vehicle/configs/suspension.gd" id="7_dlabj"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_j2gmx"]
 
@@ -17,6 +21,24 @@ sky_material = SubResource("ProceduralSkyMaterial_j2gmx")
 [sub_resource type="Environment" id="Environment_t5ptc"]
 background_mode = 2
 sky = SubResource("Sky_t5ptc")
+
+[sub_resource type="Resource" id="Resource_j2gmx"]
+script = ExtResource("4_gb53w")
+metadata/_custom_type_script = "uid://bwprdmk5kupc6"
+
+[sub_resource type="Resource" id="Resource_vu11u"]
+script = ExtResource("5_gb53w")
+metadata/_custom_type_script = "uid://bkel8e4frgv51"
+
+[sub_resource type="Resource" id="Resource_5qq27"]
+script = ExtResource("6_5qq27")
+metadata/_custom_type_script = "uid://l2tns4vcug28"
+
+[sub_resource type="Resource" id="Resource_dlabj"]
+script = ExtResource("7_dlabj")
+spring_stiffness = 22000.0
+damper_stiffness = 2000.0
+metadata/_custom_type_script = "uid://mnsyudn5vsag"
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_bq33v"]
 albedo_color = Color(0.12, 0.12, 0.13, 1)
@@ -594,8 +616,7 @@ environment = SubResource("Environment_t5ptc")
 
 [node name="Vehicle" parent="." unique_id=429220544 node_paths=PackedStringArray("wheel_fl", "wheel_fr", "wheel_rl", "wheel_rr", "engine_node", "drivetrain_node", "center_of_mass_node", "telemetry_hud") instance=ExtResource("3_j2gmx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 525)
-brake_bias_front = 0.75
-drag_coefficient = 0.31
+config = SubResource("Resource_j2gmx")
 wheel_fl = NodePath("Wheels/WheelFL")
 wheel_fr = NodePath("Wheels/WheelFR")
 wheel_rl = NodePath("Wheels/WheelRL")
@@ -606,46 +627,28 @@ center_of_mass_node = NodePath("Markers/CenterOfMass")
 telemetry_hud = NodePath("../Telemetry/TelemetryDebug")
 
 [node name="Engine" parent="Vehicle" index="2" unique_id=1472005107]
-displacement = 140.0
-boost = 225.0
-cam_peak_rpm = 4000.0
-bandwidth = 3000.0
-flywheel_inertia = 0.2
-engine_braking_factor = 45.0
+config = SubResource("Resource_vu11u")
 
 [node name="Drivetrain" parent="Vehicle" index="3" unique_id=1060942932]
-drivetrain_efficiency = 0.88
-gear_ratios = Array[float]([-3.4, 0.0, 3.6, 2.05, 1.4, 1.05, 0.84, 0.68])
-final_drive_ratio = 3.8
-shift_delay_seconds = 0.2
-auto_upshift_rpm = 5200.0
-auto_downshift_rpm = 1600.0
+config = SubResource("Resource_5qq27")
 
 [node name="WheelFL" parent="Vehicle/Wheels" parent_id_path=PackedInt32Array(429220544, 2027221242) index="0" unique_id=1185262635]
-can_steer = true
-spring_stiffness = 26000.0
-damper_stiffness = 2300.0
+suspension_config = SubResource("Resource_dlabj")
 tire_model = ExtResource("4_1yooq")
-rolling_resistance_coef = 0.012
+can_steer = true
 
 [node name="WheelFR" parent="Vehicle/Wheels" parent_id_path=PackedInt32Array(429220544, 2027221242) index="1" unique_id=1065968054]
-can_steer = true
-spring_stiffness = 26000.0
-damper_stiffness = 2300.0
+suspension_config = SubResource("Resource_dlabj")
 tire_model = ExtResource("4_1yooq")
-rolling_resistance_coef = 0.012
+can_steer = true
 
 [node name="WheelRL" parent="Vehicle/Wheels" parent_id_path=PackedInt32Array(429220544, 2027221242) index="2" unique_id=136557973]
-spring_stiffness = 22000.0
-damper_stiffness = 2000.0
+suspension_config = SubResource("Resource_dlabj")
 tire_model = ExtResource("4_1yooq")
-rolling_resistance_coef = 0.012
 
 [node name="WheelRR" parent="Vehicle/Wheels" parent_id_path=PackedInt32Array(429220544, 2027221242) index="3" unique_id=834798633]
-spring_stiffness = 22000.0
-damper_stiffness = 2000.0
+suspension_config = SubResource("Resource_dlabj")
 tire_model = ExtResource("4_1yooq")
-rolling_resistance_coef = 0.012
 
 [node name="Tests" type="Node3D" parent="." unique_id=1518008125]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -53.848, 0.6, 500)

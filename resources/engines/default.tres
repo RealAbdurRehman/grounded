@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="EngineConfig" format=3 uid="uid://jrbg31eq62lh"]
+
+[ext_resource type="Script" uid="uid://bkel8e4frgv51" path="res://scripts/vehicle/configs/engine.gd" id="1_gxwuc"]
+
+[resource]
+script = ExtResource("1_gxwuc")
+metadata/_custom_type_script = "uid://bkel8e4frgv51"

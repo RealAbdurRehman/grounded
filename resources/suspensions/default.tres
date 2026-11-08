@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="SuspensionConfig" format=3 uid="uid://cy03f6l8210n2"]
+
+[ext_resource type="Script" uid="uid://mnsyudn5vsag" path="res://scripts/vehicle/configs/suspension.gd" id="1_vu11u"]
+
+[resource]
+script = ExtResource("1_vu11u")
+metadata/_custom_type_script = "uid://mnsyudn5vsag"

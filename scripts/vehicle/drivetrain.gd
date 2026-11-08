@@ -6,28 +6,9 @@ enum TransmissionType {
 	AUTOMATIC,
 }
 
-@export_group("Transmission")
+@export var config: DrivetrainConfig
+
 @export var transmission_type: TransmissionType = TransmissionType.AUTOMATIC
-
-## How much power actually reaches the wheels.
-@export var drivetrain_efficiency: float = 0.85
-
-@export_group("Gear Ratios")
-## Gears, in order: [Reverse, Neutral, 1st, 2nd, ...]
-@export var gear_ratios: Array[float] = [-3.40, 0.0, 3.40, 2.05, 1.38, 1.03, 0.82]
-
-## Multiplies gear ratio to get the final drive.
-@export var final_drive_ratio: float = 3.90
-
-@export_group("Shifting")
-## Time it takes to change gears.
-@export var shift_delay_seconds: float = 0.12
-
-@export var auto_upshift_rpm: float = 5800.0
-@export var auto_downshift_rpm: float = 2200.0
-
-## Max speed you can be going to shift into reverse.
-@export var selector_max_speed: float = 1.5
 
 var is_shifting: bool = false
 
@@ -54,11 +35,11 @@ func _process(delta: float) -> void:
 func get_current_ratio() -> float:
 	if is_shifting:
 		return 0.0
-	return gear_ratios[current_gear_index]
+	return config.gear_ratios[current_gear_index]
 
 
 func is_clutch_engaged() -> bool:
-	return (not is_shifting) and (gear_ratios[current_gear_index] != 0.0)
+	return (not is_shifting) and (config.gear_ratios[current_gear_index] != 0.0)
 
 
 func get_gear_name() -> String:
@@ -72,15 +53,15 @@ func get_gear_name() -> String:
 
 
 func calculate_wheel_drive_torque(engine_torque: float) -> float:
-	if is_shifting or gear_ratios[current_gear_index] == 0.0:
+	if is_shifting or config.gear_ratios[current_gear_index] == 0.0:
 		return 0.0
 
-	var total_ratio: float = gear_ratios[current_gear_index] * final_drive_ratio
-	return engine_torque * total_ratio * drivetrain_efficiency
+	var total_ratio: float = config.gear_ratios[current_gear_index] * config.final_drive_ratio
+	return engine_torque * total_ratio * config.drivetrain_efficiency
 
 
 func calculate_target_engine_rpm(driven_wheel_rad_per_sec: float) -> float:
-	var ratio: float = abs(gear_ratios[current_gear_index]) * final_drive_ratio
+	var ratio: float = abs(config.gear_ratios[current_gear_index]) * config.final_drive_ratio
 	var engine_rad_s: float = abs(driven_wheel_rad_per_sec) * ratio
 
 	return (engine_rad_s * 60.0) / (2.0 * PI)
@@ -107,10 +88,10 @@ func handle_transmission(engine_rpm: float, forward_speed: float, wheel_rad_s: f
 
 
 func _gear_allowed(target_index: int) -> bool:
-	var ratio: float = gear_ratios[target_index]
-	if ratio < 0.0 and _forward_speed > selector_max_speed:
+	var ratio: float = config.gear_ratios[target_index]
+	if ratio < 0.0 and _forward_speed > config.selector_max_speed:
 		return false
-	if ratio > 0.0 and _forward_speed < -selector_max_speed:
+	if ratio > 0.0 and _forward_speed < -config.selector_max_speed:
 		return false
 
 	return true
@@ -141,32 +122,34 @@ func _handle_selector(wheel_rad_s: float) -> bool:
 
 
 func _pick_drive_gear(wheel_rad_s: float) -> int:
-	for i in range(2, gear_ratios.size()):
-		var rpm: float = abs(wheel_rad_s) * gear_ratios[i] * final_drive_ratio * 60.0 / (2.0 * PI)
-		if rpm <= auto_upshift_rpm:
+	for i in range(2, config.gear_ratios.size()):
+		var rpm: float = abs(wheel_rad_s) * config.gear_ratios[i] * config.final_drive_ratio * 60.0 / (
+			2.0 * PI
+		)
+		if rpm <= config.auto_upshift_rpm:
 			return i
 
-	return gear_ratios.size() - 1
+	return config.gear_ratios.size() - 1
 
 
 func _handle_automatic_shifting(engine_rpm: float) -> void:
-	if current_gear_index >= 2 and current_gear_index < gear_ratios.size() - 1:
-		if engine_rpm >= auto_upshift_rpm:
+	if current_gear_index >= 2 and current_gear_index < config.gear_ratios.size() - 1:
+		if engine_rpm >= config.auto_upshift_rpm:
 			shift_up()
 			return
 
 	if current_gear_index > 2:
-		if engine_rpm <= auto_downshift_rpm:
+		if engine_rpm <= config.auto_downshift_rpm:
 			shift_down()
 
 
 func _start_shift() -> void:
 	is_shifting = true
-	_shift_timer = shift_delay_seconds
+	_shift_timer = config.shift_delay_seconds
 
 
 func shift_up() -> void:
-	if current_gear_index < gear_ratios.size() - 1 and _gear_allowed(current_gear_index + 1):
+	if current_gear_index < config.gear_ratios.size() - 1 and _gear_allowed(current_gear_index + 1):
 		current_gear_index += 1
 		_start_shift()
 

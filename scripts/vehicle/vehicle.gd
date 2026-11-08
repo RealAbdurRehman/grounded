@@ -1,25 +1,7 @@
 class_name Vehicle
 extends RigidBody3D
 
-@export_group("Specs")
-## In Kg.
-@export var vehicle_mass: float = 1350.0
-
-## In Nm.
-@export var max_brake_torque: float = 5000.0
-@export_range(0.3, 0.9) var brake_bias_front: float = 0.7
-
-@export var max_steer_angle_deg: float = 32.0
-
-## In square meters.
-@export var frontal_area: float = 2.2
-
-@export var drag_coefficient: float = 0.38
-
-# Controls body roll
-@export_group("Anti Roll Bars")
-@export var front_arb_stiffness: float = 4500.0
-@export var rear_arb_stiffness: float = 3000.0
+@export var config: ChassisConfig
 
 @export_group("References")
 @export var wheel_fl: Wheel
@@ -42,7 +24,8 @@ var _com_applied: Vector3 = Vector3.INF
 
 
 func _ready() -> void:
-	mass = vehicle_mass
+	if config:
+		mass = config.vehicle_mass
 
 	center_of_mass_mode = RigidBody3D.CENTER_OF_MASS_MODE_CUSTOM
 	_sync_center_of_mass()
@@ -57,6 +40,9 @@ func _ready() -> void:
 
 
 func _sync_center_of_mass() -> void:
+	if not center_of_mass_node:
+		return
+
 	var local_com: Vector3 = to_local(center_of_mass_node.global_position)
 	if local_com.is_equal_approx(_com_applied):
 		return
@@ -84,16 +70,17 @@ func _handle_inputs(delta: float) -> void:
 	)
 	steer_input = move_toward(steer_input, target_steer, delta * 4.0)
 
-	var steer_rad := deg_to_rad(steer_input * max_steer_angle_deg)
+	var max_steer: float = config.max_steer_angle_deg if config else 32.0
+	var steer_rad := deg_to_rad(steer_input * max_steer)
 	for w in [wheel_fl, wheel_fr, wheel_rl, wheel_rr]:
-		if w.can_steer:
+		if w and w.can_steer:
 			w.steer_angle_rad = steer_rad
 
 
 func _apply_anti_roll_bars() -> void:
 	if wheel_fl.is_grounded and wheel_fr.is_grounded:
 		var front_diff: float = wheel_fl.spring_displacement - wheel_fr.spring_displacement
-		var front_arb_force: float = front_diff * front_arb_stiffness
+		var front_arb_force: float = front_diff * config.front_arb_stiffness
 		apply_force(
 			wheel_fl.contact_normal * front_arb_force,
 			wheel_fl.global_position - global_position,
@@ -105,7 +92,7 @@ func _apply_anti_roll_bars() -> void:
 
 	if wheel_rl.is_grounded and wheel_rr.is_grounded:
 		var rear_diff: float = wheel_rl.spring_displacement - wheel_rr.spring_displacement
-		var rear_arb_force: float = rear_diff * rear_arb_stiffness
+		var rear_arb_force: float = rear_diff * config.rear_arb_stiffness
 		apply_force(
 			wheel_rl.contact_normal * rear_arb_force,
 			wheel_rl.global_position - global_position,
@@ -143,16 +130,20 @@ func _update_drivetrain_and_wheels(delta: float) -> void:
 	var torque_per_driven_wheel: float = total_wheel_torque / driven_count
 
 	var reflected_inertia: float = 0.0
-	if drivetrain_node.is_clutch_engaged():
-		var total_ratio: float = drivetrain_node.get_current_ratio() * drivetrain_node.final_drive_ratio
-		reflected_inertia = engine_node.flywheel_inertia * total_ratio * total_ratio / driven_count
+	if drivetrain_node.is_clutch_engaged() and engine_node.config and drivetrain_node.config:
+		var total_ratio: float = drivetrain_node.get_current_ratio() * drivetrain_node \
+				.config \
+				.final_drive_ratio
+		reflected_inertia = engine_node.config.flywheel_inertia * total_ratio * total_ratio / driven_count
 
 	for w in [wheel_fl, wheel_fr, wheel_rl, wheel_rr]:
 		var w_drive_torque: float = torque_per_driven_wheel if w.is_driven else 0.0
 		var w_reflected: float = reflected_inertia if w.is_driven else 0.0
 
-		var axle_share: float = brake_bias_front if w.is_front else (1.0 - brake_bias_front)
-		var w_brake_torque: float = brake_input * max_brake_torque * axle_share * 0.5
+		var brake_torque_base: float = config.max_brake_torque if config else 5000.0
+		var brake_bias: float = config.brake_bias_front if config else 0.7
+		var axle_share: float = brake_bias if w.is_front else (1.0 - brake_bias)
+		var w_brake_torque: float = brake_input * brake_torque_base * axle_share * 0.5
 
 		w.update_wheel(self, delta, w_drive_torque, w_brake_torque, w_reflected)
 
@@ -161,7 +152,7 @@ func _apply_aerodynamic_drag() -> void:
 	var speed: float = linear_velocity.length()
 	if speed > 0.1:
 		var air_density := 1.225
-		var drag_scalar: float = 0.5 * air_density * drag_coefficient * frontal_area * (
+		var drag_scalar: float = 0.5 * air_density * config.drag_coefficient * config.frontal_area * (
 			speed * speed
 		)
 

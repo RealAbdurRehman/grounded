@@ -8,7 +8,7 @@ enum TransmissionType {
 
 @export var config: DrivetrainConfig
 
-@export var transmission_type: TransmissionType = TransmissionType.AUTOMATIC
+@export var transmission_type: TransmissionType = TransmissionType.MANUAL_SEQUENTIAL
 
 var is_shifting: bool = false
 

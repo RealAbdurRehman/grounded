@@ -94,24 +94,24 @@ func _apply_anti_roll_bars() -> void:
 		var front_diff: float = wheel_fl.spring_displacement - wheel_fr.spring_displacement
 		var front_arb_force: float = front_diff * front_arb_stiffness
 		apply_force(
-			wheel_fl.contact_normal * -front_arb_force,
-			wheel_fl.contact_point - global_position,
+			wheel_fl.contact_normal * front_arb_force,
+			wheel_fl.global_position - global_position,
 		)
 		apply_force(
-			wheel_fr.contact_normal * front_arb_force,
-			wheel_fr.contact_point - global_position,
+			wheel_fr.contact_normal * -front_arb_force,
+			wheel_fr.global_position - global_position,
 		)
 
 	if wheel_rl.is_grounded and wheel_rr.is_grounded:
 		var rear_diff: float = wheel_rl.spring_displacement - wheel_rr.spring_displacement
 		var rear_arb_force: float = rear_diff * rear_arb_stiffness
 		apply_force(
-			wheel_rl.contact_normal * -rear_arb_force,
-			wheel_rl.contact_point - global_position,
+			wheel_rl.contact_normal * rear_arb_force,
+			wheel_rl.global_position - global_position,
 		)
 		apply_force(
-			wheel_rr.contact_normal * rear_arb_force,
-			wheel_rr.contact_point - global_position,
+			wheel_rr.contact_normal * -rear_arb_force,
+			wheel_rr.global_position - global_position,
 		)
 
 

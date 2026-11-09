@@ -68,14 +68,10 @@ func update_wheel_telemetry(
 
 	match wheel_id:
 		"FL":
-			if circle_fl:
 				circle_fl.update_forces(fx, fy, max_grip)
 		"FR":
-			if circle_fr:
 				circle_fr.update_forces(fx, fy, max_grip)
 		"RL":
-			if circle_rl:
 				circle_rl.update_forces(fx, fy, max_grip)
 		"RR":
-			if circle_rr:
 				circle_rr.update_forces(fx, fy, max_grip)

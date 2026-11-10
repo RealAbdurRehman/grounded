@@ -11,8 +11,10 @@ var _target_fy: float = 0.0
 
 
 func _process(delta: float) -> void:
-	fx_norm = lerp(fx_norm, _target_fx, delta * smoothing_speed)
-	fy_norm = lerp(fy_norm, _target_fy, delta * smoothing_speed)
+	var blend := 1.0 - exp(-smoothing_speed * delta)
+	fx_norm = lerpf(fx_norm, _target_fx, blend)
+	fy_norm = lerpf(fy_norm, _target_fy, blend)
+
 	queue_redraw()
 
 

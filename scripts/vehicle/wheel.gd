@@ -14,6 +14,9 @@ extends RayCast3D
 @export var friction_coef: float = 1.0
 @export var rolling_resistance_coef: float = 0.012
 
+@export_group("Solver")
+@export_range(0.0, 1.0, 0.05) var spin_stability_weight: float = 0.75
+
 
 @export_group("Mesh")
 @onready var visual_mesh: MeshInstance3D = $Mesh
@@ -135,6 +138,9 @@ func update_wheel(
 	)
 
 	var force_slope: float = maxf((f_step.x - f_now.x) / kappa_step, 0.0)
+
+	if absf(kappa_now) > 0.001:
+		force_slope = maxf(force_slope, spin_stability_weight * f_now.x / kappa_now)
 	var stiffness_w: float = force_slope * radius / speed_denominator
 
 	var implicit_inertia: float = inertia + delta * radius * stiffness_w
@@ -166,6 +172,36 @@ func update_wheel(
 		fx = fx * mass_share * speed_long / (mass_share * speed_long + delta * absf(fx))
 
 	fx += -rolling_resistance_coef * fz * clampf(v_long / 0.5, -1.0, 1.0)
+
+	var gravity_dir: Vector3 = ProjectSettings.get_setting("physics/3d/default_gravity_vector")
+	var gravity_strength: float = ProjectSettings.get_setting("physics/3d/default_gravity")
+	var gravity: Vector3 = gravity_dir * gravity_strength * chassis.gravity_scale
+
+	var gravity_tangent: Vector3 = gravity - (contact_normal * gravity.dot(contact_normal))
+	var expected_normal_load: float = chassis.mass * absf(gravity.dot(contact_normal))
+	var load_share: float = clampf(fz / maxf(expected_normal_load, 1.0), 0.0, 1.0)
+
+	var tangent_velocity: Vector3 = (
+		contact_velocity - contact_normal * contact_velocity.dot(contact_normal)
+	)
+	var static_blend: float = 1.0 - smoothstep(
+		0.05,
+		tire_model.static_lateral_hold_speed,
+		tangent_velocity.length(),
+	)
+
+	var static_lateral_force: float = (
+		-gravity_tangent * chassis.mass * load_share
+	).dot(wheel_right)
+	fy += static_lateral_force * static_blend
+
+	var combined_force: Vector2 = tire_model.project_to_friction_ellipse(
+		Vector2(fx, fy),
+		tire_model.peak_longitudinal_force_n(fz, friction_coef),
+		tire_model.peak_lateral_force_n(fz, friction_coef),
+	)
+	fx = combined_force.x
+	fy = combined_force.y
 
 	longitudinal_force_n = fx
 	lateral_force_n = fy

@@ -53,6 +53,7 @@ extends Resource
 @export var low_speed_threshold: float = 3.0
 
 @export var low_speed_lat_saturation: float = 0.5
+@export var static_lateral_hold_speed: float = 0.5
 
 var _cache_signature: float = -1.0
 
@@ -111,8 +112,29 @@ func _get_peak_mu(fz: float) -> float:
 	return clampf(1.0 - load_sensitivity * (load_ratio - 1.0), 0.5, 1.5)
 
 
+func peak_longitudinal_force_n(fz: float, grip_scale: float = 1.0) -> float:
+	return _get_peak_mu(fz) * maxf(fz, 0.0) * long_D * grip_scale
+
+
+func peak_lateral_force_n(fz: float, grip_scale: float = 1.0) -> float:
+	return _get_peak_mu(fz) * maxf(fz, 0.0) * lat_D * grip_scale
+
+
 func peak_force_n(fz: float) -> float:
-	return _get_peak_mu(fz) * maxf(fz, 0.0) * lat_D
+	return peak_lateral_force_n(fz)
+
+
+func project_to_friction_ellipse(force: Vector2, peak_x: float, peak_y: float) -> Vector2:
+	if peak_x <= 0.0 or peak_y <= 0.0:
+		return Vector2.ZERO
+
+	var ellipse_sq := (force.x / peak_x) * (force.x / peak_x)
+	ellipse_sq += (force.y / peak_y) * (force.y / peak_y)
+
+	if ellipse_sq <= 1.0:
+		return force
+
+	return force / sqrt(ellipse_sq)
 
 
 ## Longitudinal force

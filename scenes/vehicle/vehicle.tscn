@@ -35,7 +35,7 @@ mesh = SubResource("BoxMesh_8rti0")
 [node name="Engine" type="Node" parent="." unique_id=1472005107]
 script = ExtResource("2_cs81w")
 
-[node name="Drivetrain" type="Node" parent="." unique_id=1060942932]
+[node name="Drivetrain" type="Node" parent="." unique_id=1236505186]
 script = ExtResource("3_cs81w")
 
 [node name="Wheels" type="Node3D" parent="." unique_id=2027221242]

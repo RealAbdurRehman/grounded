@@ -8,8 +8,8 @@
 [ext_resource type="Script" uid="uid://bwprdmk5kupc6" path="res://scripts/vehicle/configs/chassis.gd" id="4_gb53w"]
 [ext_resource type="Texture2D" uid="uid://c7ma8ggfipg" path="res://assets/textures/ground/arm.jpg" id="4_j2gmx"]
 [ext_resource type="Script" uid="uid://bkel8e4frgv51" path="res://scripts/vehicle/configs/engine.gd" id="5_gb53w"]
-[ext_resource type="Script" uid="uid://l2tns4vcug28" path="res://scripts/vehicle/configs/drivetrain.gd" id="6_5qq27"]
 [ext_resource type="PackedScene" uid="uid://db4473gxoh8sk" path="res://scenes/ui/telemetry.tscn" id="6_bq33v"]
+[ext_resource type="Resource" uid="uid://cc3cenk2w6t53" path="res://resources/drivetrains/default.tres" id="6_dlabj"]
 [ext_resource type="Script" uid="uid://dvp5aua86h7p4" path="res://scripts/camera/camera.gd" id="6_t5ptc"]
 [ext_resource type="Script" uid="uid://mnsyudn5vsag" path="res://scripts/vehicle/configs/suspension.gd" id="7_dlabj"]
 
@@ -29,10 +29,6 @@ metadata/_custom_type_script = "uid://bwprdmk5kupc6"
 [sub_resource type="Resource" id="Resource_vu11u"]
 script = ExtResource("5_gb53w")
 metadata/_custom_type_script = "uid://bkel8e4frgv51"
-
-[sub_resource type="Resource" id="Resource_5qq27"]
-script = ExtResource("6_5qq27")
-metadata/_custom_type_script = "uid://l2tns4vcug28"
 
 [sub_resource type="Resource" id="Resource_dlabj"]
 script = ExtResource("7_dlabj")
@@ -512,8 +508,8 @@ telemetry_hud = NodePath("../Telemetry/TelemetryDebug")
 [node name="Engine" parent="Vehicle" index="2" unique_id=1472005107]
 config = SubResource("Resource_vu11u")
 
-[node name="Drivetrain" parent="Vehicle" index="3" unique_id=1060942932]
-config = SubResource("Resource_5qq27")
+[node name="Drivetrain" parent="Vehicle" index="3" unique_id=1236505186]
+config = ExtResource("6_dlabj")
 
 [node name="WheelFL" parent="Vehicle/Wheels" parent_id_path=PackedInt32Array(429220544, 2027221242) index="0" unique_id=1185262635]
 suspension_config = SubResource("Resource_dlabj")

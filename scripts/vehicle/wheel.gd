@@ -30,6 +30,9 @@ var contact_point: Vector3 = Vector3.ZERO
 var contact_normal: Vector3 = Vector3.UP
 
 var suspension_force_n: float = 0.0
+var arb_force_n: float = 0.0
+var normal_load_n: float = 0.0
+
 var lateral_force_n: float = 0.0
 var longitudinal_force_n: float = 0.0
 
@@ -92,6 +95,7 @@ func update_wheel(
 	var f_spring: float = k_spring * spring_displacement
 	var f_damper: float = k_damper * compression_speed
 	suspension_force_n = max(0.0, f_spring + f_damper)
+	normal_load_n = maxf(0.0, suspension_force_n + arb_force_n)
 
 	var chassis_up: Vector3 = chassis.global_transform.basis.y.normalized()
 	var wheel_basis: Basis = chassis.global_transform.basis.rotated(chassis_up, steer_angle_rad)
@@ -111,7 +115,7 @@ func update_wheel(
 	var v_long: float = contact_velocity.dot(wheel_forward)
 	var speed_long: float = absf(v_long)
 
-	var fz: float = suspension_force_n
+	var fz: float = normal_load_n
 	grip_limit_n = tire_model.peak_force_n(fz) * friction_coef
 
 	var alpha: float = atan2(-v_lat, maxf(speed_long, tire_model.slip_speed_floor))
@@ -209,8 +213,8 @@ func update_wheel(
 	slip_angle_rad = alpha
 
 	var total_force: Vector3 = (
-		(contact_normal * suspension_force_n)
-		+ (wheel_forward * longitudinal_force_n) + (wheel_right * lateral_force_n)
+		(contact_normal * normal_load_n) + (wheel_forward * longitudinal_force_n)
+		+ (wheel_right * lateral_force_n)
 	)
 	chassis.apply_force(total_force, contact_point - chassis.global_position)
 
@@ -224,7 +228,7 @@ func update_wheel(
 
 	DebugDraw3D.draw_line(
 		contact_point,
-		contact_point + contact_normal * (suspension_force_n / 1500.0),
+		contact_point + contact_normal * (normal_load_n / 1500.0),
 		Color.GREEN,
 	)
 	DebugDraw3D.draw_line(
@@ -249,6 +253,8 @@ func _handle_airborne(
 	spring_displacement = 0.0
 
 	suspension_force_n = 0.0
+	normal_load_n = 0.0
+
 	lateral_force_n = 0.0
 	longitudinal_force_n = 0.0
 

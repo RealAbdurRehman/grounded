@@ -50,8 +50,8 @@ func _sync_center_of_mass() -> void:
 func _physics_process(delta: float) -> void:
 	_handle_inputs(delta)
 
+	_compute_anti_roll_bars()
 	_update_drivetrain_and_wheels(delta)
-	_apply_anti_roll_bars()
 	_apply_aerodynamic_drag()
 
 	_update_telemetry()
@@ -90,30 +90,20 @@ func _handle_inputs(delta: float) -> void:
 			w.steer_angle_rad = steer_rad
 
 
-func _apply_anti_roll_bars() -> void:
-	if wheel_fl.is_grounded and wheel_fr.is_grounded:
-		var front_diff: float = wheel_fl.spring_displacement - wheel_fr.spring_displacement
-		var front_arb_force: float = front_diff * config.front_arb_stiffness
-		apply_force(
-			wheel_fl.contact_normal * front_arb_force,
-			wheel_fl.global_position - global_position,
-		)
-		apply_force(
-			wheel_fr.contact_normal * -front_arb_force,
-			wheel_fr.global_position - global_position,
-		)
+func _compute_anti_roll_bars() -> void:
+	_set_axle_arb(wheel_fl, wheel_fr, config.front_arb_stiffness)
+	_set_axle_arb(wheel_rl, wheel_rr, config.rear_arb_stiffness)
 
-	if wheel_rl.is_grounded and wheel_rr.is_grounded:
-		var rear_diff: float = wheel_rl.spring_displacement - wheel_rr.spring_displacement
-		var rear_arb_force: float = rear_diff * config.rear_arb_stiffness
-		apply_force(
-			wheel_rl.contact_normal * rear_arb_force,
-			wheel_rl.global_position - global_position,
-		)
-		apply_force(
-			wheel_rr.contact_normal * -rear_arb_force,
-			wheel_rr.global_position - global_position,
-		)
+
+func _set_axle_arb(left: Wheel, right: Wheel, stiffness: float) -> void:
+	if left.is_grounded and right.is_grounded:
+		var diff: float = left.spring_displacement - right.spring_displacement
+		var force: float = diff * stiffness
+		left.arb_force_n = force
+		right.arb_force_n = -force
+	else:
+		left.arb_force_n = 0.0
+		right.arb_force_n = 0.0
 
 
 func _update_drivetrain_and_wheels(delta: float) -> void:
@@ -181,7 +171,7 @@ func _update_telemetry() -> void:
 		var w: Wheel = wheels[i]
 		telemetry_hud.update_wheel_telemetry(
 			ids[i],
-			w.suspension_force_n,
+			w.normal_load_n,
 			rad_to_deg(w.slip_angle_rad),
 			w.slip_ratio,
 			w.compression,

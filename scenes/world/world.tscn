@@ -394,134 +394,17 @@ top_radius = 0.08
 bottom_radius = 0.08
 height = 10.0
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_s64j0"]
-size = Vector3(10, 0.08, 0.4)
-
-[sub_resource type="CylinderMesh" id="CylinderMesh_jtcuk"]
-material = SubResource("StandardMaterial3D_i1y2t")
-top_radius = 0.08
-bottom_radius = 0.08
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_dlabj"]
 height = 10.0
+radius = 0.08
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_k6jmd"]
-size = Vector3(10, 0.08, 0.4)
+[sub_resource type="SphereShape3D" id="SphereShape3D_8rti0"]
 
-[sub_resource type="CylinderMesh" id="CylinderMesh_pyabd"]
-material = SubResource("StandardMaterial3D_i1y2t")
-top_radius = 0.08
-bottom_radius = 0.08
-height = 10.0
+[sub_resource type="SphereMesh" id="SphereMesh_ax6fg"]
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_qjyj0"]
-size = Vector3(10, 0.08, 0.4)
+[sub_resource type="BoxShape3D" id="BoxShape3D_dlabj"]
 
-[sub_resource type="CylinderMesh" id="CylinderMesh_do88p"]
-material = SubResource("StandardMaterial3D_i1y2t")
-top_radius = 0.08
-bottom_radius = 0.08
-height = 10.0
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_j8f2q"]
-size = Vector3(10, 0.08, 0.4)
-
-[sub_resource type="CylinderMesh" id="CylinderMesh_pnq3x"]
-material = SubResource("StandardMaterial3D_i1y2t")
-top_radius = 0.08
-bottom_radius = 0.08
-height = 10.0
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_8b617"]
-size = Vector3(10, 0.08, 0.4)
-
-[sub_resource type="CylinderMesh" id="CylinderMesh_ckeh6"]
-material = SubResource("StandardMaterial3D_i1y2t")
-top_radius = 0.08
-bottom_radius = 0.08
-height = 10.0
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_pww7v"]
-size = Vector3(10, 0.08, 0.4)
-
-[sub_resource type="CylinderMesh" id="CylinderMesh_nlt47"]
-material = SubResource("StandardMaterial3D_i1y2t")
-top_radius = 0.08
-bottom_radius = 0.08
-height = 10.0
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_6a7tq"]
-size = Vector3(10, 0.08, 0.4)
-
-[sub_resource type="CylinderMesh" id="CylinderMesh_wo74w"]
-material = SubResource("StandardMaterial3D_i1y2t")
-top_radius = 0.08
-bottom_radius = 0.08
-height = 10.0
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_425aq"]
-size = Vector3(10, 0.08, 0.4)
-
-[sub_resource type="CylinderMesh" id="CylinderMesh_ayaol"]
-material = SubResource("StandardMaterial3D_i1y2t")
-top_radius = 0.08
-bottom_radius = 0.08
-height = 10.0
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_ecm30"]
-size = Vector3(10, 0.08, 0.4)
-
-[sub_resource type="CylinderMesh" id="CylinderMesh_l34gv"]
-material = SubResource("StandardMaterial3D_i1y2t")
-top_radius = 0.08
-bottom_radius = 0.08
-height = 10.0
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_2qot8"]
-size = Vector3(10, 0.08, 0.4)
-
-[sub_resource type="CylinderMesh" id="CylinderMesh_sfox1"]
-material = SubResource("StandardMaterial3D_i1y2t")
-top_radius = 0.08
-bottom_radius = 0.08
-height = 10.0
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_nmgud"]
-size = Vector3(10, 0.08, 0.4)
-
-[sub_resource type="CylinderMesh" id="CylinderMesh_le7yh"]
-material = SubResource("StandardMaterial3D_i1y2t")
-top_radius = 0.08
-bottom_radius = 0.08
-height = 10.0
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_wfk0w"]
-size = Vector3(10, 0.08, 0.4)
-
-[sub_resource type="CylinderMesh" id="CylinderMesh_qitea"]
-material = SubResource("StandardMaterial3D_i1y2t")
-top_radius = 0.08
-bottom_radius = 0.08
-height = 10.0
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_6xqbw"]
-size = Vector3(10, 0.08, 0.4)
-
-[sub_resource type="CylinderMesh" id="CylinderMesh_6jobc"]
-material = SubResource("StandardMaterial3D_i1y2t")
-top_radius = 0.08
-bottom_radius = 0.08
-height = 10.0
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_f3kq1"]
-size = Vector3(10, 0.08, 0.4)
-
-[sub_resource type="CylinderMesh" id="CylinderMesh_di5vm"]
-material = SubResource("StandardMaterial3D_i1y2t")
-top_radius = 0.08
-bottom_radius = 0.08
-height = 10.0
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_7tufn"]
-size = Vector3(10, 0.08, 0.4)
+[sub_resource type="BoxMesh" id="BoxMesh_umvgx"]
 
 [sub_resource type="FastNoiseLite" id="FastNoiseLite_7r4gi"]
 frequency = 0.05
@@ -1042,26 +925,50 @@ mesh = SubResource("BoxMesh_bmoad")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Tests/Slalom/Obstacles/Obstacle10" unique_id=1459296929]
 shape = SubResource("BoxShape3D_mb8w1")
 
-[node name="Ramp" type="Node3D" parent="Tests" unique_id=1982062496]
+[node name="Slope" type="Node3D" parent="Tests" unique_id=1982062496]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 57.35823, 0, -94.94403)
 
-[node name="Incline" type="StaticBody3D" parent="Tests/Ramp" unique_id=1876042386]
+[node name="Incline" type="StaticBody3D" parent="Tests/Slope" unique_id=1876042386]
 transform = Transform3D(1, 0, 0, 0, 0.9659258, -0.25881904, 0, 0.25881904, 0.9659258, 0, 7.764571, -28.977776)
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Tests/Ramp/Incline" unique_id=1013573780]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Tests/Slope/Incline" unique_id=1013573780]
 mesh = SubResource("BoxMesh_oo0aq")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Tests/Ramp/Incline" unique_id=631291689]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Tests/Slope/Incline" unique_id=631291689]
 shape = SubResource("BoxShape3D_olhon")
 
-[node name="Platform" type="StaticBody3D" parent="Tests/Ramp" unique_id=197363153]
+[node name="Platform" type="StaticBody3D" parent="Tests/Slope" unique_id=197363153]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 15.522327, -67.89783)
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Tests/Ramp/Platform" unique_id=480865879]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Tests/Slope/Platform" unique_id=480865879]
 mesh = SubResource("BoxMesh_m4278")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Tests/Ramp/Platform" unique_id=323826537]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Tests/Slope/Platform" unique_id=323826537]
 shape = SubResource("BoxShape3D_nyio1")
+
+[node name="Ramp" type="Node3D" parent="Tests" unique_id=1269393499]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 72.41758, -10, -94.94403)
+
+[node name="Incline" type="StaticBody3D" parent="Tests/Ramp" unique_id=1818110567]
+transform = Transform3D(1, 0, 0, 0, 0.9659258, -0.25881904, 0, 0.25881904, 0.9659258, 0, 7.764571, -28.977776)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Tests/Ramp/Incline" unique_id=1396611500]
+mesh = SubResource("BoxMesh_oo0aq")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Tests/Ramp/Incline" unique_id=806076494]
+shape = SubResource("BoxShape3D_olhon")
+
+[node name="Ramp2" type="Node3D" parent="Tests" unique_id=2030365302]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 72.41758, -10, -226.74161)
+
+[node name="Incline" type="StaticBody3D" parent="Tests/Ramp2" unique_id=1954783616]
+transform = Transform3D(1, 0, 0, 0, 0.9659258, -0.25881904, 0, 0.25881904, 0.9659258, 0, 7.764571, -28.977776)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Tests/Ramp2/Incline" unique_id=1034593151]
+mesh = SubResource("BoxMesh_oo0aq")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Tests/Ramp2/Incline" unique_id=620266152]
+shape = SubResource("BoxShape3D_olhon")
 
 [node name="BumpTest" type="Node3D" parent="Tests" unique_id=1812627924]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 87.35823, 0, -94.94403)
@@ -1076,171 +983,258 @@ mesh = SubResource("BoxMesh_mdkuk")
 shape = SubResource("BoxShape3D_mrxq0")
 
 [node name="Bumps" type="Node3D" parent="Tests/BumpTest" unique_id=1045787284]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.04, 0)
 
 [node name="Bump1" type="StaticBody3D" parent="Tests/BumpTest/Bumps" unique_id=2054047137]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -5)
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="Tests/BumpTest/Bumps/Bump1" unique_id=308395252]
-transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0.04, 0)
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
 mesh = SubResource("CylinderMesh_ghkdt")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Tests/BumpTest/Bumps/Bump1" unique_id=2074854201]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.04, 0)
-shape = SubResource("BoxShape3D_s64j0")
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
+shape = SubResource("CylinderShape3D_dlabj")
 
-[node name="Bump2" type="StaticBody3D" parent="Tests/BumpTest/Bumps" unique_id=1628298298]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -6.8)
+[node name="Bump2" type="StaticBody3D" parent="Tests/BumpTest/Bumps" unique_id=877818686]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -7)
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Tests/BumpTest/Bumps/Bump2" unique_id=877046283]
-transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0.04, 0)
-mesh = SubResource("CylinderMesh_jtcuk")
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Tests/BumpTest/Bumps/Bump2" unique_id=1046769749]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("CylinderMesh_ghkdt")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Tests/BumpTest/Bumps/Bump2" unique_id=1862662199]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.04, 0)
-shape = SubResource("BoxShape3D_k6jmd")
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Tests/BumpTest/Bumps/Bump2" unique_id=941147952]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
+shape = SubResource("CylinderShape3D_dlabj")
 
-[node name="Bump3" type="StaticBody3D" parent="Tests/BumpTest/Bumps" unique_id=1053829256]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -8.6)
+[node name="Bump3" type="StaticBody3D" parent="Tests/BumpTest/Bumps" unique_id=1324792177]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -9)
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Tests/BumpTest/Bumps/Bump3" unique_id=934897872]
-transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0.04, 0)
-mesh = SubResource("CylinderMesh_pyabd")
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Tests/BumpTest/Bumps/Bump3" unique_id=1067969437]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("CylinderMesh_ghkdt")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Tests/BumpTest/Bumps/Bump3" unique_id=1097936718]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.04, 0)
-shape = SubResource("BoxShape3D_qjyj0")
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Tests/BumpTest/Bumps/Bump3" unique_id=1126905055]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
+shape = SubResource("CylinderShape3D_dlabj")
 
-[node name="Bump4" type="StaticBody3D" parent="Tests/BumpTest/Bumps" unique_id=2053137122]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -10.4)
+[node name="Bump4" type="StaticBody3D" parent="Tests/BumpTest/Bumps" unique_id=330249139]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -11)
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Tests/BumpTest/Bumps/Bump4" unique_id=549579736]
-transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0.04, 0)
-mesh = SubResource("CylinderMesh_do88p")
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Tests/BumpTest/Bumps/Bump4" unique_id=102379288]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("CylinderMesh_ghkdt")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Tests/BumpTest/Bumps/Bump4" unique_id=848755803]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.04, 0)
-shape = SubResource("BoxShape3D_j8f2q")
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Tests/BumpTest/Bumps/Bump4" unique_id=884879524]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
+shape = SubResource("CylinderShape3D_dlabj")
 
-[node name="Bump5" type="StaticBody3D" parent="Tests/BumpTest/Bumps" unique_id=914869376]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -12.2)
+[node name="Bump5" type="StaticBody3D" parent="Tests/BumpTest/Bumps" unique_id=828198100]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -13)
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Tests/BumpTest/Bumps/Bump5" unique_id=1350013592]
-transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0.04, 0)
-mesh = SubResource("CylinderMesh_pnq3x")
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Tests/BumpTest/Bumps/Bump5" unique_id=844860946]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("CylinderMesh_ghkdt")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Tests/BumpTest/Bumps/Bump5" unique_id=798422891]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.04, 0)
-shape = SubResource("BoxShape3D_8b617")
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Tests/BumpTest/Bumps/Bump5" unique_id=1042129635]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
+shape = SubResource("CylinderShape3D_dlabj")
 
-[node name="Bump6" type="StaticBody3D" parent="Tests/BumpTest/Bumps" unique_id=952016195]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -14)
+[node name="Bump6" type="StaticBody3D" parent="Tests/BumpTest/Bumps" unique_id=765490341]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -15)
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Tests/BumpTest/Bumps/Bump6" unique_id=649440892]
-transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0.04, 0)
-mesh = SubResource("CylinderMesh_ckeh6")
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Tests/BumpTest/Bumps/Bump6" unique_id=507537391]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("CylinderMesh_ghkdt")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Tests/BumpTest/Bumps/Bump6" unique_id=350822924]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.04, 0)
-shape = SubResource("BoxShape3D_pww7v")
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Tests/BumpTest/Bumps/Bump6" unique_id=1298462209]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
+shape = SubResource("CylinderShape3D_dlabj")
 
-[node name="Bump7" type="StaticBody3D" parent="Tests/BumpTest/Bumps" unique_id=1043544757]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -15.8)
+[node name="Bump7" type="StaticBody3D" parent="Tests/BumpTest/Bumps" unique_id=162234356]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -17)
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Tests/BumpTest/Bumps/Bump7" unique_id=1254622726]
-transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0.04, 0)
-mesh = SubResource("CylinderMesh_nlt47")
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Tests/BumpTest/Bumps/Bump7" unique_id=183119153]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("CylinderMesh_ghkdt")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Tests/BumpTest/Bumps/Bump7" unique_id=807699353]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.04, 0)
-shape = SubResource("BoxShape3D_6a7tq")
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Tests/BumpTest/Bumps/Bump7" unique_id=1149470341]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
+shape = SubResource("CylinderShape3D_dlabj")
 
-[node name="Bump8" type="StaticBody3D" parent="Tests/BumpTest/Bumps" unique_id=1819796739]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -17.6)
+[node name="Bump8" type="StaticBody3D" parent="Tests/BumpTest/Bumps" unique_id=746042800]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -19)
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Tests/BumpTest/Bumps/Bump8" unique_id=2102030326]
-transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0.04, 0)
-mesh = SubResource("CylinderMesh_wo74w")
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Tests/BumpTest/Bumps/Bump8" unique_id=2047132498]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("CylinderMesh_ghkdt")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Tests/BumpTest/Bumps/Bump8" unique_id=2122390939]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.04, 0)
-shape = SubResource("BoxShape3D_425aq")
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Tests/BumpTest/Bumps/Bump8" unique_id=567644161]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
+shape = SubResource("CylinderShape3D_dlabj")
 
-[node name="Bump9" type="StaticBody3D" parent="Tests/BumpTest/Bumps" unique_id=1509213834]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -19.4)
+[node name="Bump9" type="StaticBody3D" parent="Tests/BumpTest/Bumps" unique_id=507702821]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -21)
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Tests/BumpTest/Bumps/Bump9" unique_id=903787643]
-transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0.04, 0)
-mesh = SubResource("CylinderMesh_ayaol")
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Tests/BumpTest/Bumps/Bump9" unique_id=1712243503]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("CylinderMesh_ghkdt")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Tests/BumpTest/Bumps/Bump9" unique_id=1642004252]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.04, 0)
-shape = SubResource("BoxShape3D_ecm30")
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Tests/BumpTest/Bumps/Bump9" unique_id=1371606342]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
+shape = SubResource("CylinderShape3D_dlabj")
 
-[node name="Bump10" type="StaticBody3D" parent="Tests/BumpTest/Bumps" unique_id=1795292974]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -21.2)
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Tests/BumpTest/Bumps/Bump10" unique_id=770422802]
-transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0.04, 0)
-mesh = SubResource("CylinderMesh_l34gv")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Tests/BumpTest/Bumps/Bump10" unique_id=1043900119]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.04, 0)
-shape = SubResource("BoxShape3D_2qot8")
-
-[node name="Bump11" type="StaticBody3D" parent="Tests/BumpTest/Bumps" unique_id=1160658642]
+[node name="Bump10" type="StaticBody3D" parent="Tests/BumpTest/Bumps" unique_id=814144756]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -23)
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Tests/BumpTest/Bumps/Bump11" unique_id=1542028328]
-transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0.04, 0)
-mesh = SubResource("CylinderMesh_sfox1")
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Tests/BumpTest/Bumps/Bump10" unique_id=359460993]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("CylinderMesh_ghkdt")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Tests/BumpTest/Bumps/Bump11" unique_id=53453906]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.04, 0)
-shape = SubResource("BoxShape3D_nmgud")
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Tests/BumpTest/Bumps/Bump10" unique_id=302982744]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
+shape = SubResource("CylinderShape3D_dlabj")
 
-[node name="Bump12" type="StaticBody3D" parent="Tests/BumpTest/Bumps" unique_id=441983988]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -24.8)
+[node name="Bump11" type="StaticBody3D" parent="Tests/BumpTest/Bumps" unique_id=1865083532]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -25)
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Tests/BumpTest/Bumps/Bump12" unique_id=1642371362]
-transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0.04, 0)
-mesh = SubResource("CylinderMesh_le7yh")
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Tests/BumpTest/Bumps/Bump11" unique_id=1687027058]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("CylinderMesh_ghkdt")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Tests/BumpTest/Bumps/Bump12" unique_id=558073260]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.04, 0)
-shape = SubResource("BoxShape3D_wfk0w")
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Tests/BumpTest/Bumps/Bump11" unique_id=1318201857]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
+shape = SubResource("CylinderShape3D_dlabj")
 
-[node name="Bump13" type="StaticBody3D" parent="Tests/BumpTest/Bumps" unique_id=2140476184]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -26.6)
+[node name="Bump12" type="StaticBody3D" parent="Tests/BumpTest/Bumps" unique_id=1311574031]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -27)
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Tests/BumpTest/Bumps/Bump13" unique_id=1263367960]
-transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0.04, 0)
-mesh = SubResource("CylinderMesh_qitea")
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Tests/BumpTest/Bumps/Bump12" unique_id=817325109]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("CylinderMesh_ghkdt")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Tests/BumpTest/Bumps/Bump13" unique_id=1885569679]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.04, 0)
-shape = SubResource("BoxShape3D_6xqbw")
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Tests/BumpTest/Bumps/Bump12" unique_id=898640475]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
+shape = SubResource("CylinderShape3D_dlabj")
 
-[node name="Bump14" type="StaticBody3D" parent="Tests/BumpTest/Bumps" unique_id=1279985531]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -28.4)
+[node name="Bump13" type="StaticBody3D" parent="Tests/BumpTest/Bumps" unique_id=171547791]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -29)
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Tests/BumpTest/Bumps/Bump14" unique_id=1393314584]
-transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0.04, 0)
-mesh = SubResource("CylinderMesh_6jobc")
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Tests/BumpTest/Bumps/Bump13" unique_id=1599125348]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("CylinderMesh_ghkdt")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Tests/BumpTest/Bumps/Bump14" unique_id=1722352225]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.04, 0)
-shape = SubResource("BoxShape3D_f3kq1")
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Tests/BumpTest/Bumps/Bump13" unique_id=1765410405]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
+shape = SubResource("CylinderShape3D_dlabj")
 
-[node name="Bump15" type="StaticBody3D" parent="Tests/BumpTest/Bumps" unique_id=614367517]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -30.2)
+[node name="Bump14" type="StaticBody3D" parent="Tests/BumpTest/Bumps" unique_id=1946351059]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -31)
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Tests/BumpTest/Bumps/Bump15" unique_id=1187023237]
-transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0.04, 0)
-mesh = SubResource("CylinderMesh_di5vm")
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Tests/BumpTest/Bumps/Bump14" unique_id=972868814]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("CylinderMesh_ghkdt")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Tests/BumpTest/Bumps/Bump15" unique_id=371832099]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.04, 0)
-shape = SubResource("BoxShape3D_7tufn")
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Tests/BumpTest/Bumps/Bump14" unique_id=2008513394]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
+shape = SubResource("CylinderShape3D_dlabj")
+
+[node name="Bump15" type="StaticBody3D" parent="Tests/BumpTest/Bumps" unique_id=1310447930]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -33)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Tests/BumpTest/Bumps/Bump15" unique_id=1320384838]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("CylinderMesh_ghkdt")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Tests/BumpTest/Bumps/Bump15" unique_id=1415864465]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
+shape = SubResource("CylinderShape3D_dlabj")
+
+[node name="Bump16" type="StaticBody3D" parent="Tests/BumpTest/Bumps" unique_id=179674228]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -35)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Tests/BumpTest/Bumps/Bump16" unique_id=947104369]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("CylinderMesh_ghkdt")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Tests/BumpTest/Bumps/Bump16" unique_id=1631312284]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
+shape = SubResource("CylinderShape3D_dlabj")
+
+[node name="Bump17" type="StaticBody3D" parent="Tests/BumpTest/Bumps" unique_id=460853937]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -37)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Tests/BumpTest/Bumps/Bump17" unique_id=1083334035]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("CylinderMesh_ghkdt")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Tests/BumpTest/Bumps/Bump17" unique_id=1781481316]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
+shape = SubResource("CylinderShape3D_dlabj")
+
+[node name="Bump18" type="StaticBody3D" parent="Tests/BumpTest/Bumps" unique_id=797139930]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -39)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Tests/BumpTest/Bumps/Bump18" unique_id=1257260154]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("CylinderMesh_ghkdt")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Tests/BumpTest/Bumps/Bump18" unique_id=1748576772]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
+shape = SubResource("CylinderShape3D_dlabj")
+
+[node name="Bump19" type="StaticBody3D" parent="Tests/BumpTest/Bumps" unique_id=1008279466]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -41)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Tests/BumpTest/Bumps/Bump19" unique_id=1597420706]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("CylinderMesh_ghkdt")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Tests/BumpTest/Bumps/Bump19" unique_id=902477588]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
+shape = SubResource("CylinderShape3D_dlabj")
+
+[node name="Bump20" type="StaticBody3D" parent="Tests/BumpTest/Bumps" unique_id=1385346576]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -43)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Tests/BumpTest/Bumps/Bump20" unique_id=118273801]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("CylinderMesh_ghkdt")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Tests/BumpTest/Bumps/Bump20" unique_id=1402731412]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
+shape = SubResource("CylinderShape3D_dlabj")
+
+[node name="Bump21" type="StaticBody3D" parent="Tests/BumpTest/Bumps" unique_id=1572252081]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -45)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Tests/BumpTest/Bumps/Bump21" unique_id=1148007168]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("CylinderMesh_ghkdt")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Tests/BumpTest/Bumps/Bump21" unique_id=1364815498]
+transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
+shape = SubResource("CylinderShape3D_dlabj")
+
+[node name="Props" type="Node3D" parent="Tests" unique_id=691856885]
+
+[node name="Ball" type="RigidBody3D" parent="Tests/Props" unique_id=929437022]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 53.902527, 1.8123897, -234.85736)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Tests/Props/Ball" unique_id=275631634]
+shape = SubResource("SphereShape3D_8rti0")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Tests/Props/Ball" unique_id=622771711]
+mesh = SubResource("SphereMesh_ax6fg")
+
+[node name="Box" type="RigidBody3D" parent="Tests/Props" unique_id=2093736797]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 53.902527, 0.6545409, -234.85736)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Tests/Props/Box" unique_id=823081888]
+shape = SubResource("BoxShape3D_dlabj")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Tests/Props/Box" unique_id=180530848]
+mesh = SubResource("BoxMesh_umvgx")
 
 [node name="Ground" type="StaticBody3D" parent="." unique_id=1121558543]
 

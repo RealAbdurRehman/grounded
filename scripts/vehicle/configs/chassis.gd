@@ -3,7 +3,7 @@ extends Resource
 
 @export_group("Specs")
 ## In Kg.
-@export var vehicle_mass: float = 1350.0
+@export var vehicle_mass: float = 1400.0
 
 ## In Nm.
 @export var max_brake_torque: float = 5000.0
@@ -23,5 +23,5 @@ extends Resource
 
 # Controls body roll
 @export_group("Anti Roll Bars")
-@export var front_arb_stiffness: float = 4500.0
-@export var rear_arb_stiffness: float = 3000.0
+@export var front_arb_stiffness: float = 12000.0
+@export var rear_arb_stiffness: float = 5000.0

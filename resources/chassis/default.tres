@@ -4,4 +4,6 @@
 
 [resource]
 script = ExtResource("1_5chv3")
+front_arb_stiffness = 10200.0
+rear_arb_stiffness = 3200.0
 metadata/_custom_type_script = "uid://bwprdmk5kupc6"

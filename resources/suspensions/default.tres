@@ -4,4 +4,5 @@
 
 [resource]
 script = ExtResource("1_vu11u")
+spring_stiffness = 24000.0
 metadata/_custom_type_script = "uid://mnsyudn5vsag"

@@ -4,7 +4,6 @@
 [ext_resource type="Texture2D" uid="uid://be5q370waxn70" path="res://assets/textures/ground/disp.png" id="2_t5ptc"]
 [ext_resource type="Texture2D" uid="uid://c4iuxf2c8214a" path="res://assets/textures/ground/nor.jpg" id="3_bq33v"]
 [ext_resource type="PackedScene" uid="uid://dr8e42tbw6xk2" path="res://scenes/vehicle/vehicle.tscn" id="3_j2gmx"]
-[ext_resource type="Resource" uid="uid://bm8cqomr2xsjc" path="res://resources/tires/default.tres" id="4_1yooq"]
 [ext_resource type="Script" uid="uid://bwprdmk5kupc6" path="res://scripts/vehicle/configs/chassis.gd" id="4_gb53w"]
 [ext_resource type="Texture2D" uid="uid://c7ma8ggfipg" path="res://assets/textures/ground/arm.jpg" id="4_j2gmx"]
 [ext_resource type="Script" uid="uid://bkel8e4frgv51" path="res://scripts/vehicle/configs/engine.gd" id="5_gb53w"]
@@ -467,6 +466,9 @@ size = Vector3(190, 1, 1100)
 [node name="TelemetryDebug" parent="Telemetry" index="0" unique_id=1098802702 node_paths=PackedStringArray("target_vehicle")]
 target_vehicle = NodePath("../../Vehicle")
 
+[node name="WeightTransfer" parent="Telemetry/TelemetryDebug" index="0" unique_id=578121033 node_paths=PackedStringArray("vehicle")]
+vehicle = NodePath("../../../Vehicle")
+
 [node name="EngineDebug" parent="Telemetry" index="1" unique_id=863474613 node_paths=PackedStringArray("engine_node", "drivetrain_node", "target_vehicle")]
 engine_node = NodePath("../../Vehicle/Engine")
 drivetrain_node = NodePath("../../Vehicle/Drivetrain")
@@ -513,21 +515,17 @@ config = ExtResource("6_dlabj")
 
 [node name="WheelFL" parent="Vehicle/Wheels" parent_id_path=PackedInt32Array(429220544, 2027221242) index="0" unique_id=1185262635]
 suspension_config = SubResource("Resource_dlabj")
-tire_model = ExtResource("4_1yooq")
 can_steer = true
 
 [node name="WheelFR" parent="Vehicle/Wheels" parent_id_path=PackedInt32Array(429220544, 2027221242) index="1" unique_id=1065968054]
 suspension_config = SubResource("Resource_dlabj")
-tire_model = ExtResource("4_1yooq")
 can_steer = true
 
 [node name="WheelRL" parent="Vehicle/Wheels" parent_id_path=PackedInt32Array(429220544, 2027221242) index="2" unique_id=136557973]
 suspension_config = SubResource("Resource_dlabj")
-tire_model = ExtResource("4_1yooq")
 
 [node name="WheelRR" parent="Vehicle/Wheels" parent_id_path=PackedInt32Array(429220544, 2027221242) index="3" unique_id=834798633]
 suspension_config = SubResource("Resource_dlabj")
-tire_model = ExtResource("4_1yooq")
 
 [node name="Tests" type="Node3D" parent="." unique_id=1518008125]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -53.848, 0.6, 500)

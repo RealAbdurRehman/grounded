@@ -226,20 +226,24 @@ func update_wheel(
 		visual_mesh.rotation.x = -_spin_angle
 		visual_mesh.rotation.y = steer_angle_rad
 
-	DebugDraw3D.draw_line(
+	var debug_scale: float = 1.0 / 3500.0
+	DebugDraw3D.draw_vector(
 		contact_point,
-		contact_point + contact_normal * (normal_load_n / 1500.0),
+		contact_normal * (normal_load_n * debug_scale),
 		Color.GREEN,
+		chassis,
 	)
-	DebugDraw3D.draw_line(
+	DebugDraw3D.draw_vector(
 		contact_point,
-		contact_point + wheel_right * (lateral_force_n / 1500.0),
+		wheel_right * (lateral_force_n * debug_scale),
 		Color.RED,
+		chassis,
 	)
-	DebugDraw3D.draw_line(
+	DebugDraw3D.draw_vector(
 		contact_point,
-		contact_point + wheel_forward * (longitudinal_force_n / 1500.0),
+		wheel_forward * (longitudinal_force_n * debug_scale),
 		Color.BLUE,
+		chassis,
 	)
 
 

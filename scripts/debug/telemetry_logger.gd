@@ -87,7 +87,7 @@ func _record_sample() -> void:
 				rad_to_deg(w.slip_angle_rad),
 				w.longitudinal_force_n,
 				w.lateral_force_n,
-				w.suspension_force_n,
+				w.normal_load_n,
 			]
 		)
 

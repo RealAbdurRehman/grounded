@@ -1,7 +1,7 @@
 class_name TelemetryLogger
 extends Node
 
-@export var target_vehicle: RigidBody3D
+@export var telemetry: Telemetry
 
 @export var is_logging: bool = false
 @export var sample_interval: float = 1 / 120.0
@@ -53,7 +53,7 @@ func stop_logging() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	if not is_logging or not target_vehicle or not _file:
+	if not is_logging or not _file:
 		return
 
 	_timer += delta
@@ -65,17 +65,17 @@ func _physics_process(delta: float) -> void:
 
 
 func _record_sample() -> void:
-	var vel: Vector3 = target_vehicle.linear_velocity
+	var vel: Vector3 = telemetry.linear_velocity
 	var speed_kmh: float = vel.length() * 3.6
 
-	var v: Vehicle = target_vehicle as Vehicle
-	if not v:
+	var t: Telemetry = telemetry as Telemetry
+	if not t:
 		return
 
-	var rpm: float = v.engine_node.current_rpm if v.engine_node else 0.0
-	var gear: String = v.drivetrain_node.get_gear_name() if v.drivetrain_node else "?"
+	var rpm: float = t.engine_node.current_rpm if t.engine_node else 0.0
+	var gear: String = t.drivetrain_node.get_gear_name() if t.drivetrain_node else "?"
 
-	var wheels: Array[Wheel] = [v.wheel_fl, v.wheel_fr, v.wheel_rl, v.wheel_rr]
+	var wheels: Array[Wheel] = [t.wheel_fl, t.wheel_fr, t.wheel_rl, t.wheel_rr]
 	var parts: PackedStringArray = PackedStringArray()
 	parts.append("%8.3f,%6.2f,%5.0f,%s" % [_elapsed_time, speed_kmh, rpm, gear])
 

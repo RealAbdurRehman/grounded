@@ -1,5 +1,6 @@
 [gd_scene format=4 uid="uid://csigwx2iwurp6"]
 
+[ext_resource type="PackedScene" uid="uid://db4473gxoh8sk" path="res://scenes/ui/telemetry.tscn" id="1_5qq27"]
 [ext_resource type="Texture2D" uid="uid://cbv4iwr77qvoy" path="res://assets/textures/ground/diff.jpg" id="1_v5dby"]
 [ext_resource type="Texture2D" uid="uid://be5q370waxn70" path="res://assets/textures/ground/disp.png" id="2_t5ptc"]
 [ext_resource type="Texture2D" uid="uid://c4iuxf2c8214a" path="res://assets/textures/ground/nor.jpg" id="3_bq33v"]
@@ -7,7 +8,6 @@
 [ext_resource type="Script" uid="uid://bwprdmk5kupc6" path="res://scripts/vehicle/configs/chassis.gd" id="4_gb53w"]
 [ext_resource type="Texture2D" uid="uid://c7ma8ggfipg" path="res://assets/textures/ground/arm.jpg" id="4_j2gmx"]
 [ext_resource type="Script" uid="uid://bkel8e4frgv51" path="res://scripts/vehicle/configs/engine.gd" id="5_gb53w"]
-[ext_resource type="PackedScene" uid="uid://db4473gxoh8sk" path="res://scenes/ui/telemetry.tscn" id="6_bq33v"]
 [ext_resource type="Resource" uid="uid://cc3cenk2w6t53" path="res://resources/drivetrains/default.tres" id="6_dlabj"]
 [ext_resource type="Script" uid="uid://dvp5aua86h7p4" path="res://scripts/camera/camera.gd" id="6_t5ptc"]
 [ext_resource type="Script" uid="uid://mnsyudn5vsag" path="res://scripts/vehicle/configs/suspension.gd" id="7_dlabj"]
@@ -461,24 +461,21 @@ size = Vector3(190, 1, 1100)
 
 [node name="World" type="Node3D" unique_id=633136770]
 
-[node name="Telemetry" parent="." unique_id=1683315418 instance=ExtResource("6_bq33v")]
+[node name="Telemetry" parent="." unique_id=2120995710 instance=ExtResource("1_5qq27")]
 
-[node name="TelemetryDebug" parent="Telemetry" index="0" unique_id=1098802702 node_paths=PackedStringArray("target_vehicle")]
-target_vehicle = NodePath("../../Vehicle")
+[node name="UI" parent="Telemetry" index="0" unique_id=876139709 node_paths=PackedStringArray("vehicle", "telemetry", "weight_transfer")]
+vehicle = NodePath("../../Vehicle")
+telemetry = NodePath("../TelemetryData")
+weight_transfer = NodePath("../WeightTransferData")
 
-[node name="WeightTransfer" parent="Telemetry/TelemetryDebug" index="0" unique_id=578121033 node_paths=PackedStringArray("vehicle")]
-vehicle = NodePath("../../../Vehicle")
+[node name="TelemetryData" parent="Telemetry" index="1" unique_id=729844822 node_paths=PackedStringArray("vehicle")]
+vehicle = NodePath("../../Vehicle")
 
-[node name="EngineDebug" parent="Telemetry" index="1" unique_id=863474613 node_paths=PackedStringArray("engine_node", "drivetrain_node", "target_vehicle")]
-engine_node = NodePath("../../Vehicle/Engine")
-drivetrain_node = NodePath("../../Vehicle/Drivetrain")
-target_vehicle = NodePath("../../Vehicle")
+[node name="WeightTransferData" parent="Telemetry" index="2" unique_id=1291449246 node_paths=PackedStringArray("vehicle")]
+vehicle = NodePath("../../Vehicle")
 
-[node name="TireDebug" parent="Telemetry" index="2" unique_id=1712736768 node_paths=PackedStringArray("target_vehicle")]
-target_vehicle = NodePath("../../Vehicle")
-
-[node name="Logger" parent="Telemetry" index="3" unique_id=707249097 node_paths=PackedStringArray("target_vehicle")]
-target_vehicle = NodePath("../../Vehicle")
+[node name="Logger" parent="Telemetry" index="3" unique_id=1576021814 node_paths=PackedStringArray("telemetry")]
+telemetry = NodePath("../TelemetryData")
 
 [node name="Camera" type="Camera3D" parent="." unique_id=811414314 node_paths=PackedStringArray("target_vehicle")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 530)
@@ -495,7 +492,7 @@ shadow_enabled = true
 [node name="WorldEnvironment" type="WorldEnvironment" parent="Environment" unique_id=1347009838]
 environment = SubResource("Environment_t5ptc")
 
-[node name="Vehicle" parent="." unique_id=429220544 node_paths=PackedStringArray("wheel_fl", "wheel_fr", "wheel_rl", "wheel_rr", "engine_node", "drivetrain_node", "center_of_mass_node", "telemetry_hud") instance=ExtResource("3_j2gmx")]
+[node name="Vehicle" parent="." unique_id=429220544 node_paths=PackedStringArray("wheel_fl", "wheel_fr", "wheel_rl", "wheel_rr", "engine_node", "drivetrain_node", "center_of_mass_node") instance=ExtResource("3_j2gmx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 525)
 config = SubResource("Resource_j2gmx")
 wheel_fl = NodePath("Wheels/WheelFL")
@@ -505,7 +502,6 @@ wheel_rr = NodePath("Wheels/WheelRR")
 engine_node = NodePath("Engine")
 drivetrain_node = NodePath("Drivetrain")
 center_of_mass_node = NodePath("Markers/CenterOfMass")
-telemetry_hud = NodePath("../Telemetry/TelemetryDebug")
 
 [node name="Engine" parent="Vehicle" index="2" unique_id=1472005107]
 config = SubResource("Resource_vu11u")

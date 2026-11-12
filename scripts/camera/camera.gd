@@ -14,9 +14,9 @@ var current_mode: CameraMode = CameraMode.FOLLOW
 @export_group("Follow Mode")
 @export var target_vehicle: Node3D
 
-@export var follow_smoothing: float = 16.0
-@export var max_follow_distance: float = 6.0
-@export var follow_offset: Vector3 = Vector3(0.0, 1.25, 4.5)
+@export var follow_smoothing: float = 24.0
+@export var max_follow_distance: float = 5.0
+@export var follow_offset: Vector3 = Vector3(0.0, 1.25, 4.0)
 
 var _yaw: float = 0.0
 var _pitch: float = 0.0

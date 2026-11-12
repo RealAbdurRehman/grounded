@@ -2,6 +2,7 @@ class_name DebugDraw3D
 extends Node3D
 
 static var instance: DebugDraw3D
+static var enabled: bool = true
 
 var _lines: Array[Dictionary] = []
 var _lines_tick: int = -1
@@ -56,6 +57,9 @@ static func draw_vector(
 
 
 func _push(from: Vector3, to: Vector3, color: Color, anchor: Node3D) -> void:
+	if not enabled:
+		return
+
 	var tick: int = Engine.get_physics_frames()
 	if tick != _lines_tick:
 		_lines.clear()
@@ -71,6 +75,11 @@ func _push(from: Vector3, to: Vector3, color: Color, anchor: Node3D) -> void:
 
 func _process(_delta: float) -> void:
 	_mesh.clear_surfaces()
+
+	if not enabled:
+		_lines.clear()
+
+		return
 
 	var points := PackedVector3Array()
 	var colors := PackedColorArray()

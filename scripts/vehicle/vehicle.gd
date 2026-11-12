@@ -14,8 +14,6 @@ extends RigidBody3D
 
 @export var center_of_mass_node: Marker3D
 
-@export var telemetry_hud: Telemetry
-
 var throttle_input: float = 0.0
 var brake_input: float = 0.0
 var steer_input: float = 0.0
@@ -53,8 +51,6 @@ func _physics_process(delta: float) -> void:
 	_compute_anti_roll_bars()
 	_update_drivetrain_and_wheels(delta)
 	_apply_aerodynamic_drag()
-
-	_update_telemetry()
 
 
 func _handle_inputs(delta: float) -> void:
@@ -161,21 +157,3 @@ func _apply_aerodynamic_drag() -> void:
 
 		var drag_vector: Vector3 = -linear_velocity.normalized() * drag_scalar
 		apply_central_force(drag_vector)
-
-
-func _update_telemetry() -> void:
-	var ids: Array[String] = ["FL", "FR", "RL", "RR"]
-	var wheels: Array[Wheel] = [wheel_fl, wheel_fr, wheel_rl, wheel_rr]
-
-	for i in range(4):
-		var w: Wheel = wheels[i]
-		telemetry_hud.update_wheel_telemetry(
-			ids[i],
-			w.normal_load_n,
-			rad_to_deg(w.slip_angle_rad),
-			w.slip_ratio,
-			w.compression,
-			w.longitudinal_force_n,
-			w.lateral_force_n,
-			w.grip_limit_n,
-		)

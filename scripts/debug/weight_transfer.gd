@@ -1,9 +1,7 @@
-class_name WeightTransferAnalyzer
-extends Label
+class_name WeightTransfer
+extends Node
 
 @export var vehicle: Vehicle
-
-@export var enabled: bool = true
 @export_range(0.02, 0.5, 0.01) var accel_smoothing_time: float = 0.15
 
 var wheelbase: float = 1.0
@@ -40,18 +38,12 @@ var _geometry_ready: bool = false
 
 var _h_valid: bool = false
 
-var _text_timer: float = 0.0
-
 
 func _ready() -> void:
-	if !enabled:
-		return
-
 	await get_tree().physics_frame
 	_measure_geometry()
 
 	_prev_velocity = vehicle.linear_velocity
-
 	_geometry_ready = true
 
 
@@ -98,14 +90,10 @@ func _physics_process(delta: float) -> void:
 		return
 
 	_update_acceleration(delta)
+
 	_update_cg_height()
 	_update_prediction()
 	_update_measurement()
-
-	_text_timer += delta
-	if _text_timer >= 0.1:
-		_text_timer = 0.0
-		text = _generate_report()
 
 
 func _update_acceleration(delta: float) -> void:
@@ -114,16 +102,15 @@ func _update_acceleration(delta: float) -> void:
 	_prev_velocity = v
 
 	var basis: Basis = vehicle.global_transform.basis.orthonormalized()
-	var smoothing_factor: float = 1.0 - exp(-delta / accel_smoothing_time)
+	var k: float = 1.0 - exp(-delta / accel_smoothing_time)
 
-	accel_long = lerpf(accel_long, a_world.dot(-basis.z), smoothing_factor)
-	accel_lat = lerpf(accel_lat, a_world.dot(basis.x), smoothing_factor)
+	accel_long = lerpf(accel_long, a_world.dot(-basis.z), k)
+	accel_lat = lerpf(accel_lat, a_world.dot(basis.x), k)
 
 
 func _update_cg_height() -> void:
 	var sum_y: float = 0.0
 	var count: int = 0
-
 	for w in _wheels:
 		if w.is_grounded:
 			sum_y += vehicle.to_local(w.contact_point).y
@@ -140,17 +127,20 @@ func _update_cg_height() -> void:
 func _update_prediction() -> void:
 	var m: float = vehicle.mass
 	var g: float = float(ProjectSettings.get_setting("physics/3d/default_gravity")) * vehicle.gravity_scale
+
 	var weight: float = m * g
+	var safe_wheelbase: float = maxf(absf(wheelbase), 0.001)
 	var avg_track: float = 0.5 * (track_front + track_rear)
+	var safe_track: float = maxf(avg_track, 0.001)
 
-	var front_static: float = weight * cg_to_rear / wheelbase
-	var rear_static: float = weight * cg_to_front / wheelbase
+	var front_static: float = weight * cg_to_rear / safe_wheelbase
+	var rear_static: float = weight * cg_to_front / safe_wheelbase
 
-	var dw_long: float = m * accel_long * cg_height / wheelbase
+	var dw_long: float = m * accel_long * cg_height / safe_wheelbase
 	var front_axle: float = maxf(front_static - dw_long, 0.0)
 	var rear_axle: float = maxf(rear_static + dw_long, 0.0)
 
-	var x_total: float = m * absf(accel_lat) * cg_height / avg_track
+	var x_total: float = m * absf(accel_lat) * cg_height / safe_track
 	var x_front: float = x_total * front_roll_share
 	var x_rear: float = x_total - x_front
 
@@ -168,13 +158,13 @@ func _update_prediction() -> void:
 	var k_eff: float = maxf(k_total - weight * cg_height, 1.0)
 
 	roll_pred_deg = rad_to_deg(m * absf(accel_lat) * cg_height / k_eff)
-	lift_off_g = avg_track / (2.0 * maxf(cg_height, 0.01))
+
+	lift_off_g = safe_track / (2.0 * maxf(cg_height, 0.01))
 
 
 func _axle_pair(axle_load: float, transfer: float) -> Vector2:
 	var outside: float = axle_load * 0.5 + transfer
 	var inside: float = axle_load * 0.5 - transfer
-
 	if inside < 0.0:
 		outside += inside
 		inside = 0.0
@@ -188,44 +178,3 @@ func _update_measurement() -> void:
 
 	var basis: Basis = vehicle.global_transform.basis.orthonormalized()
 	roll_meas_deg = rad_to_deg(asin(clampf(basis.x.y, -1.0, 1.0)))
-
-
-func _generate_report() -> String:
-	var names: PackedStringArray = ["FL", "FR", "RL", "RR"]
-	var g: float = float(ProjectSettings.get_setting("physics/3d/default_gravity")) * vehicle.gravity_scale
-	var g_safe: float = maxf(g, 0.001)
-
-	var lines: PackedStringArray = PackedStringArray()
-	lines.append(
-		"WEIGHT TRANSFER   ax %+.2f g   ay %+.2f g" % [accel_long / g_safe, accel_lat / g_safe]
-	)
-	lines.append(
-		"h %.2f m   L %.2f m   t %.2f m" % [cg_height, wheelbase, 0.5 * (track_front + track_rear)]
-	)
-	lines.append("       meas    pred     err")
-
-	var sum_meas: float = 0.0
-	var sum_pred: float = 0.0
-
-	for i in range(4):
-		sum_meas += measured[i]
-		sum_pred += predicted[i]
-		lines.append(
-			"%s  %6.0f  %6.0f  %+6.0f"
-			% [names[i], measured[i], predicted[i], measured[i] - predicted[i]]
-		)
-
-	lines.append("sum %6.0f  %6.0f   (m*g = %.0f)" % [sum_meas, sum_pred, vehicle.mass * g])
-
-	var front_meas: float = (measured[0] + measured[1]) / maxf(sum_meas, 1.0) * 100.0
-	var front_pred: float = (predicted[0] + predicted[1]) / maxf(sum_pred, 1.0) * 100.0
-
-	lines.append(
-		"front axle  meas %.1f%%  pred %.1f%%  (static %.1f%%)"
-		% [front_meas, front_pred, cg_to_rear / wheelbase * 100.0]
-	)
-	lines.append("roll stiffness front share %.0f%%" % (front_roll_share * 100.0))
-	lines.append("roll  meas %.2f deg  pred %.2f deg" % [absf(roll_meas_deg), roll_pred_deg])
-	lines.append("inner-wheel lift-off at %.2f g lateral" % lift_off_g)
-
-	return "\n".join(lines)

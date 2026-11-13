@@ -29,6 +29,7 @@ enum DifferentialType {
 @export var selector_max_speed: float = 1.5
 
 @export_group("Differential")
+## Used for the front and rear axle differentials.
 @export var differential_type: DifferentialType = DifferentialType.OPEN
 
 ## Base locking force.
@@ -39,3 +40,19 @@ enum DifferentialType {
 
 ## Locking strength when coasting.
 @export_range(0.0, 1.0, 0.05) var lsd_coast_lock: float = 0.15
+
+@export_group("Center Differential")
+## Only used when both axles are driven.
+@export var center_differential_type: DifferentialType = DifferentialType.OPEN
+
+## Share of the engine torque sent to the front axle.
+@export_range(0.0, 1.0, 0.05) var center_front_torque_share: float = 0.4
+
+## Base locking force.
+@export var center_lsd_preload_nm: float = 80.0
+
+## Locking strength under acceleration.
+@export_range(0.0, 1.0, 0.05) var center_lsd_power_lock: float = 0.4
+
+## Locking strength when coasting.
+@export_range(0.0, 1.0, 0.05) var center_lsd_coast_lock: float = 0.2

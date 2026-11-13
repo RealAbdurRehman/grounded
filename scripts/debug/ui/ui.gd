@@ -49,6 +49,7 @@ const ENGINE_SLIDERS: Array = [
 	[&"flywheel_inertia", "Flywheel", 0.05, 1.0, "%.2f"],
 ]
 
+const DRIVE_LAYOUT_NAMES: Array = ["RWD", "FWD", "AWD"]
 const DIFFERENTIAL_NAMES: Array = ["Open", "Locked", "Limited slip"]
 
 const DRIVETRAIN_SLIDERS: Array = [
@@ -59,6 +60,10 @@ const DRIVETRAIN_SLIDERS: Array = [
 	[&"lsd_preload_nm", "LSD preload Nm", 0.0, 300.0, "%.0f"],
 	[&"lsd_power_lock", "LSD power lock", 0.0, 1.0, "%.2f"],
 	[&"lsd_coast_lock", "LSD coast lock", 0.0, 1.0, "%.2f"],
+	[&"center_front_torque_share", "Center front share", 0.0, 1.0, "%.2f"],
+	[&"center_lsd_preload_nm", "Center preload Nm", 0.0, 300.0, "%.0f"],
+	[&"center_lsd_power_lock", "Center power lock", 0.0, 1.0, "%.2f"],
+	[&"center_lsd_coast_lock", "Center coast lock", 0.0, 1.0, "%.2f"],
 ]
 
 const FINAL_DRIVE_SLIDER: Array = [&"final_drive_ratio", "Final drive", 2.0, 6.0, "%.2f"]
@@ -668,30 +673,50 @@ func _tab_engine() -> void:
 
 	if drivetrain != null and drivetrain.config != null:
 		if ImGui.CollapsingHeader("Drivetrain tuning", ImGui.TreeNodeFlags_DefaultOpen):
-			var diff_buffer: Array = [int(drivetrain.config.differential_type)]
-			ImGui.SetNextItemWidth(
-				maxf(
-					ImGui.GetContentRegionAvail().x - ImGui.GetFontSize() * 11.0,
-					ImGui.GetFontSize() * 6.0,
-				),
+			var current_layout: int = _drive_layout()
+			var layout: int = _tune_int("Drive layout", "drive_layout", current_layout, 0, 2)
+			if layout != current_layout:
+				_set_drive_layout(layout)
+
+			Widgets.key_value("Layout", DRIVE_LAYOUT_NAMES[layout])
+
+			var axle_diff: int = _tune_int(
+				"Axle differential",
+				"diff_type",
+				int(drivetrain.config.differential_type),
+				0,
+				2,
 			)
+			drivetrain.config.differential_type = axle_diff as DrivetrainConfig.DifferentialType
+			Widgets.key_value("Axle type", DIFFERENTIAL_NAMES[axle_diff])
 
-			if ImGui.SliderIntEx("Differential##diff_type", diff_buffer, 0, 2, "%d", 0):
-				drivetrain.config.differential_type = diff_buffer[0]
+			var center_diff: int = _tune_int(
+				"Center differential",
+				"center_diff_type",
+				int(drivetrain.config.center_differential_type),
+				0,
+				2,
+			)
+			drivetrain.config.center_differential_type = center_diff as DrivetrainConfig.DifferentialType
+			Widgets.key_value("Center type", DIFFERENTIAL_NAMES[center_diff])
 
-			Widgets.key_value("Type", DIFFERENTIAL_NAMES[diff_buffer[0]])
 			for slider in DRIVETRAIN_SLIDERS:
 				_tune(drivetrain.config, slider)
 
 			if Widgets.reset_button("Reset drivetrain"):
 				_reset_object(drivetrain.config, _drivetrain_defaults)
+
 				drivetrain.config.differential_type = _drivetrain_defaults[&"differential_type"]
+				drivetrain.config.center_differential_type = _drivetrain_defaults[
+					&"center_differential_type"
+				]
 
 
 func _gearing_section(drivetrain: Drivetrain, engine: VehicleEngine) -> void:
 	var unit: float = ImGui.GetFontSize()
 	var config: DrivetrainConfig = drivetrain.config
 	var ratios: Array = Array(config.gear_ratios)
+
 	var wheel_radius: float = vehicle.wheel_fl.suspension_config.wheel_radius
 	var rev_limit: float = engine.config.rev_limiter_rpm
 
@@ -812,6 +837,7 @@ func _tab_load() -> void:
 			var measured: float = weight_transfer.measured[i]
 			var predicted: float = weight_transfer.predicted[i]
 			var compression: float = telemetry.wheels[i].compression
+
 			sum_measured += measured
 			sum_predicted += predicted
 
@@ -964,7 +990,6 @@ func _wheel_nodes() -> Array[Wheel]:
 
 
 func _selected_tire() -> Tire:
-	# Simply return the front-left tire, assuming all four share the same resource
 	return vehicle.wheel_fl.tire_model
 
 
@@ -992,6 +1017,8 @@ func _snapshot_defaults() -> void:
 			_drivetrain_defaults[slider[0]] = drivetrain_config.get(slider[0])
 
 		_drivetrain_defaults[&"differential_type"] = drivetrain_config.differential_type
+		_drivetrain_defaults[&"center_differential_type"] = drivetrain_config.center_differential_type
+
 		_gearing_defaults[&"ratios"] = Array(drivetrain_config.gear_ratios).duplicate()
 		_gearing_defaults[&"final_drive_ratio"] = drivetrain_config.final_drive_ratio
 
@@ -1050,6 +1077,36 @@ func _sum(values: PackedFloat32Array) -> float:
 		total += value
 
 	return total
+
+
+func _tune_int(label: String, id: String, value: int, v_min: int, v_max: int) -> int:
+	var buffer: Array = [value]
+	var unit: float = ImGui.GetFontSize()
+
+	ImGui.SetNextItemWidth(maxf(ImGui.GetContentRegionAvail().x - unit * 11.0, unit * 6.0))
+	ImGui.SliderIntEx("%s##%s" % [label, id], buffer, v_min, v_max, "%d", 0)
+
+	return buffer[0]
+
+
+func _drive_layout() -> int:
+	var front: bool = vehicle.wheel_fl.is_driven or vehicle.wheel_fr.is_driven
+	var rear: bool = vehicle.wheel_rl.is_driven or vehicle.wheel_rr.is_driven
+
+	if front and rear:
+		return 2
+
+	return 1 if front else 0
+
+
+func _set_drive_layout(layout: int) -> void:
+	var front: bool = layout != 0
+	var rear: bool = layout != 1
+
+	vehicle.wheel_fl.is_driven = front
+	vehicle.wheel_fr.is_driven = front
+	vehicle.wheel_rl.is_driven = rear
+	vehicle.wheel_rr.is_driven = rear
 
 
 func _tune(obj: Object, slider: Array) -> void:

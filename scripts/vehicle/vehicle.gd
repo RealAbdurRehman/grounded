@@ -164,19 +164,17 @@ func _set_axle_arb(left: Wheel, right: Wheel, stiffness: float) -> void:
 
 func _update_drivetrain_and_wheels(delta: float) -> void:
 	var driven_wheels: Array[Wheel] = []
-
-	var total_driven_w: float = 0.0
 	for w in [wheel_fl, wheel_fr, wheel_rl, wheel_rr]:
 		if w.is_driven:
 			driven_wheels.append(w)
-			total_driven_w += abs(w.angular_velocity_rad_s)
 
-	var driven_count: int = max(driven_wheels.size(), 1)
-	var avg_driven_w: float = total_driven_w / driven_count
+	drivetrain_node.setup_driveline(driven_wheels)
+	var driveline_speed: float = drivetrain_node.get_input_speed_rad_s()
+
 	var forward_speed: float = linear_velocity.dot(-global_transform.basis.z)
-	drivetrain_node.handle_transmission(engine_node.current_rpm, forward_speed, avg_driven_w)
+	drivetrain_node.handle_transmission(engine_node.current_rpm, forward_speed, driveline_speed)
 
-	var target_engine_rpm: float = drivetrain_node.calculate_target_engine_rpm(avg_driven_w)
+	var target_engine_rpm: float = drivetrain_node.calculate_target_engine_rpm(driveline_speed)
 	var engine_torque: float = engine_node.update_engine(
 		delta,
 		throttle_input,
@@ -186,38 +184,28 @@ func _update_drivetrain_and_wheels(delta: float) -> void:
 	)
 
 	var total_wheel_torque: float = drivetrain_node.calculate_wheel_drive_torque(engine_torque)
-	var torque_per_driven_wheel: float = total_wheel_torque / driven_count
 
-	var reflected_inertia: float = 0.0
+	var engine_inertia: float = 0.0
 	if drivetrain_node.is_clutch_engaged() and engine_node.config and drivetrain_node.config:
 		var total_ratio: float = drivetrain_node.get_current_ratio() * drivetrain_node \
 				.config \
 				.final_drive_ratio
-		reflected_inertia = engine_node.config.flywheel_inertia * total_ratio * total_ratio / driven_count
+		engine_inertia = engine_node.config.flywheel_inertia * total_ratio * total_ratio
 
-	var drive_torques: Dictionary[Wheel, float] = { }
-	for w in driven_wheels:
-		drive_torques[w] = torque_per_driven_wheel
-
-	if driven_wheels.size() == 2:
-		var split: Vector2 = drivetrain_node.split_axle_torque(
-			total_wheel_torque,
-			engine_torque >= 0.0,
-			driven_wheels[0],
-			driven_wheels[1],
-			reflected_inertia,
-			delta,
-		)
-
-		drive_torques[driven_wheels[0]] = split.x
-		drive_torques[driven_wheels[1]] = split.y
+	var drive_torques: Dictionary[Wheel, float] = drivetrain_node.split_drive_torque(
+		total_wheel_torque,
+		engine_torque >= 0.0,
+		engine_inertia,
+		delta,
+	)
 
 	for w in [wheel_fl, wheel_fr, wheel_rl, wheel_rr]:
 		var w_drive_torque: float = drive_torques.get(w, 0.0)
-		var w_reflected: float = reflected_inertia if w.is_driven else 0.0
+		var w_reflected: float = engine_inertia * drivetrain_node.get_wheel_share(w)
 
 		var brake_torque_base: float = config.max_brake_torque
 		var brake_bias: float = config.brake_bias_front
+
 		var axle_share: float = brake_bias if w.is_front else (1.0 - brake_bias)
 		var w_brake_torque: float = brake_input * brake_torque_base * axle_share * 0.5
 

@@ -49,11 +49,16 @@ const ENGINE_SLIDERS: Array = [
 	[&"flywheel_inertia", "Flywheel", 0.05, 1.0, "%.2f"],
 ]
 
+const DIFFERENTIAL_NAMES: Array = ["Open", "Locked", "Limited slip"]
+
 const DRIVETRAIN_SLIDERS: Array = [
 	[&"drivetrain_efficiency", "Efficiency", 0.6, 1.0, "%.2f"],
 	[&"shift_delay_seconds", "Shift Delay", 0.0, 1.0, "%.2f"],
 	[&"auto_upshift_rpm", "Auto upshift", 4000.0, 9000.0, "%.0f"],
 	[&"auto_downshift_rpm", "Auto downshift", 1000.0, 5000.0, "%.0f"],
+	[&"lsd_preload_nm", "LSD preload Nm", 0.0, 300.0, "%.0f"],
+	[&"lsd_power_lock", "LSD power lock", 0.0, 1.0, "%.2f"],
+	[&"lsd_coast_lock", "LSD coast lock", 0.0, 1.0, "%.2f"],
 ]
 
 const FINAL_DRIVE_SLIDER: Array = [&"final_drive_ratio", "Final drive", 2.0, 6.0, "%.2f"]
@@ -663,11 +668,24 @@ func _tab_engine() -> void:
 
 	if drivetrain != null and drivetrain.config != null:
 		if ImGui.CollapsingHeader("Drivetrain tuning", ImGui.TreeNodeFlags_DefaultOpen):
+			var diff_buffer: Array = [int(drivetrain.config.differential_type)]
+			ImGui.SetNextItemWidth(
+				maxf(
+					ImGui.GetContentRegionAvail().x - ImGui.GetFontSize() * 11.0,
+					ImGui.GetFontSize() * 6.0,
+				),
+			)
+
+			if ImGui.SliderIntEx("Differential##diff_type", diff_buffer, 0, 2, "%d", 0):
+				drivetrain.config.differential_type = diff_buffer[0]
+
+			Widgets.key_value("Type", DIFFERENTIAL_NAMES[diff_buffer[0]])
 			for slider in DRIVETRAIN_SLIDERS:
 				_tune(drivetrain.config, slider)
 
 			if Widgets.reset_button("Reset drivetrain"):
 				_reset_object(drivetrain.config, _drivetrain_defaults)
+				drivetrain.config.differential_type = _drivetrain_defaults[&"differential_type"]
 
 
 func _gearing_section(drivetrain: Drivetrain, engine: VehicleEngine) -> void:
@@ -973,6 +991,7 @@ func _snapshot_defaults() -> void:
 		for slider in DRIVETRAIN_SLIDERS:
 			_drivetrain_defaults[slider[0]] = drivetrain_config.get(slider[0])
 
+		_drivetrain_defaults[&"differential_type"] = drivetrain_config.differential_type
 		_gearing_defaults[&"ratios"] = Array(drivetrain_config.gear_ratios).duplicate()
 		_gearing_defaults[&"final_drive_ratio"] = drivetrain_config.final_drive_ratio
 

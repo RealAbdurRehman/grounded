@@ -19,6 +19,7 @@ var _shift_timer: float = 0.0
 var _shift_cooldown: float = 0.0
 
 var _forward_speed: float = 0.0
+var _prev_speed_gap: float = 0.0
 
 
 func _process(delta: float) -> void:
@@ -58,6 +59,52 @@ func calculate_wheel_drive_torque(engine_torque: float) -> float:
 
 	var total_ratio: float = config.gear_ratios[current_gear_index] * config.final_drive_ratio
 	return engine_torque * total_ratio * config.drivetrain_efficiency
+
+
+func split_axle_torque(
+	axle_torque_nm: float,
+	is_power: bool,
+	left: Wheel,
+	right: Wheel,
+	reflected_inertia: float,
+	delta: float,
+) -> Vector2:
+	var half: float = axle_torque_nm * 0.5
+
+	var speed_gap: float = left.angular_velocity_rad_s - right.angular_velocity_rad_s
+	var gap_accel: float = (speed_gap - _prev_speed_gap) / delta
+	_prev_speed_gap = speed_gap
+
+	var inertia_fix: float = clampf(
+		0.5 * reflected_inertia * gap_accel,
+		-maxf(absf(half), 100.0),
+		maxf(absf(half), 100.0),
+	)
+
+	var base_l: float = half + inertia_fix
+	var base_r: float = half - inertia_fix
+
+	if config.differential_type == DrivetrainConfig.DifferentialType.OPEN:
+		return Vector2(base_l, base_r)
+
+	var inertia_l: float = left.suspension_config.wheel_inertia + reflected_inertia
+	var inertia_r: float = right.suspension_config.wheel_inertia + reflected_inertia
+
+	var free_l: float = base_l - left.suspension_config.wheel_radius * left.longitudinal_force_n
+	var free_r: float = base_r - right.suspension_config.wheel_radius * right.longitudinal_force_n
+
+	var needed_nm: float = (speed_gap / delta + free_l / inertia_l - free_r / inertia_r) / (
+		1.0 / inertia_l + 1.0 / inertia_r
+	)
+
+	var capacity_nm: float = INF
+	if config.differential_type == DrivetrainConfig.DifferentialType.LIMITED_SLIP:
+		var lock: float = config.lsd_power_lock if is_power else config.lsd_coast_lock
+		capacity_nm = config.lsd_preload_nm + lock * absf(half)
+
+	var transfer_nm: float = clampf(needed_nm, -capacity_nm, capacity_nm)
+
+	return Vector2(base_l - transfer_nm, base_r + transfer_nm)
 
 
 func calculate_target_engine_rpm(driven_wheel_rad_per_sec: float) -> float:

@@ -1,6 +1,12 @@
 class_name DrivetrainConfig
 extends Resource
 
+enum DifferentialType {
+	OPEN, # Wheels spin independently.
+	LOCKED, # Wheels spin together.
+	LIMITED_SLIP, # Friction based.
+}
+
 @export_group("Transmission")
 ## How much power actually reaches the wheels.
 @export var drivetrain_efficiency: float = 0.88
@@ -21,3 +27,15 @@ extends Resource
 
 ## Max speed you can be going to shift into reverse.
 @export var selector_max_speed: float = 1.5
+
+@export_group("Differential")
+@export var differential_type: DifferentialType = DifferentialType.OPEN
+
+## Base locking force.
+@export var lsd_preload_nm: float = 40.0
+
+## Locking strength under acceleration.
+@export_range(0.0, 1.0, 0.05) var lsd_power_lock: float = 0.3
+
+## Locking strength when coasting.
+@export_range(0.0, 1.0, 0.05) var lsd_coast_lock: float = 0.15

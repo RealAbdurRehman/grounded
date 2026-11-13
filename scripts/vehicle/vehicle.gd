@@ -195,8 +195,25 @@ func _update_drivetrain_and_wheels(delta: float) -> void:
 				.final_drive_ratio
 		reflected_inertia = engine_node.config.flywheel_inertia * total_ratio * total_ratio / driven_count
 
+	var drive_torques: Dictionary[Wheel, float] = { }
+	for w in driven_wheels:
+		drive_torques[w] = torque_per_driven_wheel
+
+	if driven_wheels.size() == 2:
+		var split: Vector2 = drivetrain_node.split_axle_torque(
+			total_wheel_torque,
+			engine_torque >= 0.0,
+			driven_wheels[0],
+			driven_wheels[1],
+			reflected_inertia,
+			delta,
+		)
+
+		drive_torques[driven_wheels[0]] = split.x
+		drive_torques[driven_wheels[1]] = split.y
+
 	for w in [wheel_fl, wheel_fr, wheel_rl, wheel_rr]:
-		var w_drive_torque: float = torque_per_driven_wheel if w.is_driven else 0.0
+		var w_drive_torque: float = drive_torques.get(w, 0.0)
 		var w_reflected: float = reflected_inertia if w.is_driven else 0.0
 
 		var brake_torque_base: float = config.max_brake_torque

@@ -89,4 +89,4 @@ mesh = SubResource("CylinderMesh_8rti0")
 [node name="Markers" type="Node3D" parent="." unique_id=111010334]
 
 [node name="CenterOfMass" type="Marker3D" parent="Markers" unique_id=779543473]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.52, -0.055)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.28, -0.055)

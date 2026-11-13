@@ -6,7 +6,7 @@ extends Resource
 @export var vehicle_mass: float = 1400.0
 
 ## In Nm.
-@export var max_brake_torque: float = 5000.0
+@export var max_brake_torque: float = 4500.0
 @export_range(0.3, 0.9) var brake_bias_front: float = 0.75
 
 @export var brake_pedal_rate: float = 4.0
@@ -26,7 +26,7 @@ extends Resource
 @export_range(-1.0, 1.0, 0.05) var ackermann_factor: float = 0.8
 
 ## How fast wheels turn at low speed.
-@export var steer_rate_deg_s: float = 120.0
+@export var steer_rate_deg_s: float = 90.0
 
 ## When returning the steering wheel to center, the wheels turn this many times faster.
 @export_range(1.0, 4.0, 0.1) var steer_return_multiplier: float = 1.5

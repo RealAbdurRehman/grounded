@@ -31,8 +31,6 @@ metadata/_custom_type_script = "uid://bkel8e4frgv51"
 
 [sub_resource type="Resource" id="Resource_dlabj"]
 script = ExtResource("7_dlabj")
-spring_stiffness = 22000.0
-damper_stiffness = 2000.0
 metadata/_custom_type_script = "uid://mnsyudn5vsag"
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_bq33v"]

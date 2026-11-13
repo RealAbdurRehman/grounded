@@ -9,10 +9,10 @@ extends Resource
 @export var wheel_inertia: float = 1.2
 
 @export_group("Spring")
-@export var spring_stiffness: float = 21000.0
+@export var spring_stiffness: float = 24000.0
 
 ## Resists suspension bouncing.
-@export var damper_stiffness: float = 2200.0
+@export var damper_stiffness: float = 2400.0
 
 ## How far the wheel hangs down from the car, in meters.
 @export var suspension_rest_length: float = 0.35

@@ -18,7 +18,13 @@ var throttle_input: float = 0.0
 var brake_input: float = 0.0
 var steer_input: float = 0.0
 
+var steer_cap_rad: float = 0.0
+var steer_angle_rad: float = 0.0
+
 var _com_applied: Vector3 = Vector3.INF
+
+var _wheelbase_m: float = 2.7
+var _steer_x_offset: Dictionary[Wheel, float] = { }
 
 
 func _ready() -> void:
@@ -34,6 +40,9 @@ func _ready() -> void:
 
 	linear_damp = 0.0
 	angular_damp = 0.0
+
+	_cache_steering_geometry()
+	steer_cap_rad = deg_to_rad(config.max_steer_angle_deg)
 
 
 func _sync_center_of_mass() -> void:
@@ -74,16 +83,67 @@ func _handle_inputs(delta: float) -> void:
 
 	throttle_input = move_toward(throttle_input, final_throttle_target, delta * throttle_rate)
 
-	var target_steer := Input.get_action_strength("steer_left") - Input.get_action_strength(
-		"steer_right"
-	)
-	steer_input = move_toward(steer_input, target_steer, delta * 4.0)
+	_update_steering(delta)
 
-	var max_steer: float = config.max_steer_angle_deg
-	var steer_rad := deg_to_rad(steer_input * max_steer)
+
+func _cache_steering_geometry() -> void:
+	var fl: Vector3 = to_local(wheel_fl.global_position)
+	var fr: Vector3 = to_local(wheel_fr.global_position)
+	var rl: Vector3 = to_local(wheel_rl.global_position)
+	var rr: Vector3 = to_local(wheel_rr.global_position)
+
+	_wheelbase_m = maxf(((rl.z + rr.z) - (fl.z + fr.z)) * 0.5, 0.5)
+
+	var axle_mid_x: float = (fl.x + fr.x) * 0.5
+	_steer_x_offset[wheel_fl] = fl.x - axle_mid_x
+	_steer_x_offset[wheel_fr] = fr.x - axle_mid_x
+
+
+func _update_steering(delta: float) -> void:
+	steer_input = Input.get_action_strength("steer_left") - Input.get_action_strength("steer_right")
+
+	var lock_rad: float = deg_to_rad(config.max_steer_angle_deg)
+	steer_cap_rad = _speed_steer_cap_rad(linear_velocity.length(), lock_rad)
+
+	var target_rad: float = steer_input * steer_cap_rad
+
+	var cap_fraction: float = clampf(steer_cap_rad / lock_rad, 0.15, 1.0)
+	var rate_rad_s: float = deg_to_rad(config.steer_rate_deg_s) * cap_fraction
+
+	var unwinding: bool = (target_rad - steer_angle_rad) * steer_angle_rad < 0.0
+	if unwinding:
+		rate_rad_s *= config.steer_return_multiplier
+
+	steer_angle_rad = move_toward(steer_angle_rad, target_rad, rate_rad_s * delta)
 	for w in [wheel_fl, wheel_fr, wheel_rl, wheel_rr]:
 		if w.can_steer:
-			w.steer_angle_rad = steer_rad
+			w.steer_angle_rad = _ackermann_angle_rad(steer_angle_rad, _steer_x_offset.get(w, 0.0))
+
+
+func _speed_steer_cap_rad(speed: float, lock_rad: float) -> float:
+	var sensitivity: float = config.steer_speed_sensitivity
+	if sensitivity <= 0.0:
+		return lock_rad
+
+	var tire: Tire = wheel_fl.tire_model
+	var ref_load: float = tire.reference_load_n
+	var mu: float = tire.peak_lateral_force_n(ref_load, wheel_fl.friction_coef) / ref_load
+
+	var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
+	var corner_accel: float = mu * gravity * gravity_scale
+
+	var geometric_rad: float = atan(_wheelbase_m * corner_accel / maxf(speed * speed, 0.01))
+	var slip_rad: float = config.steer_slip_allowance * tire.alpha_peak()
+	var grip_cap_rad: float = minf(geometric_rad + slip_rad, lock_rad)
+
+	return lerpf(lock_rad, grip_cap_rad, sensitivity)
+
+
+func _ackermann_angle_rad(centre_rad: float, x_offset: float) -> float:
+	var t: float = tan(centre_rad)
+	var ideal_rad: float = atan2(_wheelbase_m * t, maxf(_wheelbase_m + x_offset * t, 0.01))
+
+	return lerpf(centre_rad, ideal_rad, config.ackermann_factor)
 
 
 func _compute_anti_roll_bars() -> void:

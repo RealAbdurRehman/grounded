@@ -21,6 +21,22 @@ extends Resource
 
 @export var drag_coefficient: float = 0.31
 
+@export_group("Steering")
+## -1 for reverse ackermann, +1 for true ackermann, 0 for parallel steering.
+@export_range(-1.0, 1.0, 0.05) var ackermann_factor: float = 0.8
+
+## How fast wheels turn at low speed.
+@export var steer_rate_deg_s: float = 120.0
+
+## When returning the steering wheel to center, the wheels turn this many times faster.
+@export_range(1.0, 4.0, 0.1) var steer_return_multiplier: float = 1.5
+
+## Limits the maximum steering angle based on the car's speed.
+@export_range(0.0, 1.0, 0.05) var steer_speed_sensitivity: float = 1.0
+
+## Adds a little extra steering past the limit to help tires reach max grip.
+@export_range(0.0, 1.5, 0.05) var steer_slip_allowance: float = 0.4
+
 # Controls body roll
 @export_group("Anti Roll Bars")
 @export var front_arb_stiffness: float = 12000.0

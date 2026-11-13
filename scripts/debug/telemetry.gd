@@ -31,6 +31,9 @@ var throttle: float = 0.0
 var brake: float = 0.0
 var steering: float = 0.0
 
+var steer_angle_deg: float = 0.0
+var steer_cap_deg: float = 0.0
+
 var rpm: float = 0.0
 var rev_limit_rpm: float = 0.0
 
@@ -79,7 +82,10 @@ func _sample_vehicle(delta: float) -> void:
 
 	throttle = vehicle.throttle_input
 	brake = vehicle.brake_input
-	steering = vehicle.steer_input
+	steering = vehicle.steer_angle_rad / deg_to_rad(vehicle.config.max_steer_angle_deg)
+
+	steer_angle_deg = rad_to_deg(vehicle.steer_angle_rad)
+	steer_cap_deg = rad_to_deg(vehicle.steer_cap_rad)
 
 	if not _has_previous_velocity:
 		_previous_velocity = velocity

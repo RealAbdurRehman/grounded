@@ -285,3 +285,4 @@ func _handle_airborne(
 	if visual_mesh:
 		_spin_angle += angular_velocity_rad_s * delta
 		visual_mesh.rotation.x = -_spin_angle
+		visual_mesh.rotation.y = steer_angle_rad

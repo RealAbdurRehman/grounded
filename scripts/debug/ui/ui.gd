@@ -66,6 +66,11 @@ const CHASSIS_SLIDERS: Array = [
 	[&"drag_coefficient", "Drag Cd", 0.1, 1.0, "%.2f"],
 	[&"frontal_area", "Frontal Area", 1.0, 4.0, "%.2f"],
 	[&"max_steer_angle_deg", "Max steer deg", 15.0, 45.0, "%.0f"],
+	[&"ackermann_factor", "Ackermann", -1.0, 1.0, "%.2f"],
+	[&"steer_rate_deg_s", "Steer rate deg/s", 20.0, 300.0, "%.0f"],
+	[&"steer_return_multiplier", "Steer return x", 1.0, 4.0, "%.1f"],
+	[&"steer_speed_sensitivity", "Speed steering", 0.0, 1.0, "%.2f"],
+	[&"steer_slip_allowance", "Steer slip allow", 0.0, 1.5, "%.2f"],
 	[&"throttle_ramp_speed", "Throttle ramp", 0.5, 10.0, "%.1f"],
 	[&"brake_pedal_rate", "Brake ramp", 0.5, 10.0, "%.1f"],
 ]
@@ -267,7 +272,10 @@ func _draw_vehicle_window() -> void:
 		ImGui.SeparatorText("Dynamics")
 		Widgets.key_value("Lateral", "%+.2f g" % telemetry.lateral_g)
 		Widgets.key_value("Long.", "%+.2f g" % telemetry.longitudinal_g)
-		Widgets.key_value("Steering", "%+.2f" % telemetry.steering)
+		Widgets.key_value(
+			"Steering",
+			"%+.1f deg (cap %.1f)" % [telemetry.steer_angle_deg, telemetry.steer_cap_deg],
+		)
 
 		ImGui.SeparatorText("Powertrain")
 		Widgets.key_value("Engine", "%.0f Nm" % telemetry.engine_torque_nm)

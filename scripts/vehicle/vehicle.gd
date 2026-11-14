@@ -70,6 +70,11 @@ func _sync_center_of_mass() -> void:
 	center_of_mass = local_com
 
 
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("parking_brake"):
+		handbrake_latched = not handbrake_latched
+
+
 func _physics_process(delta: float) -> void:
 	_handle_inputs(delta)
 

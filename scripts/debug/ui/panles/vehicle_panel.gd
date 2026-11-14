@@ -146,6 +146,10 @@ func _lamps() -> void:
 
 	Widgets.lamp("HB", UITheme.BAD if vehicle.handbrake_input > 0.05 else UITheme.DIM)
 
+	ImGui.SameLineEx(0.0, ImGui.GetFontSize() * 1.2)
+	Widgets.parking_icon(vehicle.handbrake_latched)
+	Widgets.tip("Parking brake (P)")
+
 
 func _g_force() -> void:
 	var unit: float = ImGui.GetFontSize()

@@ -103,6 +103,37 @@ static func lamp(label: String, color: Color) -> void:
 	ImGui.TextColored(color, label)
 
 
+static func parking_icon(active: bool) -> void:
+	var size: float = ImGui.GetTextLineHeight()
+	var origin: Vector2 = ImGui.GetCursorScreenPos()
+	ImGui.Dummy(Vector2(size, size))
+
+	var draw_list = ImGui.GetWindowDrawList()
+	var center: Vector2 = origin + Vector2(size, size) * 0.5
+
+	var radius: float = size * 0.5 - 1.0
+	var color: Color = UITheme.BAD if active else UITheme.DIM
+
+	if active:
+		ImGui.ImDrawList_AddCircleFilled(
+			draw_list,
+			center,
+			radius,
+			Color(color.r, color.g, color.b, 0.25),
+			24,
+		)
+
+	ImGui.ImDrawList_AddCircleEx(draw_list, center, radius, color, 24, 1.5)
+
+	var text_size: Vector2 = ImGui.CalcTextSize("P")
+	ImGui.ImDrawList_AddText(
+		draw_list,
+		Vector2(center.x - text_size.x * 0.5 + 0.5, center.y - text_size.y * 0.5),
+		color,
+		"P",
+	)
+
+
 static func wheel_legend() -> void:
 	for i in range(4):
 		if i > 0:

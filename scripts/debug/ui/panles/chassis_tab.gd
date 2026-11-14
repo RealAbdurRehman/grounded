@@ -184,10 +184,6 @@ func _status() -> void:
 		UITheme.WARN,
 	)
 
-	var latched: Array = [vehicle.handbrake_latched]
-	if ImGui.Checkbox("Keep handbrake up (parking)", latched):
-		vehicle.handbrake_latched = latched[0]
-
 	Widgets.gap(0.2)
 	Widgets.wheel_table(
 		"brake_table",

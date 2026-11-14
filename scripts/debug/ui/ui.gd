@@ -66,6 +66,43 @@ const DRIVETRAIN_SLIDERS: Array = [
 	[&"center_lsd_coast_lock", "Center coast lock", 0.0, 1.0, "%.2f"],
 ]
 
+const ABS_SLIDERS: Array = [
+	[&"abs_release_slip", "Release slip", 0.5, 2.0, "%.2f"],
+	[&"abs_apply_slip", "Apply slip", 0.3, 1.5, "%.2f"],
+	[&"abs_release_rate", "Release rate /s", 5.0, 200.0, "%.0f"],
+	[&"abs_apply_rate", "Apply rate /s", 1.0, 60.0, "%.0f"],
+	[&"abs_front_pressure_split", "Front L/R split", 0.0, 1.0, "%.2f"],
+	[&"abs_min_speed", "Min speed m/s", 0.0, 10.0, "%.1f"],
+]
+
+const TCS_SLIDERS: Array = [
+	[&"tcs_slip_target", "Slip target", 0.3, 1.5, "%.2f"],
+	[&"tcs_cut_rate", "Cut rate /s", 1.0, 30.0, "%.1f"],
+	[&"tcs_restore_rate", "Restore rate /s", 0.5, 20.0, "%.1f"],
+	[&"tcs_brake_gain", "Brake gain", 0.0, 10000.0, "%.0f"],
+	[&"tcs_brake_deadband", "Brake deadband", 0.0, 0.3, "%.2f"],
+	[&"tcs_brake_max_nm", "Brake max Nm", 0.0, 1500.0, "%.0f"],
+]
+
+const ESC_SLIDERS: Array = [
+	[&"esc_understeer_gradient", "Understeer grad", 0.0, 0.02, "%.4f"],
+	[&"esc_deadband", "Deadband rad/s", 0.0, 0.3, "%.2f"],
+	[&"esc_deadband_fraction", "Deadband frac", 0.0, 1.0, "%.2f"],
+	[&"esc_oversteer_gain", "Oversteer gain", 0.0, 10000.0, "%.0f"],
+	[&"esc_understeer_gain", "Understeer gain", 0.0, 10000.0, "%.0f"],
+	[&"esc_max_brake_nm", "Max brake Nm", 0.0, 3000.0, "%.0f"],
+	[&"esc_throttle_cut", "Throttle cut", 0.0, 1.0, "%.2f"],
+	[&"esc_min_speed", "Min speed m/s", 0.0, 20.0, "%.1f"],
+	[&"esc_reference_lag", "Reference lag s", 0.02, 0.6, "%.2f"],
+]
+
+const ASSIST_TOGGLES: Array = [
+	&"abs_enabled",
+	&"abs_rear_select_low",
+	&"tcs_enabled",
+	&"esc_enabled",
+]
+
 const FINAL_DRIVE_SLIDER: Array = [&"final_drive_ratio", "Final drive", 2.0, 6.0, "%.2f"]
 
 const CHASSIS_SLIDERS: Array = [
@@ -115,6 +152,7 @@ var _frame_ms_history: Array = []
 var _tire_defaults: Dictionary = { }
 var _engine_defaults: Dictionary = { }
 var _drivetrain_defaults: Dictionary = { }
+var _assists_defaults: Dictionary = { }
 var _gearing_defaults: Dictionary = { }
 var _chassis_defaults: Dictionary = { }
 var _suspension_defaults: Dictionary = { }
@@ -376,6 +414,10 @@ func _draw_physics_window() -> void:
 				_tab_engine()
 				ImGui.EndTabItem()
 
+			if vehicle.assists != null and ImGui.BeginTabItem("Assists"):
+				_tab_assists()
+				ImGui.EndTabItem()
+
 			if weight_transfer != null and ImGui.BeginTabItem("Load"):
 				_tab_load()
 				ImGui.EndTabItem()
@@ -430,6 +472,15 @@ func _draw_controls_window() -> void:
 			)
 
 			ImGui.Text("Current gear: %s" % telemetry.gear_name)
+
+			if vehicle.assists != null:
+				_assist_lamp("ABS", vehicle.assists_config.abs_enabled, vehicle.assists.abs_active)
+				ImGui.SameLine()
+
+				_assist_lamp("TCS", vehicle.assists_config.tcs_enabled, vehicle.assists.tcs_active)
+				ImGui.SameLine()
+
+				_assist_lamp("ESC", vehicle.assists_config.esc_enabled, vehicle.assists.esc_active)
 
 			ImGui.EndTable()
 
@@ -1022,6 +1073,14 @@ func _snapshot_defaults() -> void:
 		_gearing_defaults[&"ratios"] = Array(drivetrain_config.gear_ratios).duplicate()
 		_gearing_defaults[&"final_drive_ratio"] = drivetrain_config.final_drive_ratio
 
+	if vehicle.assists_config != null:
+		for group in [ABS_SLIDERS, TCS_SLIDERS, ESC_SLIDERS]:
+			for slider in group:
+				_assists_defaults[slider[0]] = vehicle.assists_config.get(slider[0])
+
+		for toggle in ASSIST_TOGGLES:
+			_assists_defaults[toggle] = vehicle.assists_config.get(toggle)
+
 	if vehicle.config != null:
 		for slider in CHASSIS_SLIDERS:
 			_chassis_defaults[slider[0]] = vehicle.config.get(slider[0])
@@ -1077,6 +1136,92 @@ func _sum(values: PackedFloat32Array) -> float:
 		total += value
 
 	return total
+
+
+func _tab_assists() -> void:
+	var config: AssistsConfig = vehicle.assists_config
+	var assists: Assists = vehicle.assists
+
+	if ImGui.CollapsingHeader("ABS", ImGui.TreeNodeFlags_DefaultOpen):
+		_tune_toggle(config, &"abs_enabled", "ABS enabled")
+		_tune_toggle(config, &"abs_rear_select_low", "Rear select-low")
+		Widgets.key_value(
+			"Status",
+			_assist_state(config.abs_enabled, assists.abs_active),
+			UITheme.WARN if assists.abs_active else UITheme.TEXT,
+		)
+
+		for i in range(4):
+			var wheel: Wheel = _wheel_nodes()[i]
+			var pressure: float = assists.abs_pressure[wheel]
+			Widgets.labeled_bar(
+				UITheme.WHEEL_NAMES[i],
+				pressure,
+				"%.0f%%" % (pressure * 100.0),
+				UITheme.WHEEL_COLORS[i],
+			)
+
+		Widgets.gap(0.3)
+		for slider in ABS_SLIDERS:
+			_tune(config, slider)
+
+	if ImGui.CollapsingHeader("Traction control", ImGui.TreeNodeFlags_DefaultOpen):
+		_tune_toggle(config, &"tcs_enabled", "Traction control enabled")
+		Widgets.key_value(
+			"Status",
+			_assist_state(config.tcs_enabled, assists.tcs_active),
+			UITheme.WARN if assists.tcs_active else UITheme.TEXT,
+		)
+		Widgets.bar_with_text(
+			assists.throttle_scale,
+			"",
+			UITheme.GOOD,
+			"power: %.0f%%" % (assists.throttle_scale * 100.0),
+		)
+
+		for slider in TCS_SLIDERS:
+			_tune(config, slider)
+
+	if ImGui.CollapsingHeader("Stability control", ImGui.TreeNodeFlags_DefaultOpen):
+		_tune_toggle(config, &"esc_enabled", "Stability control enabled")
+		Widgets.key_value(
+			"Status",
+			_assist_state(config.esc_enabled, assists.esc_active),
+			UITheme.WARN if assists.esc_active else UITheme.TEXT,
+		)
+		Widgets.key_value("Target yaw", "%.1f deg/s" % rad_to_deg(assists.yaw_rate_target))
+		Widgets.key_value(
+			"Yaw error",
+			"%.1f deg/s" % rad_to_deg(assists.yaw_rate_error),
+			UITheme.WARN if absf(assists.yaw_rate_error) > config.esc_deadband else UITheme.TEXT,
+		)
+
+		for slider in ESC_SLIDERS:
+			_tune(config, slider)
+
+	if Widgets.reset_button("Reset assists"):
+		_reset_object(config, _assists_defaults)
+
+
+func _assist_state(assist_enabled: bool, active: bool) -> String:
+	if not assist_enabled:
+		return "OFF"
+
+	return "ACTIVE" if active else "ready"
+
+
+func _assist_lamp(label: String, assist_enabled: bool, active: bool) -> void:
+	var color: Color = UITheme.DIM
+	if assist_enabled:
+		color = UITheme.WARN if active else UITheme.GOOD
+
+	ImGui.TextColored(color, label)
+
+
+func _tune_toggle(obj: Object, property: StringName, label: String) -> void:
+	var buffer: Array = [obj.get(property)]
+	if ImGui.Checkbox("%s##%s" % [label, property], buffer):
+		obj.set(property, buffer[0])
 
 
 func _tune_int(label: String, id: String, value: int, v_min: int, v_max: int) -> int:

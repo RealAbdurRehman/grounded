@@ -14,12 +14,17 @@ extends RigidBody3D
 
 @export var center_of_mass_node: Marker3D
 
+@export_group("Assists")
+@export var assists_config: AssistsConfig
+
 var throttle_input: float = 0.0
 var brake_input: float = 0.0
 var steer_input: float = 0.0
 
 var steer_cap_rad: float = 0.0
 var steer_angle_rad: float = 0.0
+
+var assists: Assists
 
 var _com_applied: Vector3 = Vector3.INF
 
@@ -43,6 +48,8 @@ func _ready() -> void:
 
 	_cache_steering_geometry()
 	steer_cap_rad = deg_to_rad(config.max_steer_angle_deg)
+
+	assists = Assists.new(self, assists_config, _wheelbase_m)
 
 
 func _sync_center_of_mass() -> void:
@@ -163,6 +170,18 @@ func _set_axle_arb(left: Wheel, right: Wheel, stiffness: float) -> void:
 
 
 func _update_drivetrain_and_wheels(delta: float) -> void:
+	var driver_brake_nm: Dictionary[Wheel, float] = { }
+	for w in [wheel_fl, wheel_fr, wheel_rl, wheel_rr]:
+		var axle_share: float = (
+			config.brake_bias_front
+			if w.is_front
+			else (1.0 - config.brake_bias_front)
+		)
+
+		driver_brake_nm[w] = brake_input * config.max_brake_torque * axle_share * 0.5
+
+	assists.update(delta, throttle_input, driver_brake_nm)
+
 	var driven_wheels: Array[Wheel] = []
 	for w in [wheel_fl, wheel_fr, wheel_rl, wheel_rr]:
 		if w.is_driven:
@@ -177,7 +196,7 @@ func _update_drivetrain_and_wheels(delta: float) -> void:
 	var target_engine_rpm: float = drivetrain_node.calculate_target_engine_rpm(driveline_speed)
 	var engine_torque: float = engine_node.update_engine(
 		delta,
-		throttle_input,
+		assists.filter_throttle(throttle_input),
 		target_engine_rpm,
 		drivetrain_node.is_clutch_engaged(),
 		drivetrain_node.is_shifting,
@@ -203,11 +222,7 @@ func _update_drivetrain_and_wheels(delta: float) -> void:
 		var w_drive_torque: float = drive_torques.get(w, 0.0)
 		var w_reflected: float = engine_inertia * drivetrain_node.get_wheel_share(w)
 
-		var brake_torque_base: float = config.max_brake_torque
-		var brake_bias: float = config.brake_bias_front
-
-		var axle_share: float = brake_bias if w.is_front else (1.0 - brake_bias)
-		var w_brake_torque: float = brake_input * brake_torque_base * axle_share * 0.5
+		var w_brake_torque: float = assists.brake_torque(w)
 
 		w.update_wheel(self, delta, w_drive_torque, w_brake_torque, w_reflected)
 

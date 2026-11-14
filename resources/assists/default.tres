@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="AssistsConfig" format=3 uid="uid://k66f2m40gcqr"]
+
+[ext_resource type="Script" uid="uid://bxhngvcjfe411" path="res://scripts/vehicle/configs/assists.gd" id="1_yju7n"]
+
+[resource]
+script = ExtResource("1_yju7n")
+metadata/_custom_type_script = "uid://bxhngvcjfe411"

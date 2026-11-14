@@ -7,6 +7,7 @@
 [ext_resource type="PackedScene" uid="uid://dr8e42tbw6xk2" path="res://scenes/vehicle/vehicle.tscn" id="3_j2gmx"]
 [ext_resource type="Script" uid="uid://bwprdmk5kupc6" path="res://scripts/vehicle/configs/chassis.gd" id="4_gb53w"]
 [ext_resource type="Texture2D" uid="uid://c7ma8ggfipg" path="res://assets/textures/ground/arm.jpg" id="4_j2gmx"]
+[ext_resource type="Resource" uid="uid://k66f2m40gcqr" path="res://resources/assists/default.tres" id="5_dlabj"]
 [ext_resource type="Script" uid="uid://bkel8e4frgv51" path="res://scripts/vehicle/configs/engine.gd" id="5_gb53w"]
 [ext_resource type="Resource" uid="uid://cc3cenk2w6t53" path="res://resources/drivetrains/default.tres" id="6_dlabj"]
 [ext_resource type="Script" uid="uid://dvp5aua86h7p4" path="res://scripts/camera/camera.gd" id="6_t5ptc"]
@@ -500,6 +501,7 @@ wheel_rr = NodePath("Wheels/WheelRR")
 engine_node = NodePath("Engine")
 drivetrain_node = NodePath("Drivetrain")
 center_of_mass_node = NodePath("Markers/CenterOfMass")
+assists_config = ExtResource("5_dlabj")
 
 [node name="Engine" parent="Vehicle" index="2" unique_id=1472005107]
 config = SubResource("Resource_vu11u")

@@ -71,3 +71,5 @@ extends Resource
 @export var esc_max_brake_nm: float = 1200.0
 
 @export var esc_min_speed: float = 6.0
+
+@export var esc_off_with_handbrake: bool = true

@@ -19,7 +19,10 @@ extends RigidBody3D
 
 var throttle_input: float = 0.0
 var brake_input: float = 0.0
+var handbrake_input: float = 0.0
 var steer_input: float = 0.0
+
+var handbrake_latched: bool = false
 
 var steer_cap_rad: float = 0.0
 var steer_angle_rad: float = 0.0
@@ -27,6 +30,8 @@ var steer_angle_rad: float = 0.0
 var assists: Assists
 
 var _com_applied: Vector3 = Vector3.INF
+
+var _handbrake_wheel_count: int = 0
 
 var _wheelbase_m: float = 2.7
 var _steer_x_offset: Dictionary[Wheel, float] = { }
@@ -48,6 +53,10 @@ func _ready() -> void:
 
 	_cache_steering_geometry()
 	steer_cap_rad = deg_to_rad(config.max_steer_angle_deg)
+
+	for w in [wheel_fl, wheel_fr, wheel_rl, wheel_rr]:
+		if w.has_handbrake:
+			_handbrake_wheel_count += 1
 
 	assists = Assists.new(self, assists_config, _wheelbase_m)
 
@@ -77,6 +86,16 @@ func _handle_inputs(delta: float) -> void:
 	if brake_target < brake_input:
 		pedal_rate *= 3.0
 	brake_input = move_toward(brake_input, brake_target, delta * pedal_rate)
+
+	var handbrake_target: float = Input.get_action_strength("handbrake")
+	if handbrake_latched:
+		handbrake_target = 1.0
+
+	var handbrake_rate: float = config.handbrake_pull_rate
+	if handbrake_target < handbrake_input:
+		handbrake_rate = config.handbrake_release_rate
+
+	handbrake_input = move_toward(handbrake_input, handbrake_target, delta * handbrake_rate)
 
 	var override: float = 0.0
 	if config.brake_overrides_throttle:
@@ -180,7 +199,7 @@ func _update_drivetrain_and_wheels(delta: float) -> void:
 
 		driver_brake_nm[w] = brake_input * config.max_brake_torque * axle_share * 0.5
 
-	assists.update(delta, throttle_input, driver_brake_nm)
+	assists.update(delta, throttle_input, driver_brake_nm, handbrake_input)
 
 	var driven_wheels: Array[Wheel] = []
 	for w in [wheel_fl, wheel_fr, wheel_rl, wheel_rr]:
@@ -222,9 +241,16 @@ func _update_drivetrain_and_wheels(delta: float) -> void:
 		var w_drive_torque: float = drive_torques.get(w, 0.0)
 		var w_reflected: float = engine_inertia * drivetrain_node.get_wheel_share(w)
 
-		var w_brake_torque: float = assists.brake_torque(w)
+		var w_brake_torque: float = assists.brake_torque(w) + get_handbrake_torque_nm(w)
 
 		w.update_wheel(self, delta, w_drive_torque, w_brake_torque, w_reflected)
+
+
+func get_handbrake_torque_nm(wheel: Wheel) -> float:
+	if not wheel.has_handbrake or _handbrake_wheel_count == 0:
+		return 0.0
+
+	return handbrake_input * config.max_handbrake_torque / float(_handbrake_wheel_count)
 
 
 func _apply_aerodynamic_drag() -> void:

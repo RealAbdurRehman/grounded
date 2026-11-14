@@ -519,9 +519,11 @@ can_steer = true
 
 [node name="WheelRL" parent="Vehicle/Wheels" parent_id_path=PackedInt32Array(429220544, 2027221242) index="2" unique_id=136557973]
 suspension_config = SubResource("Resource_dlabj")
+has_handbrake = true
 
 [node name="WheelRR" parent="Vehicle/Wheels" parent_id_path=PackedInt32Array(429220544, 2027221242) index="3" unique_id=834798633]
 suspension_config = SubResource("Resource_dlabj")
+has_handbrake = true
 
 [node name="Tests" type="Node3D" parent="." unique_id=1518008125]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -53.848, 0.6, 500)

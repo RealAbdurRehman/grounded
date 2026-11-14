@@ -101,6 +101,19 @@ const ASSIST_TOGGLES: Array = [
 	&"abs_rear_select_low",
 	&"tcs_enabled",
 	&"esc_enabled",
+	&"esc_off_with_handbrake",
+]
+
+const HANDBRAKE_SLIDERS: Array = [
+	[&"max_handbrake_torque", "Clamp torque Nm", 0.0, 6000.0, "%.0f"],
+	[&"handbrake_pull_rate", "Pull rate /s", 1.0, 20.0, "%.1f"],
+	[&"handbrake_release_rate", "Release rate /s", 1.0, 20.0, "%.1f"],
+]
+
+const HOLD_SLIDERS: Array = [
+	[&"stick_speed", "Hold below m/s", 0.02, 0.5, "%.2f"],
+	[&"stick_deflection_m", "Stretch at grip m", 0.002, 0.08, "%.3f"],
+	[&"stick_damping_ratio", "Damping ratio", 0.1, 2.0, "%.2f"],
 ]
 
 const FINAL_DRIVE_SLIDER: Array = [&"final_drive_ratio", "Final drive", 2.0, 6.0, "%.2f"]
@@ -153,6 +166,8 @@ var _tire_defaults: Dictionary = { }
 var _engine_defaults: Dictionary = { }
 var _drivetrain_defaults: Dictionary = { }
 var _assists_defaults: Dictionary = { }
+var _handbrake_defaults: Dictionary = { }
+var _hold_defaults: Dictionary = { }
 var _gearing_defaults: Dictionary = { }
 var _chassis_defaults: Dictionary = { }
 var _suspension_defaults: Dictionary = { }
@@ -418,6 +433,10 @@ func _draw_physics_window() -> void:
 				_tab_assists()
 				ImGui.EndTabItem()
 
+			if ImGui.BeginTabItem("Brakes"):
+				_tab_brakes()
+				ImGui.EndTabItem()
+
 			if weight_transfer != null and ImGui.BeginTabItem("Load"):
 				_tab_load()
 				ImGui.EndTabItem()
@@ -471,9 +490,17 @@ func _draw_controls_window() -> void:
 				"brake: %.0f%%" % (telemetry.brake * 100.0),
 			)
 
+			Widgets.bar_with_text(
+				vehicle.handbrake_input,
+				"",
+				UITheme.WARN,
+				"handbrake: %.0f%%" % (vehicle.handbrake_input * 100.0),
+			)
+
 			ImGui.Text("Current gear: %s" % telemetry.gear_name)
 
 			if vehicle.assists != null:
+				ImGui.SameLine()
 				_assist_lamp("ABS", vehicle.assists_config.abs_enabled, vehicle.assists.abs_active)
 				ImGui.SameLine()
 
@@ -481,6 +508,10 @@ func _draw_controls_window() -> void:
 				ImGui.SameLine()
 
 				_assist_lamp("ESC", vehicle.assists_config.esc_enabled, vehicle.assists.esc_active)
+				ImGui.SameLine()
+
+				var handbrake_color: Color = UITheme.BAD if vehicle.handbrake_input > 0.05 else UITheme.DIM
+				ImGui.TextColored(handbrake_color, "HB")
 
 			ImGui.EndTable()
 
@@ -491,7 +522,6 @@ func _tab_tires() -> void:
 	var unit: float = ImGui.GetFontSize()
 	var tire: Tire = _selected_tire()
 
-	# Removed the wheel dropdown and kept just the legend for the graphs
 	Widgets.wheel_legend()
 
 	var grounded: Array[bool] = []
@@ -1085,6 +1115,14 @@ func _snapshot_defaults() -> void:
 		for slider in CHASSIS_SLIDERS:
 			_chassis_defaults[slider[0]] = vehicle.config.get(slider[0])
 
+		for slider in HANDBRAKE_SLIDERS:
+			_handbrake_defaults[slider[0]] = vehicle.config.get(slider[0])
+
+	var hold_tire: Tire = _selected_tire()
+	if hold_tire != null:
+		for slider in HOLD_SLIDERS:
+			_hold_defaults[slider[0]] = hold_tire.get(slider[0])
+
 	var susp: SuspensionConfig = vehicle.wheel_fl.suspension_config
 	if susp != null:
 		for slider in SUSPENSION_SLIDERS:
@@ -1184,6 +1222,7 @@ func _tab_assists() -> void:
 
 	if ImGui.CollapsingHeader("Stability control", ImGui.TreeNodeFlags_DefaultOpen):
 		_tune_toggle(config, &"esc_enabled", "Stability control enabled")
+		_tune_toggle(config, &"esc_off_with_handbrake", "Off while handbrake is up")
 		Widgets.key_value(
 			"Status",
 			_assist_state(config.esc_enabled, assists.esc_active),
@@ -1201,6 +1240,150 @@ func _tab_assists() -> void:
 
 	if Widgets.reset_button("Reset assists"):
 		_reset_object(config, _assists_defaults)
+
+
+func _tab_brakes() -> void:
+	var config: ChassisConfig = vehicle.config
+	var wheels: Array[Wheel] = _wheel_nodes()
+
+	ImGui.SeparatorText("Handbrake")
+	Widgets.bar_with_text(
+		vehicle.handbrake_input,
+		"",
+		UITheme.WARN,
+		"lever: %.0f%%" % (vehicle.handbrake_input * 100.0),
+	)
+
+	var latched: Array = [vehicle.handbrake_latched]
+	if ImGui.Checkbox("Keep lever up (parking brake)##handbrake_latched", latched):
+		vehicle.handbrake_latched = latched[0]
+
+	Widgets.key_value(
+		"Clamp torque",
+		"%.0f Nm" % (vehicle.handbrake_input * config.max_handbrake_torque),
+	)
+
+	var esc_stepped_aside: bool = (
+		vehicle.assists_config.esc_off_with_handbrake and vehicle.handbrake_input > 0.05
+	)
+	Widgets.key_value(
+		"Stability control",
+		"stepped aside" if esc_stepped_aside else "normal",
+		UITheme.WARN if esc_stepped_aside else UITheme.TEXT,
+	)
+
+	Widgets.gap(0.3)
+	var flags: int = ImGui.TableFlags_RowBg | ImGui.TableFlags_BordersInnerV | ImGui.TableFlags_SizingStretchProp
+	if ImGui.BeginTable("brake_table", 5, flags):
+		ImGui.TableSetupColumn("")
+		ImGui.TableSetupColumn("HB Nm")
+		ImGui.TableSetupColumn("rad/s")
+		ImGui.TableSetupColumn("State")
+		ImGui.TableSetupColumnEx("Grip used", 0, 1.3)
+
+		ImGui.TableHeadersRow()
+
+		for i in range(4):
+			var wheel: Wheel = wheels[i]
+
+			var state: String = "free"
+			var state_color: Color = UITheme.DIM
+			if wheel.is_stuck:
+				state = "HOLD"
+				state_color = UITheme.GOOD
+			elif wheel.is_locked:
+				state = "LOCK"
+				state_color = UITheme.BAD
+
+			var peak_n: float = wheel.tire_model.peak_longitudinal_force_n(
+				wheel.normal_load_n,
+				wheel.friction_coef,
+			)
+			var grip_used: float = absf(wheel.longitudinal_force_n) / maxf(peak_n, 1.0)
+
+			ImGui.TableNextRow()
+			Widgets.label_cell(UITheme.WHEEL_NAMES[i], UITheme.WHEEL_COLORS[i])
+
+			Widgets.cell("%.0f" % vehicle.get_handbrake_torque_nm(wheel))
+			Widgets.cell("%.1f" % wheel.angular_velocity_rad_s)
+			Widgets.cell(state, state_color)
+
+			ImGui.TableNextColumn()
+			Widgets.bar(grip_used, "%.0f%%" % (grip_used * 100.0), state_color)
+
+		ImGui.EndTable()
+
+	ImGui.SeparatorText("Slope hold")
+
+	var normal_sum: Vector3 = Vector3.ZERO
+	var holding: int = 0
+	var hold_capacity_n: float = 0.0
+	for wheel in wheels:
+		if not wheel.is_grounded:
+			continue
+
+		normal_sum += wheel.contact_normal
+		if wheel.is_stuck:
+			holding += 1
+
+		var brake_nm: float = vehicle.assists.brake_torque(wheel) + vehicle.get_handbrake_torque_nm(
+			wheel
+		)
+		var grip_n: float = wheel.tire_model.peak_longitudinal_force_n(
+			wheel.normal_load_n,
+			wheel.friction_coef,
+		)
+		hold_capacity_n += minf(grip_n, brake_nm / wheel.suspension_config.wheel_radius)
+
+	var slope_rad: float = 0.0
+	if normal_sum.length() > 0.001:
+		slope_rad = acos(clampf(normal_sum.normalized().dot(Vector3.UP), -1.0, 1.0))
+
+	var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
+	var pull_n: float = vehicle.mass * gravity * vehicle.gravity_scale * sin(slope_rad)
+
+	Widgets.key_value(
+		"Slope",
+		"%.1f deg  (%.0f%% grade)" % [rad_to_deg(slope_rad), tan(slope_rad) * 100.0],
+	)
+	Widgets.key_value("Pull down slope", "%.0f N" % pull_n)
+
+	var hold_used: float = pull_n / maxf(hold_capacity_n, 1.0)
+	Widgets.labeled_bar(
+		"Hold",
+		hold_used,
+		"%.0f N of %.0f N" % [pull_n, hold_capacity_n],
+		UITheme.GOOD if hold_used < 1.0 else UITheme.BAD,
+	)
+
+	Widgets.key_value(
+		"Wheels holding",
+		"%d of 4" % holding,
+		UITheme.GOOD if holding > 0 else UITheme.TEXT,
+	)
+
+	var speed: float = vehicle.linear_velocity.length()
+	Widgets.key_value(
+		"Speed",
+		"%.1f cm/s" % (speed * 100.0) if speed < 0.5 else "%.1f m/s" % speed,
+		UITheme.WARN if (speed > 0.01 and speed < 0.5 and holding == 0 and pull_n > 0.0) else UITheme.TEXT,
+	)
+
+	Widgets.gap(0.5)
+	if ImGui.CollapsingHeader("Handbrake tuning", ImGui.TreeNodeFlags_DefaultOpen):
+		for slider in HANDBRAKE_SLIDERS:
+			_tune(config, slider)
+
+		if Widgets.reset_button("Reset handbrake"):
+			_reset_object(config, _handbrake_defaults)
+
+	if ImGui.CollapsingHeader("Static hold tuning", ImGui.TreeNodeFlags_DefaultOpen):
+		var tire: Tire = _selected_tire()
+		for slider in HOLD_SLIDERS:
+			_tune(tire, slider)
+
+		if Widgets.reset_button("Reset hold"):
+			_reset_object(tire, _hold_defaults)
 
 
 func _assist_state(assist_enabled: bool, active: bool) -> String:

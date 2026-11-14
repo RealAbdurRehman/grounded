@@ -10,6 +10,8 @@ extends RayCast3D
 @export var is_driven: bool = true
 @export var can_steer: bool = false
 
+@export var has_handbrake: bool = false
+
 @export_group("Friction")
 @export var friction_coef: float = 1.0
 @export var rolling_resistance_coef: float = 0.012
@@ -22,6 +24,9 @@ extends RayCast3D
 @onready var visual_mesh: MeshInstance3D = $Mesh
 
 var is_grounded: bool = false
+
+var is_locked: bool = false
+var is_stuck: bool = false
 
 var compression: float = 0.0
 var spring_displacement: float = 0.0
@@ -43,6 +48,9 @@ var slip_ratio: float = 0.0
 var slip_angle_rad: float = 0.0
 
 var grip_limit_n: float = 0.0
+
+var _stick_x: float = 0.0
+var _stick_fx: float = 0.0
 
 var _prev_displacement: float = 0.0
 var _spin_angle: float = 0.0
@@ -153,7 +161,24 @@ func update_wheel(
 	)
 
 	w_new = move_toward(w_new, 0.0, delta * brake_torque_nm / implicit_inertia)
+
+	var mass_share: float = chassis.mass * 0.25
+
+	is_stuck = _update_stick(
+		delta,
+		v_long,
+		fz,
+		radius,
+		drive_torque_nm,
+		brake_torque_nm,
+		mass_share,
+	)
+
+	if is_stuck:
+		w_new = 0.0
+
 	angular_velocity_rad_s = w_new
+	is_locked = brake_torque_nm > 0.0 and absf(angular_velocity_rad_s) < 0.01
 
 	var kappa_new: float = (angular_velocity_rad_s * radius - v_long) / speed_denominator
 	var f_final: Vector2 = tire_model.compute_forces(
@@ -164,15 +189,21 @@ func update_wheel(
 		fz,
 		friction_coef,
 	)
+
 	var fx: float = f_final.x
+	if is_stuck:
+		fx = _stick_fx
+
 	var fy: float = f_final.y
 
-	var mass_share: float = chassis.mass * 0.25
 	if absf(v_lat) > 0.0001 and fy * v_lat < 0.0:
 		fy = fy * mass_share * absf(v_lat) / (mass_share * absf(v_lat) + delta * absf(fy))
 
 	var wheel_surface_speed: float = absf(angular_velocity_rad_s * radius)
-	if brake_torque_nm > 0.0 and fx * v_long < 0.0 and wheel_surface_speed < speed_long:
+	if (
+		not is_stuck and brake_torque_nm > 0.0 and fx * v_long < 0.0
+		and wheel_surface_speed < speed_long
+	):
 		fx = fx * mass_share * speed_long / (mass_share * speed_long + delta * absf(fx))
 
 	fx += -rolling_resistance_coef * fz * clampf(v_long / 0.5, -1.0, 1.0)
@@ -247,12 +278,52 @@ func update_wheel(
 	)
 
 
+func _update_stick(
+	delta: float,
+	v_long: float,
+	fz: float,
+	radius: float,
+	drive_torque_nm: float,
+	brake_torque_nm: float,
+	mass_share: float,
+) -> bool:
+	var limit: float = tire_model.stick_speed * (2.0 if is_stuck else 1.0)
+	var surface_speed: float = absf(angular_velocity_rad_s) * radius
+	if brake_torque_nm <= 0.0 or absf(v_long) > limit or surface_speed > limit:
+		return false
+
+	var peak: float = tire_model.peak_longitudinal_force_n(fz, friction_coef)
+	if peak <= 1.0:
+		return false
+
+	var stiffness: float = peak / maxf(tire_model.stick_deflection_m, 0.001)
+	var damping: float = 2.0 * tire_model.stick_damping_ratio * sqrt(stiffness * mass_share)
+
+	if not is_stuck:
+		_stick_x = -(longitudinal_force_n + damping * v_long) / stiffness
+
+	_stick_x = clampf(_stick_x + v_long * delta, -peak / stiffness, peak / stiffness)
+	var force: float = -(stiffness * _stick_x + damping * v_long)
+
+	var force_low: float = (drive_torque_nm - brake_torque_nm) / radius
+	var force_high: float = (drive_torque_nm + brake_torque_nm) / radius
+	if force < force_low or force > force_high:
+		return false
+
+	_stick_fx = clampf(force, -peak, peak)
+
+	return true
+
+
 func _handle_airborne(
 	delta: float,
 	drive_torque_nm: float,
 	brake_torque_nm: float,
 	inertia: float,
 ) -> void:
+	is_stuck = false
+	is_locked = false
+
 	compression = 0.0
 	spring_displacement = 0.0
 

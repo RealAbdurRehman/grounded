@@ -20,6 +20,8 @@ var _vehicle: Vehicle
 var _wheelbase_m: float
 var _wheels: Array[Wheel] = []
 
+var _handbrake: float = 0.0
+
 var _tcs_throttle: float = 1.0
 var _esc_throttle: float = 1.0
 
@@ -48,7 +50,13 @@ func _init(vehicle: Vehicle, assists_config: AssistsConfig, wheelbase_m: float) 
 		_esc_brake_nm[w] = 0.0
 
 
-func update(delta: float, throttle: float, driver_brake_nm: Dictionary[Wheel, float]) -> void:
+func update(
+	delta: float,
+	throttle: float,
+	driver_brake_nm: Dictionary[Wheel, float],
+	handbrake: float = 0.0,
+) -> void:
+	_handbrake = handbrake
 	var forward_speed: float = _vehicle.linear_velocity.dot(-_vehicle.global_transform.basis.z)
 
 	_update_traction_control(delta, throttle)
@@ -129,7 +137,8 @@ func _tcs_axle_brakes(left: Wheel, right: Wheel, delta: float) -> void:
 func _update_stability_control(delta: float, forward_speed: float) -> void:
 	var cfg: AssistsConfig = config
 
-	if not cfg.esc_enabled or forward_speed < cfg.esc_min_speed:
+	var handbrake_up: bool = cfg.esc_off_with_handbrake and _handbrake > 0.05
+	if not cfg.esc_enabled or handbrake_up or forward_speed < cfg.esc_min_speed:
 		_esc_throttle = move_toward(_esc_throttle, 1.0, 2.0 * delta)
 		_release_brakes(_esc_brake_nm, delta)
 

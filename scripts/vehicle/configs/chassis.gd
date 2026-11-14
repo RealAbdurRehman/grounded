@@ -41,3 +41,10 @@ extends Resource
 @export_group("Anti Roll Bars")
 @export var front_arb_stiffness: float = 12000.0
 @export var rear_arb_stiffness: float = 5000.0
+
+@export_group("Handbrake")
+## How hard the handbrake clamps the wheels.
+@export var max_handbrake_torque: float = 2400.0
+
+@export var handbrake_pull_rate: float = 6.0
+@export var handbrake_release_rate: float = 10.0

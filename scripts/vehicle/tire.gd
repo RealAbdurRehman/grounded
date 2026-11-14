@@ -55,6 +55,16 @@ extends Resource
 @export var low_speed_lat_saturation: float = 0.5
 @export var static_lateral_hold_speed: float = 0.5
 
+@export_group("Static Hold")
+## Speed below which braking wheels stick to the road, in meters per second.
+@export var stick_speed: float = 0.15
+
+## How far the tire can stretch before slipping.
+@export var stick_deflection_m: float = 0.02
+
+## How smooth the sticking effect is.
+@export_range(0.1, 2.0, 0.05) var stick_damping_ratio: float = 0.8
+
 var _cache_signature: float = -1.0
 
 var _kappa_peak: float = 0.1

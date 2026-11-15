@@ -89,6 +89,7 @@ func _physics_process(delta: float) -> void:
 	if not _geometry_ready:
 		return
 
+	_measure_geometry()
 	_update_acceleration(delta)
 
 	_update_cg_height()

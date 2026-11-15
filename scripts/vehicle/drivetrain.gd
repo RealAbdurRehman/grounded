@@ -33,7 +33,7 @@ class DriveNode extends RefCounted:
 	var second: DriveNode
 
 	var share_first: float = 0.5
-	var is_center: bool = false
+	var diff: DifferentialConfig
 	var leaves: Array[Wheel] = []
 
 
@@ -85,8 +85,8 @@ func setup_driveline(driven_wheels: Array[Wheel]) -> void:
 		else:
 			rear.append(w)
 
-	var front_node: DriveNode = _make_axle_node(front)
-	var rear_node: DriveNode = _make_axle_node(rear)
+	var front_node: DriveNode = _make_axle_node(front, config.front_differential)
+	var rear_node: DriveNode = _make_axle_node(rear, config.rear_differential)
 
 	if front_node == null:
 		_root = rear_node
@@ -94,7 +94,7 @@ func setup_driveline(driven_wheels: Array[Wheel]) -> void:
 		_root = front_node
 	else:
 		_root = _make_branch(front_node, rear_node, config.center_front_torque_share)
-		_root.is_center = true
+		_root.diff = config.center_differential
 
 	_wheel_share.clear()
 	if _root != null:
@@ -129,13 +129,14 @@ func split_drive_torque(
 	return result
 
 
-func _make_axle_node(wheels: Array[Wheel]) -> DriveNode:
+func _make_axle_node(wheels: Array[Wheel], diff: DifferentialConfig) -> DriveNode:
 	if wheels.is_empty():
 		return null
 
 	var node: DriveNode = _make_leaf(wheels[0])
 	for i in range(1, wheels.size()):
 		node = _make_branch(node, _make_leaf(wheels[i]), float(i) / float(i + 1))
+		node.diff = diff
 
 	return node
 
@@ -209,22 +210,12 @@ func _distribute(
 	var torque_a: float = torque * node.share_first
 	var torque_b: float = torque - torque_a
 
-	var mode: DrivetrainConfig.DifferentialType = config.differential_type
+	var diff: DifferentialConfig = node.diff
+	var mode: DifferentialConfig.Type = DifferentialConfig.Type.OPEN
+	if diff != null:
+		mode = diff.type
 
-	var preload_nm: float = config.lsd_preload_nm
-
-	var power_lock: float = config.lsd_power_lock
-	var coast_lock: float = config.lsd_coast_lock
-
-	if node.is_center:
-		mode = config.center_differential_type
-
-		preload_nm = config.center_lsd_preload_nm
-
-		power_lock = config.center_lsd_power_lock
-		coast_lock = config.center_lsd_coast_lock
-
-	if mode != DrivetrainConfig.DifferentialType.OPEN:
+	if mode != DifferentialConfig.Type.OPEN:
 		var inertia_a: float = _subtree_inertia(node.first, engine_inertia)
 		var inertia_b: float = _subtree_inertia(node.second, engine_inertia)
 
@@ -241,9 +232,9 @@ func _distribute(
 		)
 
 		var capacity_nm: float = INF
-		if mode == DrivetrainConfig.DifferentialType.LIMITED_SLIP:
-			var lock: float = power_lock if is_power else coast_lock
-			capacity_nm = preload_nm + lock * absf(torque) * 0.5
+		if mode == DifferentialConfig.Type.LIMITED_SLIP:
+			var lock: float = diff.power_lock if is_power else diff.coast_lock
+			capacity_nm = diff.preload_nm + lock * absf(torque) * 0.5
 
 		var transfer_nm: float = clampf(needed_nm, -capacity_nm, capacity_nm)
 		torque_a -= transfer_nm

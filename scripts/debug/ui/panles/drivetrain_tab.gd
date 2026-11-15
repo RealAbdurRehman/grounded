@@ -8,6 +8,10 @@ const GEAR_COUNT_MIN: int = 3
 const GEAR_COUNT_MAX: int = 8
 
 var _layout: Tuner
+
+var _center: Tuner
+var _axles: Tuner
+
 var _gearbox: Tuner
 
 var _default_ratios: Array = []
@@ -17,31 +21,16 @@ func _build() -> void:
 	var config := func() -> Object:
 		return vehicle.drivetrain_node.config
 
-	var limited_slip: int = DrivetrainConfig.DifferentialType.LIMITED_SLIP
+	var limited_slip: int = DifferentialConfig.Type.LIMITED_SLIP
 
-	var all_wheel: Callable = func() -> bool:
-		return _drive_layout() == 2
-
-	var one_axle: Callable = func() -> bool:
-		return _drive_layout() != 2
-
-	var axle_lsd: Callable = func() -> bool:
-		return vehicle.drivetrain_node.config.differential_type == limited_slip
-
-	var center_lsd: Callable = func() -> bool:
-		return (
-			_drive_layout() == 2
-			and vehicle.drivetrain_node.config.center_differential_type == limited_slip
-		)
-
-	_layout = Tuner.new("Layout and differentials", config)
+	_layout = Tuner.new("Drive layout", config)
 
 	_layout.group(
 		"",
 		[
 			Tuner.custom_choice(
 				&"layout",
-				"Drive layout",
+				"Layout",
 				LAYOUT_NAMES,
 				_drive_layout,
 				_set_drive_layout,
@@ -50,78 +39,94 @@ func _build() -> void:
 		],
 	)
 
-	_layout.group(
+	_center = Tuner.new(
 		"Center differential",
+		func() -> Object:
+			return vehicle.drivetrain_node.config.center_differential,
+	)
+
+	_center.group(
+		"",
 		[
 			Tuner.choice(
-				&"center_differential_type",
+				&"type",
 				"Type",
 				DIFFERENTIAL_NAMES,
 				"Shares the engine torque between the front and rear axles.",
 			),
-			Tuner.slider(
-				&"center_front_torque_share",
+			Tuner.custom(
+				&"front_share",
 				"Front torque",
+				_front_share,
+				_set_front_share,
 				0.0,
 				1.0,
 				"%.2f",
 				"Share of the engine torque sent to the front.",
 			),
 		],
-		all_wheel,
 	)
 
-	_layout.group(
-		"Center limited slip",
-		[
-			Tuner.slider(&"center_lsd_preload_nm", "Preload", 0.0, 300.0, "%.0f"),
-			Tuner.slider(&"center_lsd_power_lock", "Lock on power", 0.0, 1.0, "%.2f"),
-			Tuner.slider(&"center_lsd_coast_lock", "Lock on coast", 0.0, 1.0, "%.2f"),
-		],
-		center_lsd,
-	)
-
-	_layout.group(
-		"Front and rear differentials",
-		[
-			Tuner.choice(
-				&"differential_type",
-				"Type",
-				DIFFERENTIAL_NAMES,
-				"Used on both axles. Each one shares torque between its own two wheels.",
-			),
-		],
-		all_wheel,
-	)
-
-	_layout.group(
-		"Differential",
-		[
-			Tuner.choice(
-				&"differential_type",
-				"Type",
-				DIFFERENTIAL_NAMES,
-				"Shares torque between the two driven wheels.",
-			),
-		],
-		one_axle,
-	)
-
-	_layout.group(
-		"Axle limited slip",
+	_center.group(
+		"Limited slip",
 		[
 			Tuner.slider(
-				&"lsd_preload_nm",
+				&"preload_nm",
 				"Preload",
 				0.0,
 				300.0,
 				"%.0f",
 				"Locking torque that is always present, in Nm.",
 			),
-			Tuner.slider(&"lsd_power_lock", "Lock on power", 0.0, 1.0, "%.2f"),
-			Tuner.slider(&"lsd_coast_lock", "Lock on coast", 0.0, 1.0, "%.2f"),
+			Tuner.slider(&"power_lock", "Lock on power", 0.0, 1.0, "%.2f"),
+			Tuner.slider(&"coast_lock", "Lock on coast", 0.0, 1.0, "%.2f"),
 		],
-		axle_lsd,
+		func() -> bool:
+			return vehicle.drivetrain_node.config.center_differential.type == limited_slip,
+	)
+
+	var front_diff: Callable = func() -> DifferentialConfig:
+		return vehicle.drivetrain_node.config.front_differential
+	var rear_diff: Callable = func() -> DifferentialConfig:
+		return vehicle.drivetrain_node.config.rear_differential
+
+	_axles = Tuner.new(
+		"Axle differentials",
+		func() -> Object:
+			return front_diff.call(),
+		func() -> Object:
+			return rear_diff.call(),
+		_driven_axles,
+	)
+
+	_axles.group(
+		"",
+		[
+			Tuner.choice(
+				&"type",
+				"Type",
+				DIFFERENTIAL_NAMES,
+				"Shares torque between the two wheels of an axle.",
+			),
+		],
+	)
+
+	_axles.group(
+		"Limited slip",
+		[
+			Tuner.slider(
+				&"preload_nm",
+				"Preload",
+				0.0,
+				300.0,
+				"%.0f",
+				"Locking torque that is always present, in Nm.",
+			),
+			Tuner.slider(&"power_lock", "Lock on power", 0.0, 1.0, "%.2f"),
+			Tuner.slider(&"coast_lock", "Lock on coast", 0.0, 1.0, "%.2f"),
+		],
+		func() -> bool:
+			return front_diff.call().type == limited_slip or rear_diff.call().type == limited_slip,
 	)
 
 	_gearbox = Tuner.new("Gearbox", config)
@@ -163,6 +168,10 @@ func draw() -> void:
 	Widgets.gap(0.6)
 
 	_layout.draw(true)
+	if _drive_layout() == 2:
+		_center.draw(true)
+
+	_axles.draw(true)
 	_gearbox.draw(true)
 	_gear_ratios(drivetrain)
 
@@ -302,3 +311,16 @@ func _drive_radius() -> float:
 		return vehicle.wheel_rl.suspension_config.wheel_radius
 
 	return total / float(count)
+
+
+func _driven_axles() -> Array:
+	var layout: int = _drive_layout()
+	return [layout != 0, layout != 1]
+
+
+func _front_share() -> float:
+	return vehicle.drivetrain_node.config.center_front_torque_share
+
+
+func _set_front_share(value: float) -> void:
+	vehicle.drivetrain_node.config.center_front_torque_share = value

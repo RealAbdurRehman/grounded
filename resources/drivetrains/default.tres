@@ -1,7 +1,13 @@
 [gd_resource type="Resource" script_class="DrivetrainConfig" format=3 uid="uid://cc3cenk2w6t53"]
 
 [ext_resource type="Script" uid="uid://l2tns4vcug28" path="res://scripts/vehicle/configs/drivetrain.gd" id="1_4mt24"]
+[ext_resource type="Resource" uid="uid://bjlel0mbovq8n" path="res://resources/differentials/center.tres" id="1_du2ch"]
+[ext_resource type="Resource" uid="uid://coa6301edbptj" path="res://resources/differentials/front.tres" id="1_j1va2"]
+[ext_resource type="Resource" uid="uid://dgcu17rixafot" path="res://resources/differentials/rear.tres" id="3_njlxc"]
 
 [resource]
 script = ExtResource("1_4mt24")
+front_differential = ExtResource("1_j1va2")
+rear_differential = ExtResource("3_njlxc")
+center_differential = ExtResource("1_du2ch")
 metadata/_custom_type_script = "uid://l2tns4vcug28"

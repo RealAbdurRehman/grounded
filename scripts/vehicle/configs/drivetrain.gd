@@ -1,12 +1,6 @@
 class_name DrivetrainConfig
 extends Resource
 
-enum DifferentialType {
-	OPEN, # Wheels spin independently.
-	LOCKED, # Wheels spin together.
-	LIMITED_SLIP, # Friction based.
-}
-
 @export_group("Transmission")
 ## How much power actually reaches the wheels.
 @export var drivetrain_efficiency: float = 0.88
@@ -28,31 +22,15 @@ enum DifferentialType {
 ## Max speed you can be going to shift into reverse.
 @export var selector_max_speed: float = 1.5
 
-@export_group("Differential")
-## Used for the front and rear axle differentials.
-@export var differential_type: DifferentialType = DifferentialType.OPEN
+@export_group("Differentials")
+## Splits torque between front wheels.
+@export var front_differential: DifferentialConfig
 
-## Base locking force.
-@export var lsd_preload_nm: float = 40.0
+## Splits torque between rear wheels.
+@export var rear_differential: DifferentialConfig
 
-## Locking strength under acceleration.
-@export_range(0.0, 1.0, 0.05) var lsd_power_lock: float = 0.3
-
-## Locking strength when coasting.
-@export_range(0.0, 1.0, 0.05) var lsd_coast_lock: float = 0.15
-
-@export_group("Center Differential")
-## Only used when both axles are driven.
-@export var center_differential_type: DifferentialType = DifferentialType.OPEN
+## Splits torque between the front and rear axles. Only used when both are driven.
+@export var center_differential: DifferentialConfig
 
 ## Share of the engine torque sent to the front axle.
 @export_range(0.0, 1.0, 0.05) var center_front_torque_share: float = 0.4
-
-## Base locking force.
-@export var center_lsd_preload_nm: float = 80.0
-
-## Locking strength under acceleration.
-@export_range(0.0, 1.0, 0.05) var center_lsd_power_lock: float = 0.4
-
-## Locking strength when coasting.
-@export_range(0.0, 1.0, 0.05) var center_lsd_coast_lock: float = 0.2

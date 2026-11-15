@@ -203,7 +203,12 @@ func _update_drivetrain_and_wheels(delta: float) -> void:
 	var driveline_speed: float = drivetrain_node.get_input_speed_rad_s()
 
 	var forward_speed: float = linear_velocity.dot(-global_transform.basis.z)
-	drivetrain_node.handle_transmission(engine_node.current_rpm, forward_speed, driveline_speed)
+	drivetrain_node.handle_transmission(
+		engine_node.current_rpm,
+		forward_speed,
+		driveline_speed,
+		engine_node.is_rev_limiter_active,
+	)
 
 	var target_engine_rpm: float = drivetrain_node.calculate_target_engine_rpm(driveline_speed)
 	var engine_torque: float = engine_node.update_engine(

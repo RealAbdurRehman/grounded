@@ -285,7 +285,12 @@ func calculate_target_engine_rpm(driven_wheel_rad_per_sec: float) -> float:
 	return (engine_rad_s * 60.0) / (2.0 * PI)
 
 
-func handle_transmission(engine_rpm: float, forward_speed: float, wheel_rad_s: float) -> void:
+func handle_transmission(
+	engine_rpm: float,
+	forward_speed: float,
+	wheel_rad_s: float,
+	at_rev_limiter: bool = false,
+) -> void:
 	_forward_speed = forward_speed
 
 	if is_shifting or _shift_cooldown > 0.0:
@@ -302,7 +307,8 @@ func handle_transmission(engine_rpm: float, forward_speed: float, wheel_rad_s: f
 	else:
 		if _handle_selector(wheel_rad_s):
 			return
-		_handle_automatic_shifting(engine_rpm)
+
+		_handle_automatic_shifting(engine_rpm, at_rev_limiter)
 
 
 func _gear_allowed(target_index: int) -> bool:
@@ -351,9 +357,9 @@ func _pick_drive_gear(wheel_rad_s: float) -> int:
 	return config.gear_ratios.size() - 1
 
 
-func _handle_automatic_shifting(engine_rpm: float) -> void:
+func _handle_automatic_shifting(engine_rpm: float, at_rev_limiter: bool) -> void:
 	if current_gear_index >= 2 and current_gear_index < config.gear_ratios.size() - 1:
-		if engine_rpm >= config.auto_upshift_rpm:
+		if engine_rpm >= config.auto_upshift_rpm or at_rev_limiter:
 			shift_up()
 			return
 

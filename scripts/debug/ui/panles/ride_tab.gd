@@ -23,7 +23,15 @@ func _build() -> void:
 	_susp.group(
 		"Spring",
 		[
-			Tuner.slider(&"spring_stiffness", "Spring rate", 8000.0, 90000.0, "%.0f", "In N/m."),
+			Tuner.slider(&"spring_stiffness", "Spring rate", 8000.0, 90000.0, "%.0f"),
+			Tuner.slider(
+				&"motion_ratio",
+				"Motion ratio",
+				0.4,
+				1.2,
+				"%.2f",
+				"How much the spring moves compared to the wheel.",
+			),
 			Tuner.slider(
 				&"suspension_rest_length",
 				"Travel",
@@ -44,7 +52,7 @@ func _build() -> void:
 				300.0,
 				8000.0,
 				"%.0f",
-				"Resists the wheel moving up or down, in N.s/m.",
+				"Resists the wheel moving up or down.",
 			),
 		],
 	)
@@ -59,7 +67,7 @@ func _build() -> void:
 				0.3,
 				4.0,
 				"%.2f",
-				"How hard the wheel is to spin up, in kg.m2.",
+				"How hard the wheel is to spin up.",
 			),
 		],
 	)
@@ -105,7 +113,7 @@ func draw() -> void:
 	var unit: float = ImGui.GetFontSize()
 
 	Widgets.wheel_legend()
-	Widgets.plot_title("Wheel travel, last 4 s (top is fully compressed)")
+	Widgets.plot_title("Wheel travel, last 4 s")
 	Plots.multi_line_plot(
 		_travel,
 		UITheme.WHEEL_COLORS,
@@ -203,7 +211,7 @@ func _corner_mass(front: bool) -> float:
 
 
 func _wheel_rate(config: SuspensionConfig) -> float:
-	return config.spring_stiffness
+	return config.wheel_rate()
 
 
 func _frequency(config: SuspensionConfig, corner_mass: float) -> float:
@@ -211,7 +219,7 @@ func _frequency(config: SuspensionConfig, corner_mass: float) -> float:
 
 
 func _damping_ratio(config: SuspensionConfig, corner_mass: float) -> float:
-	return config.damper_stiffness / (2.0 * sqrt(_wheel_rate(config) * maxf(corner_mass, 1.0)))
+	return config.wheel_damper() / (2.0 * sqrt(_wheel_rate(config) * maxf(corner_mass, 1.0)))
 
 
 func _range_color(value: float, low: float, high: float) -> Color:

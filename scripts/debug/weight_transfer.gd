@@ -81,7 +81,7 @@ func _measure_geometry() -> void:
 
 
 func _axle_roll_stiffness(wheel: Wheel, track: float, arb_stiffness: float) -> float:
-	var k_wheel: float = wheel.suspension_config.spring_stiffness
+	var k_wheel: float = wheel.suspension_config.wheel_rate()
 	return (0.5 * k_wheel + arb_stiffness) * track * track
 
 

@@ -80,8 +80,8 @@ func update_wheel(
 	var base_inertia: float = suspension_config.wheel_inertia
 	var rest_len: float = suspension_config.suspension_rest_length
 
-	var k_spring: float = suspension_config.spring_stiffness
-	var k_damper: float = suspension_config.damper_stiffness
+	var k_spring: float = suspension_config.wheel_rate()
+	var k_damper: float = suspension_config.wheel_damper()
 
 	var inertia: float = base_inertia + reflected_inertia
 

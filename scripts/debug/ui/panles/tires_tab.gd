@@ -23,6 +23,8 @@ func _build() -> void:
 		"Tire model",
 		func() -> Object:
 			return vehicle.wheel_fl.tire_model,
+		func() -> Object:
+			return vehicle.wheel_rl.tire_model,
 	)
 
 	_tire.group(
@@ -116,7 +118,7 @@ func _build() -> void:
 			),
 			Tuner.slider(
 				&"combined_lat_strength",
-				"Slip cuts cornering",
+				"Slip cuts turn",
 				0.0,
 				1.5,
 				"%.2f",
@@ -170,14 +172,12 @@ func update(delta: float) -> void:
 
 
 func draw() -> void:
-	var tire: Tire = vehicle.wheel_fl.tire_model
-
 	fit_begin()
 
-	_curves(tire)
+	_curves()
 	Widgets.gap(0.4)
 
-	_table(tire)
+	_table()
 	Widgets.gap(0.4)
 
 	_friction_circles()
@@ -189,30 +189,45 @@ func draw() -> void:
 	fit_end()
 
 
-func _curves(tire: Tire) -> void:
+func _curves() -> void:
 	var unit: float = ImGui.GetFontSize()
+	var front: Tire = wheels()[0].tire_model
+	var rear: Tire = wheels()[2].tire_model
+	var split: bool = front != rear
 
 	var grounded: Array[bool] = []
 	for i in range(4):
 		grounded.append(telemetry.wheels[i].grounded)
 
 	Widgets.wheel_legend()
+	if split:
+		ImGui.SameLine()
+		ImGui.TextDisabled("  colored line: front, white line: rear")
 
 	var ratio := Plots.PlotSpec.new()
 	ratio.x_extent = 0.5
 	ratio.height = fit(0.5, unit * 5.0, unit * 13.0)
 	ratio.color = UITheme.ACCENT
-	ratio.peak_x = tire.kappa_peak()
+	ratio.peak_x = front.kappa_peak()
+
+	if split:
+		ratio.peak_x2 = rear.kappa_peak()
+
+	var ratio_rear: Callable = Callable()
+	if split:
+		ratio_rear = func(x: float) -> float:
+			return rear.compute_fx(x, rear.reference_load_n) / rear.reference_load_n
 
 	Widgets.plot_title("Fx/Fz vs slip ratio")
 	Plots.curve_plot(
 		"##ratio_plot",
 		func(x: float) -> float:
-			return tire.compute_fx(x, tire.reference_load_n) / tire.reference_load_n,
+			return front.compute_fx(x, front.reference_load_n) / front.reference_load_n,
 		ratio,
 		_kappa,
 		_mu_x,
 		grounded,
+		ratio_rear,
 	)
 
 	var angle := Plots.PlotSpec.new()
@@ -221,27 +236,38 @@ func _curves(tire: Tire) -> void:
 	angle.x_format = "%.0f deg"
 	angle.height = fit(0.5, unit * 5.0, unit * 13.0)
 	angle.color = Color(1.0, 0.45, 0.45)
-	angle.peak_x = tire.alpha_peak()
+	angle.peak_x = front.alpha_peak()
+
+	if split:
+		angle.peak_x2 = rear.alpha_peak()
+
+	var angle_rear: Callable = Callable()
+	if split:
+		angle_rear = func(x: float) -> float:
+			return rear.compute_fy(x, rear.reference_load_n) / rear.reference_load_n
 
 	Widgets.gap(0.3)
 	Widgets.plot_title("Fy/Fz vs slip angle")
 	Plots.curve_plot(
 		"##angle_plot",
 		func(x: float) -> float:
-			return tire.compute_fy(x, tire.reference_load_n) / tire.reference_load_n,
+			return front.compute_fy(x, front.reference_load_n) / front.reference_load_n,
 		angle,
 		_alpha,
 		_mu_y,
 		grounded,
+		angle_rear,
 	)
 
 
-func _table(tire: Tire) -> void:
+func _table() -> void:
 	Widgets.wheel_table(
 		"tire_table",
 		["Slip", "Angle", "Fx", "Fy", "Fz", "Grip"],
 		func(i: int) -> Array:
 			var sample = telemetry.wheels[i]
+			var tire: Tire = wheels()[i].tire_model
+
 			var force: Vector2 = Vector2(sample.longitudinal_force_n, sample.lateral_force_n)
 			var grip: float = force.length() / maxf(sample.grip_limit_n, 1.0)
 

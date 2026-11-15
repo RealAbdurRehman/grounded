@@ -27,6 +27,9 @@ class PlotSpec extends RefCounted:
 
 	var peak_x: float = 0.0
 
+	var color2: Color = Color(1.0, 1.0, 1.0, 0.75)
+	var peak_x2: float = -1.0
+
 
 static func curve_plot(
 	id: String,
@@ -35,11 +38,16 @@ static func curve_plot(
 	xs: PackedFloat32Array,
 	ys: PackedFloat32Array,
 	active: Array[bool],
+	curve2: Callable = Callable(),
 ) -> void:
 	var values: Array = []
+	var values2: Array = []
 	for i in range(CURVE_SAMPLES):
 		var x: float = lerpf(-spec.x_extent, spec.x_extent, float(i) / float(CURVE_SAMPLES - 1))
 		values.append(float(curve.call(x)))
+
+		if curve2.is_valid():
+			values2.append(float(curve2.call(x)))
 
 	var size := Vector2(ImGui.GetContentRegionAvail().x, spec.height)
 
@@ -50,7 +58,15 @@ static func curve_plot(
 	ImGui.PopStyleColor()
 	ImGui.PopStyleVar()
 
-	_draw_plot_overlay(ImGui.GetItemRectMin(), ImGui.GetItemRectMax(), spec, xs, ys, active)
+	_draw_plot_overlay(
+		ImGui.GetItemRectMin(),
+		ImGui.GetItemRectMax(),
+		spec,
+		xs,
+		ys,
+		active,
+		values2,
+	)
 
 
 static func _draw_plot_overlay(
@@ -60,6 +76,7 @@ static func _draw_plot_overlay(
 	xs: PackedFloat32Array,
 	ys: PackedFloat32Array,
 	active: Array[bool],
+	values2: Array = [],
 ) -> void:
 	var draw_list = ImGui.GetWindowDrawList()
 
@@ -89,6 +106,32 @@ static func _draw_plot_overlay(
 			Vector2(px, p_min.y),
 			Vector2(px, p_max.y),
 			UITheme.PEAK,
+		)
+
+	if spec.peak_x2 >= 0.0:
+		for direction: float in [-1.0, 1.0]:
+			var px2: float = center.x + direction * spec.peak_x2 / spec.x_extent * size.x * 0.5
+
+			ImGui.ImDrawList_AddLine(
+				draw_list,
+				Vector2(px2, p_min.y),
+				Vector2(px2, p_max.y),
+				Color(spec.color2.r, spec.color2.g, spec.color2.b, 0.25),
+			)
+
+	for i in range(values2.size() - 1):
+		var t0: float = float(i) / float(values2.size() - 1)
+		var t1: float = float(i + 1) / float(values2.size() - 1)
+
+		var y0: float = clampf((values2[i] + spec.y_extent) / (2.0 * spec.y_extent), 0.0, 1.0)
+		var y1: float = clampf((values2[i + 1] + spec.y_extent) / (2.0 * spec.y_extent), 0.0, 1.0)
+
+		ImGui.ImDrawList_AddLineEx(
+			draw_list,
+			Vector2(p_min.x + t0 * size.x, p_max.y - y0 * size.y),
+			Vector2(p_min.x + t1 * size.x, p_max.y - y1 * size.y),
+			spec.color2,
+			1.5,
 		)
 
 	var x_text: String = spec.x_format % (spec.x_extent * spec.x_display_scale)

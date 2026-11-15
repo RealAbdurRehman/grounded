@@ -5,7 +5,8 @@
 [ext_resource type="Script" uid="uid://qdtawm0erttj" path="res://scripts/vehicle/engine.gd" id="2_cs81w"]
 [ext_resource type="Script" uid="uid://dwugrbcr8g24y" path="res://scripts/vehicle/drivetrain.gd" id="3_cs81w"]
 [ext_resource type="Resource" uid="uid://cy03f6l8210n2" path="res://resources/suspensions/default.tres" id="5_3wsv0"]
-[ext_resource type="Resource" uid="uid://bm8cqomr2xsjc" path="res://resources/tires/default.tres" id="6_bswb0"]
+[ext_resource type="Resource" uid="uid://oa7w8hj3m08i" path="res://resources/tires/front.tres" id="6_front"]
+[ext_resource type="Resource" path="res://resources/tires/rear.tres" id="6_rear"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_8rti0"]
 size = Vector3(1.8, 0.7, 4.2)
@@ -46,7 +47,7 @@ script = ExtResource("3_cs81w")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.8, 0.25, -1.35)
 script = ExtResource("2_2aj0h")
 suspension_config = ExtResource("5_3wsv0")
-tire_model = ExtResource("6_bswb0")
+tire_model = ExtResource("6_front")
 is_front = true
 is_driven = false
 
@@ -58,7 +59,7 @@ mesh = SubResource("CylinderMesh_8rti0")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.8, 0.25, -1.35)
 script = ExtResource("2_2aj0h")
 suspension_config = ExtResource("5_3wsv0")
-tire_model = ExtResource("6_bswb0")
+tire_model = ExtResource("6_front")
 is_front = true
 is_driven = false
 
@@ -70,7 +71,7 @@ mesh = SubResource("CylinderMesh_8rti0")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.8, 0.25, 1.35)
 script = ExtResource("2_2aj0h")
 suspension_config = ExtResource("5_3wsv0")
-tire_model = ExtResource("6_bswb0")
+tire_model = ExtResource("6_rear")
 
 [node name="Mesh" type="MeshInstance3D" parent="Wheels/WheelRL" unique_id=1879087921]
 transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
@@ -80,7 +81,7 @@ mesh = SubResource("CylinderMesh_8rti0")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.8, 0.25, 1.35)
 script = ExtResource("2_2aj0h")
 suspension_config = ExtResource("5_3wsv0")
-tire_model = ExtResource("6_bswb0")
+tire_model = ExtResource("6_rear")
 
 [node name="Mesh" type="MeshInstance3D" parent="Wheels/WheelRR" unique_id=1706105306]
 transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)

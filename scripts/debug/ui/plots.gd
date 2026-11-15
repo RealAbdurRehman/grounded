@@ -405,7 +405,8 @@ static func gg_plot(trail: Array, current: Vector2, extent: float, height: float
 
 	ImGui.ImDrawList_AddRectFilled(draw_list, origin, origin + size, Color(0.04, 0.05, 0.07, 0.9))
 
-	var ring: float = 0.5
+	var ring_step: float = 0.5 if extent <= 2.0 else 1.0
+	var ring: float = ring_step
 	while ring <= extent + 0.01:
 		ImGui.ImDrawList_AddCircleEx(draw_list, center, ring * scale, UITheme.GRID, 48, 1.0)
 		ImGui.ImDrawList_AddText(
@@ -415,7 +416,7 @@ static func gg_plot(trail: Array, current: Vector2, extent: float, height: float
 			"%.1f" % ring,
 		)
 
-		ring += 0.5
+		ring += ring_step
 
 	ImGui.ImDrawList_AddLine(
 		draw_list,

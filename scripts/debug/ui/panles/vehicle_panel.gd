@@ -13,8 +13,6 @@ var _trail: Array = []
 var _speed_history: Array = []
 var _sample_timer: float = 0.0
 
-var _g_extent: float = 1.5
-
 
 func _build() -> void:
 	_performance = PerformanceSection.new(vehicle, telemetry, weight_transfer)
@@ -23,12 +21,11 @@ func _build() -> void:
 func update(delta: float) -> void:
 	_performance.update(delta)
 
-	var g := Vector2(telemetry.lateral_g, telemetry.longitudinal_g)
-	_g_extent = maxf(_g_extent, ceilf(g.length() * 2.0) * 0.5)
-
 	_sample_timer += delta
 	if _sample_timer >= SAMPLE_INTERVAL:
 		_sample_timer = 0.0
+
+		var g := Vector2(telemetry.lateral_g, telemetry.longitudinal_g)
 
 		_trail.append(g)
 		_speed_history.append(telemetry.speed_kmh)
@@ -156,7 +153,13 @@ func _g_force() -> void:
 	var width: float = ImGui.GetContentRegionAvail().x
 	var current := Vector2(telemetry.lateral_g, telemetry.longitudinal_g)
 
-	Plots.gg_plot(_trail, current, _g_extent, fit(0.45, unit * 9.0, width))
+	var peak: float = current.length()
+	for sample: Vector2 in _trail:
+		peak = maxf(peak, sample.length())
+
+	var extent: float = clampf(ceilf(peak * 2.0) * 0.5, 1.5, 4.0)
+
+	Plots.gg_plot(_trail, current, extent, fit(0.45, unit * 9.0, width))
 	Widgets.stat_row(
 		"g_force",
 		[

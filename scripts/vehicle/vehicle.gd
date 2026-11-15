@@ -31,8 +31,6 @@ var assists: Assists
 
 var _com_applied: Vector3 = Vector3.INF
 
-var _handbrake_wheel_count: int = 0
-
 var _wheelbase_m: float = 2.7
 var _steer_x_offset: Dictionary[Wheel, float] = { }
 
@@ -53,10 +51,6 @@ func _ready() -> void:
 
 	_cache_steering_geometry()
 	steer_cap_rad = deg_to_rad(config.max_steer_angle_deg)
-
-	for w in [wheel_fl, wheel_fr, wheel_rl, wheel_rr]:
-		if w.has_handbrake:
-			_handbrake_wheel_count += 1
 
 	assists = Assists.new(self, assists_config, _wheelbase_m)
 
@@ -196,13 +190,7 @@ func _set_axle_arb(left: Wheel, right: Wheel, stiffness: float) -> void:
 func _update_drivetrain_and_wheels(delta: float) -> void:
 	var driver_brake_nm: Dictionary[Wheel, float] = { }
 	for w in [wheel_fl, wheel_fr, wheel_rl, wheel_rr]:
-		var axle_share: float = (
-			config.brake_bias_front
-			if w.is_front
-			else (1.0 - config.brake_bias_front)
-		)
-
-		driver_brake_nm[w] = brake_input * config.max_brake_torque * axle_share * 0.5
+		driver_brake_nm[w] = brake_input * brakes_for(w).max_torque_nm
 
 	assists.update(delta, throttle_input, driver_brake_nm, handbrake_input)
 
@@ -251,11 +239,15 @@ func _update_drivetrain_and_wheels(delta: float) -> void:
 		w.update_wheel(self, delta, w_drive_torque, w_brake_torque, w_reflected)
 
 
+func brakes_for(wheel: Wheel) -> BrakeConfig:
+	return config.front_brakes if wheel.is_front else config.rear_brakes
+
+
 func get_handbrake_torque_nm(wheel: Wheel) -> float:
-	if not wheel.has_handbrake or _handbrake_wheel_count == 0:
+	if not wheel.has_handbrake:
 		return 0.0
 
-	return handbrake_input * config.max_handbrake_torque / float(_handbrake_wheel_count)
+	return handbrake_input * brakes_for(wheel).handbrake_torque_nm
 
 
 func _apply_aerodynamic_drag() -> void:

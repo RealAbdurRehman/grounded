@@ -5,10 +5,6 @@ extends Resource
 ## In Kg.
 @export var vehicle_mass: float = 1400.0
 
-## In Nm.
-@export var max_brake_torque: float = 4500.0
-@export_range(0.3, 0.9) var brake_bias_front: float = 0.75
-
 @export var brake_pedal_rate: float = 4.0
 @export var brake_overrides_throttle: bool = true
 
@@ -42,9 +38,10 @@ extends Resource
 @export var front_arb_stiffness: float = 12000.0
 @export var rear_arb_stiffness: float = 5000.0
 
-@export_group("Handbrake")
-## How hard the handbrake clamps the wheels.
-@export var max_handbrake_torque: float = 2400.0
+@export_group("Brakes")
+@export var front_brakes: BrakeConfig
+@export var rear_brakes: BrakeConfig
 
+@export_group("Handbrake")
 @export var handbrake_pull_rate: float = 6.0
 @export var handbrake_release_rate: float = 10.0

@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="BrakeConfig" format=3 uid="uid://b1vn3giseqaq4"]
+
+[ext_resource type="Script" uid="uid://cwwu517m0kf1k" path="res://scripts/vehicle/configs/brakes.gd" id="1_pcw3t"]
+
+[resource]
+script = ExtResource("1_pcw3t")
+max_torque_nm = 1687.5
+metadata/_custom_type_script = "uid://cwwu517m0kf1k"

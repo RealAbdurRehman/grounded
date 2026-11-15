@@ -2,6 +2,7 @@ class_name ChassisTab
 extends DebugPanel
 
 var _chassis: Tuner
+var _brakes: Tuner
 var _mass: Tuner
 
 
@@ -44,32 +45,15 @@ func _build() -> void:
 	)
 
 	_chassis.group(
-		"Brakes",
+		"Pedal",
 		[
 			Tuner.slider(
-				&"brake_bias_front",
-				"Front bias",
-				0.3,
-				0.9,
-				"%.2f",
-				"Share of braking done by the front axle.",
-			),
-			Tuner.slider(
-				&"max_brake_torque",
-				"Brake torque",
-				1000.0,
-				10000.0,
-				"%.0f",
-				"Total for all four wheels, in Nm.",
-			),
-			Tuner.slider(&"brake_pedal_rate", "Pedal speed", 0.5, 10.0, "%.1f"),
-			Tuner.slider(
-				&"max_handbrake_torque",
-				"Handbrake torque",
-				0.0,
-				6000.0,
-				"%.0f",
-				"Total for the rear axle, in Nm.",
+				&"brake_pedal_rate",
+				"Pedal speed",
+				0.5,
+				10.0,
+				"%.1f",
+				"How fast the brake pedal goes down.",
 			),
 		],
 	)
@@ -79,6 +63,36 @@ func _build() -> void:
 		[
 			Tuner.slider(&"drag_coefficient", "Drag coefficient", 0.1, 1.0, "%.2f"),
 			Tuner.slider(&"frontal_area", "Frontal area", 1.0, 4.0, "%.2f", "In square meters."),
+		],
+	)
+
+	_brakes = Tuner.new(
+		"Brakes",
+		func() -> Object:
+			return vehicle.config.front_brakes,
+		func() -> Object:
+			return vehicle.config.rear_brakes,
+	)
+
+	_brakes.group(
+		"",
+		[
+			Tuner.slider(
+				&"max_torque_nm",
+				"Torque per wheel",
+				200.0,
+				4000.0,
+				"%.0f",
+				"Brake torque at each wheel with the pedal fully down.",
+			),
+			Tuner.slider(
+				&"handbrake_torque_nm",
+				"Handbrake torque",
+				0.0,
+				3000.0,
+				"%.0f",
+				"Handbrake torque at each wheel that has a handbrake.",
+			),
 		],
 	)
 
@@ -121,7 +135,33 @@ func draw() -> void:
 	Widgets.gap(0.4)
 
 	_chassis.draw(true)
+	_brake_section()
 	_mass.draw(true)
+
+
+func _brake_section() -> void:
+	if not Widgets.section(_brakes.title, true):
+		return
+
+	_brakes.draw_body()
+
+	var front: BrakeConfig = vehicle.config.front_brakes
+	var rear: BrakeConfig = vehicle.config.rear_brakes
+	var total: float = maxf(front.max_torque_nm + rear.max_torque_nm, 1.0)
+
+	var bias: Array = [front.max_torque_nm / total * 100.0]
+	ImGui.SeparatorText("Brake bias")
+	if Tuner.field(
+		"Front share",
+		"brake_bias",
+		bias,
+		30.0,
+		90.0,
+		"%.0f%%",
+		"Moves braking between the axles.",
+	):
+		front.max_torque_nm = total * bias[0] / 100.0
+		rear.max_torque_nm = total - front.max_torque_nm
 
 
 func _status() -> void:

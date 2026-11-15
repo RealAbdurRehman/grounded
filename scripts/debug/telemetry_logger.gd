@@ -97,5 +97,3 @@ func _record_sample() -> void:
 	)
 
 	_file.store_line("".join(parts))
-
-	_file.store_line("".join(parts))

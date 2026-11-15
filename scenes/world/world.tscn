@@ -11,7 +11,6 @@
 [ext_resource type="Script" uid="uid://bkel8e4frgv51" path="res://scripts/vehicle/configs/engine.gd" id="5_gb53w"]
 [ext_resource type="Resource" uid="uid://cc3cenk2w6t53" path="res://resources/drivetrains/default.tres" id="6_dlabj"]
 [ext_resource type="Script" uid="uid://dvp5aua86h7p4" path="res://scripts/camera/camera.gd" id="6_t5ptc"]
-[ext_resource type="Script" uid="uid://mnsyudn5vsag" path="res://scripts/vehicle/configs/suspension.gd" id="7_dlabj"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_j2gmx"]
 
@@ -29,10 +28,6 @@ metadata/_custom_type_script = "uid://bwprdmk5kupc6"
 [sub_resource type="Resource" id="Resource_vu11u"]
 script = ExtResource("5_gb53w")
 metadata/_custom_type_script = "uid://bkel8e4frgv51"
-
-[sub_resource type="Resource" id="Resource_dlabj"]
-script = ExtResource("7_dlabj")
-metadata/_custom_type_script = "uid://mnsyudn5vsag"
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_bq33v"]
 albedo_color = Color(0.12, 0.12, 0.13, 1)
@@ -510,19 +505,15 @@ config = SubResource("Resource_vu11u")
 config = ExtResource("6_dlabj")
 
 [node name="WheelFL" parent="Vehicle/Wheels" parent_id_path=PackedInt32Array(429220544, 2027221242) index="0" unique_id=1185262635]
-suspension_config = SubResource("Resource_dlabj")
 can_steer = true
 
 [node name="WheelFR" parent="Vehicle/Wheels" parent_id_path=PackedInt32Array(429220544, 2027221242) index="1" unique_id=1065968054]
-suspension_config = SubResource("Resource_dlabj")
 can_steer = true
 
 [node name="WheelRL" parent="Vehicle/Wheels" parent_id_path=PackedInt32Array(429220544, 2027221242) index="2" unique_id=136557973]
-suspension_config = SubResource("Resource_dlabj")
 has_handbrake = true
 
 [node name="WheelRR" parent="Vehicle/Wheels" parent_id_path=PackedInt32Array(429220544, 2027221242) index="3" unique_id=834798633]
-suspension_config = SubResource("Resource_dlabj")
 has_handbrake = true
 
 [node name="Tests" type="Node3D" parent="." unique_id=1518008125]

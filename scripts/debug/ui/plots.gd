@@ -657,3 +657,48 @@ static func car_diagram(
 	)
 	ImGui.ImDrawList_AddCircleFilled(draw_list, cg, unit * 0.42, UITheme.ACCENT, 14)
 	ImGui.ImDrawList_AddCircle(draw_list, cg, unit * 0.42 + 1.0, Color(0.0, 0.0, 0.0, 0.85))
+
+
+static func multi_line_plot(
+	series: Array,
+	colors: Array,
+	y_min: float,
+	y_max: float,
+	height: float,
+) -> void:
+	var size := Vector2(ImGui.GetContentRegionAvail().x, height)
+	var origin: Vector2 = ImGui.GetCursorScreenPos()
+	ImGui.Dummy(size)
+
+	var draw_list = ImGui.GetWindowDrawList()
+	ImGui.ImDrawList_AddRectFilled(draw_list, origin, origin + size, Color(0.04, 0.05, 0.07, 0.9))
+
+	for step in range(1, 4):
+		var y: float = origin.y + size.y * float(step) / 4.0
+		ImGui.ImDrawList_AddLine(
+			draw_list,
+			Vector2(origin.x, y),
+			Vector2(origin.x + size.x, y),
+			UITheme.GRID,
+		)
+
+	var span: float = maxf(y_max - y_min, 0.0001)
+	for k in range(series.size()):
+		var values: Array = series[k]
+		if values.size() < 2:
+			continue
+
+		for i in range(values.size() - 1):
+			var x0: float = origin.x + float(i) / float(values.size() - 1) * size.x
+			var x1: float = origin.x + float(i + 1) / float(values.size() - 1) * size.x
+
+			var y0: float = clampf((values[i] - y_min) / span, 0.0, 1.0)
+			var y1: float = clampf((values[i + 1] - y_min) / span, 0.0, 1.0)
+
+			ImGui.ImDrawList_AddLineEx(
+				draw_list,
+				Vector2(x0, origin.y + size.y - y0 * size.y),
+				Vector2(x1, origin.y + size.y - y1 * size.y),
+				colors[k],
+				1.5,
+			)

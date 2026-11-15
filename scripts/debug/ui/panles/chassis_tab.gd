@@ -2,7 +2,6 @@ class_name ChassisTab
 extends DebugPanel
 
 var _chassis: Tuner
-var _suspension: Tuner
 var _mass: Tuner
 
 
@@ -76,41 +75,10 @@ func _build() -> void:
 	)
 
 	_chassis.group(
-		"Anti-roll bars",
-		[
-			Tuner.slider(&"front_arb_stiffness", "Front", 0.0, 20000.0, "%.0f"),
-			Tuner.slider(&"rear_arb_stiffness", "Rear", 0.0, 20000.0, "%.0f"),
-		],
-	)
-
-	_chassis.group(
 		"Aerodynamics",
 		[
 			Tuner.slider(&"drag_coefficient", "Drag coefficient", 0.1, 1.0, "%.2f"),
 			Tuner.slider(&"frontal_area", "Frontal area", 1.0, 4.0, "%.2f", "In square meters."),
-		],
-	)
-
-	_suspension = Tuner.new(
-		"Suspension",
-		func() -> Object:
-			return vehicle.wheel_fl.suspension_config,
-	)
-
-	_suspension.group(
-		"",
-		[
-			Tuner.slider(&"spring_stiffness", "Spring", 10000.0, 60000.0, "%.0f", "In N/m."),
-			Tuner.slider(&"damper_stiffness", "Damper", 500.0, 6000.0, "%.0f"),
-			Tuner.slider(
-				&"suspension_rest_length",
-				"Travel",
-				0.1,
-				0.8,
-				"%.2f",
-				"How far the wheel hangs below the car, in m.",
-			),
-			Tuner.slider(&"wheel_radius", "Wheel radius", 0.2, 0.5, "%.2f", "In m."),
 		],
 	)
 
@@ -153,24 +121,7 @@ func draw() -> void:
 	Widgets.gap(0.4)
 
 	_chassis.draw(true)
-	_ride()
 	_mass.draw(true)
-
-
-func _ride() -> void:
-	if not Widgets.section(_suspension.title, true):
-		return
-
-	for i in range(4):
-		var travel: float = telemetry.wheels[i].compression
-		Widgets.labeled_bar(
-			UITheme.WHEEL_NAMES[i],
-			travel,
-			"%.0f%%" % (travel * 100.0),
-			UITheme.WHEEL_COLORS[i],
-		)
-
-	_suspension.draw_body()
 
 
 func _status() -> void:
@@ -204,6 +155,7 @@ func _status() -> void:
 				wheel.normal_load_n,
 				wheel.friction_coef,
 			)
+
 			var used: float = absf(wheel.longitudinal_force_n) / maxf(peak, 1.0)
 
 			return [
@@ -234,10 +186,12 @@ func _slope_hold() -> void:
 		var brake_nm: float = vehicle.assists.brake_torque(wheel) + vehicle.get_handbrake_torque_nm(
 			wheel
 		)
+
 		var grip_n: float = wheel.tire_model.peak_longitudinal_force_n(
 			wheel.normal_load_n,
 			wheel.friction_coef,
 		)
+
 		capacity_n += minf(grip_n, brake_nm / wheel.suspension_config.wheel_radius)
 
 	var slope: float = 0.0

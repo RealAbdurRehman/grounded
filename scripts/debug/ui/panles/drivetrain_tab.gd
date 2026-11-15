@@ -173,7 +173,7 @@ func _chart(drivetrain: Drivetrain) -> void:
 	var config: DrivetrainConfig = drivetrain.config
 	var ratios: Array = Array(config.gear_ratios)
 
-	var wheel_radius: float = vehicle.wheel_fl.suspension_config.wheel_radius
+	var wheel_radius: float = _drive_radius()
 	var rev_limit: float = vehicle.engine_node.config.rev_limiter_rpm
 
 	var top_speed: float = Plots.top_speed_kmh(
@@ -207,11 +207,6 @@ func _chart(drivetrain: Drivetrain) -> void:
 		telemetry.rpm,
 		drivetrain.current_gear_index,
 		fit(1.0, ImGui.GetFontSize() * 10.0, ImGui.GetFontSize() * 40.0),
-	)
-
-	Widgets.key_value(
-		"Top speed",
-		"%.0f km/h" % Plots.top_speed_kmh(ratios, config.final_drive_ratio, wheel_radius, rev_limit),
 	)
 
 
@@ -293,3 +288,17 @@ func _set_drive_layout(layout: int) -> void:
 	vehicle.wheel_fr.is_driven = front
 	vehicle.wheel_rl.is_driven = rear
 	vehicle.wheel_rr.is_driven = rear
+
+
+func _drive_radius() -> float:
+	var total: float = 0.0
+	var count: int = 0
+	for wheel in wheels():
+		if wheel.is_driven:
+			total += wheel.suspension_config.wheel_radius
+			count += 1
+
+	if count == 0:
+		return vehicle.wheel_rl.suspension_config.wheel_radius
+
+	return total / float(count)

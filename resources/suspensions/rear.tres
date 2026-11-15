@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="SuspensionConfig" format=3 uid="uid://b3b8vkf1new28"]
+
+[ext_resource type="Script" uid="uid://mnsyudn5vsag" path="res://scripts/vehicle/configs/suspension.gd" id="1_hbop6"]
+
+[resource]
+script = ExtResource("1_hbop6")
+spring_stiffness = 24000.0
+metadata/_custom_type_script = "uid://mnsyudn5vsag"

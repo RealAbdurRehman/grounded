@@ -38,6 +38,7 @@ func _ready() -> void:
 		["Tires", TiresTab.new(vehicle, telemetry, weight_transfer)],
 		["Engine", EngineTab.new(vehicle, telemetry, weight_transfer)],
 		["Drive", DrivetrainTab.new(vehicle, telemetry, weight_transfer)],
+		["Ride", RideTab.new(vehicle, telemetry, weight_transfer)],
 		["Chassis", ChassisTab.new(vehicle, telemetry, weight_transfer)],
 		["Assists", AssistsTab.new(vehicle, telemetry, weight_transfer)],
 	]

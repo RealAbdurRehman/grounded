@@ -220,3 +220,30 @@ static func stat_row(id: String, stats: Array) -> void:
 		center_text(stat[1], stat[2] if stat.size() > 2 else UITheme.TEXT)
 
 	ImGui.EndTable()
+
+
+static func axle_table(id: String, rows: Array) -> void:
+	var flags: int = (
+		ImGui.TableFlags_RowBg | ImGui.TableFlags_BordersInnerV | ImGui.TableFlags_SizingStretchProp
+	)
+
+	if not ImGui.BeginTable(id, 3, flags):
+		return
+
+	ImGui.TableSetupColumnEx("", 0, 1.5)
+	ImGui.TableSetupColumn("Front")
+	ImGui.TableSetupColumn("Rear")
+	ImGui.TableHeadersRow()
+
+	for row in rows:
+		ImGui.TableNextRow()
+		ImGui.TableNextColumn()
+		ImGui.TextDisabled(row[0])
+
+		ImGui.TableNextColumn()
+		right_text(row[1], row[3] if row.size() > 3 else UITheme.TEXT)
+
+		ImGui.TableNextColumn()
+		right_text(row[2], row[4] if row.size() > 4 else UITheme.TEXT)
+
+	ImGui.EndTable()

@@ -81,7 +81,9 @@ func update_wheel(
 	var rest_len: float = suspension_config.suspension_rest_length
 
 	var k_spring: float = suspension_config.wheel_rate()
-	var k_damper: float = suspension_config.wheel_damper()
+
+	var c_bump: float = suspension_config.wheel_bump()
+	var c_rebound: float = suspension_config.wheel_rebound()
 
 	var inertia: float = base_inertia + reflected_inertia
 
@@ -101,7 +103,7 @@ func update_wheel(
 	_prev_displacement = spring_displacement
 
 	var f_spring: float = k_spring * spring_displacement
-	var f_damper: float = k_damper * compression_speed
+	var f_damper: float = (c_bump if compression_speed > 0.0 else c_rebound) * compression_speed
 	suspension_force_n = max(0.0, f_spring + f_damper)
 	normal_load_n = maxf(0.0, suspension_force_n + arb_force_n)
 

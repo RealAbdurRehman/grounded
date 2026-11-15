@@ -23,7 +23,14 @@ func _build() -> void:
 	_susp.group(
 		"Spring",
 		[
-			Tuner.slider(&"spring_stiffness", "Spring rate", 8000.0, 90000.0, "%.0f"),
+			Tuner.slider(
+				&"spring_stiffness",
+				"Spring rate",
+				8000.0,
+				90000.0,
+				"%.0f",
+				"Measured at the spring.",
+			),
 			Tuner.slider(
 				&"motion_ratio",
 				"Motion ratio",
@@ -38,7 +45,7 @@ func _build() -> void:
 				0.1,
 				0.8,
 				"%.2f",
-				"How far the wheel hangs below the car, in m.",
+				"How far the wheel hangs below the car.",
 			),
 		],
 	)
@@ -47,12 +54,20 @@ func _build() -> void:
 		"Damper",
 		[
 			Tuner.slider(
-				&"damper_stiffness",
-				"Damper",
+				&"damper_bump",
+				"Bump",
+				300.0,
+				6000.0,
+				"%.0f",
+				"Resists the wheel moving up.",
+			),
+			Tuner.slider(
+				&"damper_rebound",
+				"Rebound",
 				300.0,
 				8000.0,
 				"%.0f",
-				"Resists the wheel moving up or down.",
+				"Resists the wheel dropping. Usually higher than bump.",
 			),
 		],
 	)
@@ -102,7 +117,6 @@ func update(delta: float) -> void:
 	_sample_timer = 0.0
 	for i in range(4):
 		_travel[i].append(telemetry.wheels[i].compression)
-
 		if _travel[i].size() > HISTORY_LENGTH:
 			_travel[i].pop_front()
 
@@ -124,7 +138,6 @@ func draw() -> void:
 
 	Widgets.gap(0.4)
 	_readouts()
-
 	Widgets.gap(0.4)
 
 	_susp.draw(true)
@@ -145,16 +158,13 @@ func _readouts() -> void:
 	var f_freq: float = _frequency(front, front_mass)
 	var r_freq: float = _frequency(rear, rear_mass)
 
-	var f_damping: float = _damping_ratio(front, front_mass)
-	var r_damping: float = _damping_ratio(rear, rear_mass)
-
 	Widgets.axle_table(
 		"ride_table",
 		[
 			[
 				"Wheel rate",
-				"%.1f N/mm" % (_wheel_rate(front) / 1000.0),
-				"%.1f N/mm" % (_wheel_rate(rear) / 1000.0),
+				"%.1f N/mm" % (front.wheel_rate() / 1000.0),
+				"%.1f N/mm" % (rear.wheel_rate() / 1000.0),
 			],
 			[
 				"Ride frequency",
@@ -164,18 +174,25 @@ func _readouts() -> void:
 				_range_color(r_freq, 0.8, 3.5),
 			],
 			[
-				"Damping ratio",
-				"%.2f" % f_damping,
-				"%.2f" % r_damping,
-				_range_color(f_damping, 0.2, 0.8),
-				_range_color(r_damping, 0.2, 0.8),
+				"Damping, bump",
+				"%.2f" % _damping_ratio(front.wheel_bump(), front, front_mass),
+				"%.2f" % _damping_ratio(rear.wheel_bump(), rear, rear_mass),
+				_range_color(_damping_ratio(front.wheel_bump(), front, front_mass), 0.15, 0.6),
+				_range_color(_damping_ratio(rear.wheel_bump(), rear, rear_mass), 0.15, 0.6),
+			],
+			[
+				"Damping, rebound",
+				"%.2f" % _damping_ratio(front.wheel_rebound(), front, front_mass),
+				"%.2f" % _damping_ratio(rear.wheel_rebound(), rear, rear_mass),
+				_range_color(_damping_ratio(front.wheel_rebound(), front, front_mass), 0.25, 0.9),
+				_range_color(_damping_ratio(rear.wheel_rebound(), rear, rear_mass), 0.25, 0.9),
 			],
 			[
 				"Static sag",
-				"%.0f mm" % (front_mass * gravity / _wheel_rate(front) * 1000.0),
-				"%.0f mm" % (rear_mass * gravity / _wheel_rate(rear) * 1000.0),
-				_sag_color(front_mass * gravity / _wheel_rate(front), front.suspension_rest_length),
-				_sag_color(rear_mass * gravity / _wheel_rate(rear), rear.suspension_rest_length),
+				"%.0f mm" % (front_mass * gravity / front.wheel_rate() * 1000.0),
+				"%.0f mm" % (rear_mass * gravity / rear.wheel_rate() * 1000.0),
+				_sag_color(front_mass * gravity / front.wheel_rate(), front.suspension_rest_length),
+				_sag_color(rear_mass * gravity / rear.wheel_rate(), rear.suspension_rest_length),
 			],
 		],
 	)
@@ -210,16 +227,12 @@ func _corner_mass(front: bool) -> float:
 	return vehicle.mass * share * 0.5
 
 
-func _wheel_rate(config: SuspensionConfig) -> float:
-	return config.wheel_rate()
-
-
 func _frequency(config: SuspensionConfig, corner_mass: float) -> float:
-	return sqrt(_wheel_rate(config) / maxf(corner_mass, 1.0)) / TAU
+	return sqrt(config.wheel_rate() / maxf(corner_mass, 1.0)) / TAU
 
 
-func _damping_ratio(config: SuspensionConfig, corner_mass: float) -> float:
-	return config.wheel_damper() / (2.0 * sqrt(_wheel_rate(config) * maxf(corner_mass, 1.0)))
+func _damping_ratio(wheel_damping: float, config: SuspensionConfig, corner_mass: float) -> float:
+	return wheel_damping / (2.0 * sqrt(config.wheel_rate() * maxf(corner_mass, 1.0)))
 
 
 func _range_color(value: float, low: float, high: float) -> Color:

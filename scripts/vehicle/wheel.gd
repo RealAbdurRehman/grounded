@@ -57,13 +57,16 @@ var _spin_angle: float = 0.0
 
 
 func _ready() -> void:
-	var rest_length: float = suspension_config.suspension_rest_length
-	var radius: float = suspension_config.wheel_radius
-	var total_ray_length := rest_length + radius
-	target_position = Vector3(0, -total_ray_length, 0)
+	_update_ray_length()
 
 	enabled = true
 	exclude_parent = true
+
+
+func _update_ray_length() -> void:
+	var length: float = suspension_config.suspension_rest_length + suspension_config.wheel_radius
+	if not is_equal_approx(-target_position.y, length):
+		target_position = Vector3(0.0, -length, 0.0)
 
 
 func update_wheel(
@@ -73,6 +76,7 @@ func update_wheel(
 	brake_torque_nm: float,
 	reflected_inertia: float = 0.0,
 ) -> void:
+	_update_ray_length()
 	force_raycast_update()
 	is_grounded = is_colliding()
 

@@ -52,7 +52,7 @@ var grip_limit_n: float = 0.0
 var _stick_x: float = 0.0
 var _stick_fx: float = 0.0
 
-var _prev_displacement: float = 0.0
+var _prev_displacement: float = -1.0
 var _spin_angle: float = 0.0
 
 
@@ -102,6 +102,9 @@ func update_wheel(
 	var total_length: float = rest_len + radius
 	spring_displacement = clamp(total_length - hit_dist, 0.0, rest_len)
 	compression = spring_displacement / rest_len
+
+	if _prev_displacement < 0.0:
+		_prev_displacement = spring_displacement
 
 	var compression_speed: float = (spring_displacement - _prev_displacement) / max(delta, 0.0001)
 	_prev_displacement = spring_displacement
@@ -344,7 +347,7 @@ func _handle_airborne(
 
 	grip_limit_n = 0.0
 
-	_prev_displacement = 0.0
+	_prev_displacement = -1.0
 
 	var T_bearing: float = -signf(angular_velocity_rad_s) * minf(
 		absf(angular_velocity_rad_s) * 0.5,

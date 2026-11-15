@@ -5,6 +5,7 @@ const SAMPLE_INTERVAL: float = 1.0 / 60.0
 const HISTORY_LENGTH: int = 240
 
 var _susp: Tuner
+var _alignment: Tuner
 var _arb: Tuner
 
 var _sample_timer: float = 0.0
@@ -87,6 +88,44 @@ func _build() -> void:
 		],
 	)
 
+	_alignment = Tuner.new(
+		"Alignment",
+		func() -> Object:
+			return vehicle.wheel_fl.suspension_config,
+		func() -> Object:
+			return vehicle.wheel_rl.suspension_config,
+	)
+
+	_alignment.group(
+		"Camber",
+		[
+			Tuner.slider(
+				&"static_camber_deg",
+				"Static camber",
+				-8.0,
+				4.0,
+				"%.1f deg",
+				"Wheel tilt when parked. Negative means the top leans inward.",
+			),
+			Tuner.slider(
+				&"camber_gain_deg_per_m",
+				"Camber gain",
+				-60.0,
+				20.0,
+				"%.0f deg/m",
+				"## How much wheel tilt changes as the suspension moves up.",
+			),
+			Tuner.slider(
+				&"alignment_compression",
+				"Set at sag",
+				0.0,
+				0.4,
+				"%.3f m",
+				"How much the suspension is compressed at normal ride height.",
+			),
+		],
+	)
+
 	_arb = Tuner.new(
 		"Anti-roll bars",
 		func() -> Object:
@@ -139,8 +178,11 @@ func draw() -> void:
 	Widgets.gap(0.4)
 	_readouts()
 	Widgets.gap(0.4)
+	_alignment_table()
+	Widgets.gap(0.4)
 
 	_susp.draw(true)
+	_alignment.draw(true)
 	_arb.draw(true)
 
 	fit_end()
@@ -204,6 +246,25 @@ func _readouts() -> void:
 	)
 
 	Widgets.tip("A rear a little higher than the front settles the car quickly after a bump.")
+
+
+func _alignment_table() -> void:
+	Widgets.wheel_table(
+		"alignment_table",
+		["Camber"],
+		func(i: int) -> Array:
+			var camber: float = rad_to_deg(wheels()[i].camber_rad)
+
+			return [["%+.2f deg" % camber, _camber_color(camber)]],
+	)
+
+
+func _camber_color(camber_deg: float) -> Color:
+	var lean: float = absf(camber_deg)
+	if lean > 4.0:
+		return UITheme.BAD
+
+	return UITheme.WARN if lean > 2.5 else UITheme.GOOD
 
 
 func _corner_mass(front: bool) -> float:

@@ -47,6 +47,8 @@ var angular_velocity_rad_s: float = 0.0
 var slip_ratio: float = 0.0
 var slip_angle_rad: float = 0.0
 
+var camber_rad: float = 0.0
+
 var grip_limit_n: float = 0.0
 
 var _stick_x: float = 0.0
@@ -55,6 +57,9 @@ var _stick_fx: float = 0.0
 var _prev_displacement: float = -1.0
 var _spin_angle: float = 0.0
 
+var _side: float = 0.0
+var _mesh_rest: Basis = Basis.IDENTITY
+
 
 func _ready() -> void:
 	_update_ray_length()
@@ -62,11 +67,36 @@ func _ready() -> void:
 	enabled = true
 	exclude_parent = true
 
+	if visual_mesh:
+		_mesh_rest = visual_mesh.basis
+
 
 func _update_ray_length() -> void:
 	var length: float = suspension_config.suspension_rest_length + suspension_config.wheel_radius
 	if not is_equal_approx(-target_position.y, length):
 		target_position = Vector3(0.0, -length, 0.0)
+
+
+func _design_camber_rad() -> float:
+	var config: SuspensionConfig = suspension_config
+	var offset: float = spring_displacement - config.alignment_compression
+
+	return deg_to_rad(config.static_camber_deg + config.camber_gain_deg_per_m * offset)
+
+
+func _alignment_basis() -> Basis:
+	return Basis(Vector3.UP, steer_angle_rad) * Basis(Vector3.FORWARD, _side * _design_camber_rad())
+
+
+func _update_visual(delta: float) -> void:
+	if not visual_mesh:
+		return
+
+	var rest_len: float = suspension_config.suspension_rest_length
+	visual_mesh.position = Vector3(0.0, -(rest_len - spring_displacement), 0.0)
+
+	_spin_angle += angular_velocity_rad_s * delta
+	visual_mesh.basis = _alignment_basis() * Basis(Vector3.RIGHT, -_spin_angle) * _mesh_rest
 
 
 func update_wheel(
@@ -76,6 +106,9 @@ func update_wheel(
 	brake_torque_nm: float,
 	reflected_inertia: float = 0.0,
 ) -> void:
+	if _side == 0.0:
+		_side = 1.0 if chassis.to_local(global_position).x >= 0.0 else -1.0
+
 	_update_ray_length()
 	force_raycast_update()
 	is_grounded = is_colliding()
@@ -114,15 +147,17 @@ func update_wheel(
 	suspension_force_n = max(0.0, f_spring + f_damper)
 	normal_load_n = maxf(0.0, suspension_force_n + arb_force_n)
 
-	var chassis_up: Vector3 = chassis.global_transform.basis.y.normalized()
-	var wheel_basis: Basis = chassis.global_transform.basis.rotated(chassis_up, steer_angle_rad)
+	var wheel_basis: Basis = chassis.global_transform.basis * _alignment_basis()
 
-	var wheel_forward: Vector3 = -wheel_basis.z.normalized()
-	var wheel_right: Vector3 = wheel_basis.x.normalized()
+	var wheel_forward: Vector3 = -wheel_basis.z
 	wheel_forward = (
 		wheel_forward - contact_normal * wheel_forward.dot(contact_normal)
 	).normalized()
-	wheel_right = (wheel_right - contact_normal * wheel_right.dot(contact_normal)).normalized()
+
+	var wheel_right: Vector3 = wheel_forward.cross(contact_normal).normalized()
+
+	var lean: float = asin(clampf(wheel_basis.y.normalized().dot(wheel_right), -1.0, 1.0))
+	camber_rad = _side * lean
 
 	var com_world: Vector3 = chassis.to_global(chassis.center_of_mass)
 	var r: Vector3 = contact_point - com_world
@@ -259,12 +294,7 @@ func update_wheel(
 	chassis.apply_force(total_force, contact_point - chassis.global_position)
 
 	if visual_mesh:
-		var visual_y = -(rest_len - spring_displacement)
-		visual_mesh.position = Vector3(0, visual_y, 0)
-
-		_spin_angle += angular_velocity_rad_s * delta
-		visual_mesh.rotation.x = -_spin_angle
-		visual_mesh.rotation.y = steer_angle_rad
+		_update_visual(delta)
 
 	var debug_scale: float = 1.0 / 3500.0
 	DebugDraw3D.draw_vector(
@@ -363,6 +393,5 @@ func _handle_airborne(
 	)
 
 	if visual_mesh:
-		_spin_angle += angular_velocity_rad_s * delta
-		visual_mesh.rotation.x = -_spin_angle
-		visual_mesh.rotation.y = steer_angle_rad
+		camber_rad = _design_camber_rad()
+		_update_visual(delta)

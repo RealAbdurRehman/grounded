@@ -17,6 +17,16 @@ extends Resource
 ## How much the spring moves compared to the wheel.
 @export_range(0.4, 1.2, 0.01) var motion_ratio: float = 1.0
 
+@export_group("Alignment")
+## How much the suspension is compressed at normal ride height.
+@export var alignment_compression: float = 0.15
+
+## Wheel tilt when parked. Negative means the top leans inward.
+@export_range(-8.0, 4.0, 0.1) var static_camber_deg: float = -1.0
+
+## How much wheel tilt changes as the suspension moves up.
+@export_range(-60.0, 20.0, 0.5) var camber_gain_deg_per_m: float = -20.0
+
 # Resists suspension bouncing.
 @export_group("Damper")
 ## Resists the wheel moving up.

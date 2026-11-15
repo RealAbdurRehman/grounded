@@ -182,6 +182,7 @@ func update_wheel(
 		speed_long,
 		fz,
 		friction_coef,
+		lean,
 	)
 	var kappa_step: float = 0.02
 	var f_step: Vector2 = tire_model.compute_forces(
@@ -191,6 +192,7 @@ func update_wheel(
 		speed_long,
 		fz,
 		friction_coef,
+		lean,
 	)
 
 	var force_slope: float = maxf((f_step.x - f_now.x) / kappa_step, 0.0)
@@ -232,6 +234,7 @@ func update_wheel(
 		speed_long,
 		fz,
 		friction_coef,
+		lean,
 	)
 
 	var fx: float = f_final.x
@@ -277,7 +280,7 @@ func update_wheel(
 	var combined_force: Vector2 = tire_model.project_to_friction_ellipse(
 		Vector2(fx, fy),
 		tire_model.peak_longitudinal_force_n(fz, friction_coef),
-		tire_model.peak_lateral_force_n(fz, friction_coef),
+		tire_model.peak_lateral_force_n(fz, friction_coef, lean),
 	)
 	fx = combined_force.x
 	fy = combined_force.y

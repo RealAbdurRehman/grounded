@@ -43,6 +43,13 @@ extends Resource
 ## How much slip ratio shrinks the lateral peak.
 @export var combined_lat_strength: float = 0.35
 
+@export_group("Camber")
+## How much cornering grip the wheel gains from leaning.
+@export_range(0.0, 0.5, 0.01) var camber_stiffness_ratio: float = 0.12
+
+## How much grip is lost when the wheel leans too far.
+@export_range(0.0, 10.0, 0.1) var camber_grip_loss: float = 3.0
+
 @export_group("Low Speed Handling")
 @export var slip_speed_floor: float = 1.0
 
@@ -122,12 +129,16 @@ func _get_peak_mu(fz: float) -> float:
 	return clampf(1.0 - load_sensitivity * (load_ratio - 1.0), 0.5, 1.5)
 
 
+func camber_grip_factor(lean_rad: float) -> float:
+	return clampf(1.0 - camber_grip_loss * lean_rad * lean_rad, 0.5, 1.0)
+
+
 func peak_longitudinal_force_n(fz: float, grip_scale: float = 1.0) -> float:
 	return _get_peak_mu(fz) * maxf(fz, 0.0) * long_D * grip_scale
 
 
-func peak_lateral_force_n(fz: float, grip_scale: float = 1.0) -> float:
-	return _get_peak_mu(fz) * maxf(fz, 0.0) * lat_D * grip_scale
+func peak_lateral_force_n(fz: float, grip_scale: float = 1.0, lean_rad: float = 0.0) -> float:
+	return _get_peak_mu(fz) * maxf(fz, 0.0) * lat_D * grip_scale * camber_grip_factor(lean_rad)
 
 
 func peak_force_n(fz: float) -> float:
@@ -178,14 +189,16 @@ func compute_forces(
 	speed_long: float,
 	fz: float,
 	grip_scale: float = 1.0,
+	lean_rad: float = 0.0,
 ) -> Vector2:
 	if fz <= 1.0:
 		return Vector2.ZERO
+
 	_ensure_cache()
 
 	var mu: float = _get_peak_mu(fz) * grip_scale
 	var peak_x: float = mu * fz * long_D
-	var peak_y: float = mu * fz * lat_D
+	var peak_y: float = mu * fz * lat_D * camber_grip_factor(lean_rad)
 	if peak_x <= 0.0 or peak_y <= 0.0:
 		return Vector2.ZERO
 
@@ -196,7 +209,9 @@ func compute_forces(
 	var lat_scale: float = 1.0 / sqrt(1.0 + pow(combined_lat_strength * kappa_norm, 2.0))
 
 	var fx: float = _pacejka(slip_ratio, long_B, long_C, peak_x * long_scale, long_E)
-	var fy_curve: float = _pacejka(slip_angle_rad, lat_B, lat_C, peak_y * lat_scale, lat_E)
+
+	var shifted_angle: float = slip_angle_rad + camber_stiffness_ratio * lean_rad
+	var fy_curve: float = _pacejka(shifted_angle, lat_B, lat_C, peak_y * lat_scale, lat_E)
 
 	var fy_low: float = -peak_y * clampf(v_lat / maxf(low_speed_lat_saturation, 0.01), -1.0, 1.0)
 	var blend: float = smoothstep(

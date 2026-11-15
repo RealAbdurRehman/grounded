@@ -127,6 +127,28 @@ func _build() -> void:
 		],
 	)
 
+	_tire.group(
+		"Camber",
+		[
+			Tuner.slider(
+				&"camber_stiffness_ratio",
+				"Camber thrust",
+				0.0,
+				0.5,
+				"%.2f",
+				"How much cornering grip the wheel gains from leaning.",
+			),
+			Tuner.slider(
+				&"camber_grip_loss",
+				"Grip loss",
+				0.0,
+				10.0,
+				"%.1f",
+				"How much grip is lost when the wheel leans too far.",
+			),
+		],
+	)
+
 	_surface = Tuner.new(
 		"Surface grip",
 		func() -> Object:

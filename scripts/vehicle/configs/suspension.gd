@@ -17,6 +17,14 @@ extends Resource
 ## How much the spring moves compared to the wheel.
 @export_range(0.4, 1.2, 0.01) var motion_ratio: float = 1.0
 
+# Stops bottom of the car from scraping the ground.
+@export_group("Bump Stop")
+@export_range(0.5, 0.98, 0.01) var bump_stop_start: float = 0.75
+
+## How hard bump stop pushes back.
+@export var bump_stop_stiffness: float = 80000.0
+
+
 @export_group("Alignment")
 ## How much the suspension is compressed at normal ride height.
 @export var alignment_compression: float = 0.15
@@ -51,6 +59,14 @@ func caster_trail() -> float:
 
 func wheel_rate() -> float:
 	return spring_stiffness * motion_ratio * motion_ratio
+
+
+func bump_stop_force(displacement: float) -> float:
+	var start: float = suspension_rest_length * bump_stop_start
+	var span: float = maxf(suspension_rest_length - start, 0.001)
+	var over: float = maxf(displacement - start, 0.0)
+
+	return bump_stop_stiffness * motion_ratio * motion_ratio * over * over / span
 
 
 func wheel_bump() -> float:

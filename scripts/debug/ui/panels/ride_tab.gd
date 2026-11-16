@@ -53,6 +53,21 @@ func _build() -> void:
 	)
 
 	_susp.group(
+		"Bump stop",
+		[
+			Tuner.slider(&"bump_stop_start", "Starts at", 0.5, 0.98, "%.2f"),
+			Tuner.slider(
+				&"bump_stop_stiffness",
+				"Stiffness",
+				0.0,
+				400000.0,
+				"%.0f",
+				"How hard bump stop pushes back.",
+			),
+		],
+	)
+
+	_susp.group(
 		"Damper",
 		[
 			Tuner.slider(

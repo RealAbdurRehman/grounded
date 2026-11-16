@@ -160,7 +160,10 @@ func update_wheel(
 	var compression_speed: float = (spring_displacement - _prev_displacement) / max(delta, 0.0001)
 	_prev_displacement = spring_displacement
 
-	var f_spring: float = k_spring * spring_displacement
+	var f_spring: float = (
+		k_spring * spring_displacement + suspension_config.bump_stop_force(spring_displacement)
+	)
+
 	var f_damper: float = (c_bump if compression_speed > 0.0 else c_rebound) * compression_speed
 	suspension_force_n = max(0.0, f_spring + f_damper)
 	normal_load_n = maxf(0.0, suspension_force_n + arb_force_n)

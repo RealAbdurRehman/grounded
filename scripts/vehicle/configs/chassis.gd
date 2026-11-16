@@ -12,11 +12,6 @@ extends Resource
 
 @export var max_steer_angle_deg: float = 32.0
 
-## In square meters.
-@export var frontal_area: float = 2.2
-
-@export var drag_coefficient: float = 0.31
-
 @export_group("Steering")
 ## -1 for reverse ackermann, +1 for true ackermann, 0 for parallel steering.
 @export_range(-1.0, 1.0, 0.05) var ackermann_factor: float = 0.8

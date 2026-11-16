@@ -17,6 +17,10 @@ extends RigidBody3D
 @export_group("Assists")
 @export var assists_config: AssistsConfig
 
+
+@export_group("Aerodynamics")
+@export var aero_config: AeroConfig = AeroConfig.new()
+
 var throttle_input: float = 0.0
 var brake_input: float = 0.0
 var handbrake_input: float = 0.0
@@ -29,6 +33,8 @@ var steer_angle_rad: float = 0.0
 
 var assists: Assists
 var steering: Steering = Steering.new()
+
+var aero: Aero
 
 var _com_applied: Vector3 = Vector3.INF
 
@@ -55,6 +61,8 @@ func _ready() -> void:
 
 	assists = Assists.new(self, assists_config, _wheelbase_m)
 
+	aero = Aero.new(self)
+
 
 func _sync_center_of_mass() -> void:
 	var local_com: Vector3 = to_local(center_of_mass_node.global_position)
@@ -75,7 +83,8 @@ func _physics_process(delta: float) -> void:
 
 	_compute_anti_roll_bars()
 	_update_drivetrain_and_wheels(delta)
-	_apply_aerodynamic_drag()
+
+	aero.apply()
 
 
 func _handle_inputs(delta: float) -> void:
@@ -269,15 +278,3 @@ func get_handbrake_torque_nm(wheel: Wheel) -> float:
 		return 0.0
 
 	return handbrake_input * brakes_for(wheel).handbrake_torque_nm
-
-
-func _apply_aerodynamic_drag() -> void:
-	var speed: float = linear_velocity.length()
-	if speed > 0.1:
-		var air_density := 1.225
-		var drag_scalar: float = 0.5 * air_density * config.drag_coefficient * config.frontal_area * (
-			speed * speed
-		)
-
-		var drag_vector: Vector3 = -linear_velocity.normalized() * drag_scalar
-		apply_central_force(drag_vector)

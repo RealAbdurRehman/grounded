@@ -702,3 +702,90 @@ static func multi_line_plot(
 				colors[k],
 				1.5,
 			)
+
+
+static func speed_plot(
+	series: Array,
+	colors: Array,
+	y_min: float,
+	y_max: float,
+	height: float,
+	cursor: float,
+	x_label: String,
+	y_label: String,
+) -> void:
+	var size := Vector2(ImGui.GetContentRegionAvail().x, height)
+	var origin: Vector2 = ImGui.GetCursorScreenPos()
+	ImGui.Dummy(size)
+
+	var draw_list = ImGui.GetWindowDrawList()
+	ImGui.ImDrawList_AddRectFilled(draw_list, origin, origin + size, Color(0.04, 0.05, 0.07, 0.9))
+
+	var span: float = maxf(y_max - y_min, 0.0001)
+
+	if y_min < 0.0:
+		var zero_y: float = origin.y + size.y - (0.0 - y_min) / span * size.y
+		ImGui.ImDrawList_AddLine(
+			draw_list,
+			Vector2(origin.x, zero_y),
+			Vector2(origin.x + size.x, zero_y),
+			UITheme.GRID,
+		)
+
+	for step in range(1, 4):
+		var gx: float = origin.x + size.x * float(step) / 4.0
+		ImGui.ImDrawList_AddLine(
+			draw_list,
+			Vector2(gx, origin.y),
+			Vector2(gx, origin.y + size.y),
+			Color(UITheme.GRID.r, UITheme.GRID.g, UITheme.GRID.b, 0.18),
+		)
+
+	for k in range(series.size()):
+		var values: Array = series[k]
+		if values.size() < 2:
+			continue
+
+		for i in range(values.size() - 1):
+			var x0: float = origin.x + float(i) / float(values.size() - 1) * size.x
+			var x1: float = origin.x + float(i + 1) / float(values.size() - 1) * size.x
+
+			var y0: float = clampf((values[i] - y_min) / span, 0.0, 1.0)
+			var y1: float = clampf((values[i + 1] - y_min) / span, 0.0, 1.0)
+
+			ImGui.ImDrawList_AddLineEx(
+				draw_list,
+				Vector2(x0, origin.y + size.y - y0 * size.y),
+				Vector2(x1, origin.y + size.y - y1 * size.y),
+				colors[k],
+				1.5,
+			)
+
+	var cursor_x: float = origin.x + clampf(cursor, 0.0, 1.0) * size.x
+	ImGui.ImDrawList_AddLineEx(
+		draw_list,
+		Vector2(cursor_x, origin.y),
+		Vector2(cursor_x, origin.y + size.y),
+		Color(1.0, 0.9, 0.2, 0.9),
+		1.5,
+	)
+
+	var unit: float = ImGui.GetFontSize()
+	ImGui.ImDrawList_AddText(draw_list, origin + Vector2(4.0, 2.0), UITheme.DIM, y_label)
+
+	ImGui.ImDrawList_AddText(
+		draw_list,
+		Vector2(origin.x + 4.0, origin.y + size.y - unit - 2.0),
+		UITheme.DIM,
+		"0",
+	)
+
+	ImGui.ImDrawList_AddText(
+		draw_list,
+		Vector2(
+			origin.x + size.x - ImGui.CalcTextSize(x_label).x - 4.0,
+			origin.y + size.y - unit - 2.0,
+		),
+		UITheme.DIM,
+		x_label,
+	)

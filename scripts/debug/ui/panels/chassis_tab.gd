@@ -122,14 +122,6 @@ func _build() -> void:
 		],
 	)
 
-	_chassis.group(
-		"Aerodynamics",
-		[
-			Tuner.slider(&"drag_coefficient", "Drag coefficient", 0.1, 1.0, "%.2f"),
-			Tuner.slider(&"frontal_area", "Frontal area", 1.0, 4.0, "%.2f", "In square meters."),
-		],
-	)
-
 	_brakes = Tuner.new(
 		"Brakes",
 		func() -> Object:

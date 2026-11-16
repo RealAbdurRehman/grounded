@@ -149,6 +149,28 @@ func _build() -> void:
 		],
 	)
 
+	_tire.group(
+		"Aligning moment",
+		[
+			Tuner.slider(
+				&"pneumatic_trail_m",
+				"Pneumatic trail",
+				0.0,
+				0.08,
+				"%.3f m",
+				"Strength of steering self centering force.",
+			),
+			Tuner.slider(
+				&"trail_zero_slip_ratio",
+				"Trail fades at",
+				0.5,
+				3.0,
+				"%.2f",
+				"How much slip is allowed before self centering fades.",
+			),
+		],
+	)
+
 	_surface = Tuner.new(
 		"Surface grip",
 		func() -> Object:
@@ -203,6 +225,9 @@ func draw() -> void:
 	Widgets.gap(0.4)
 
 	_friction_circles()
+	Widgets.gap(0.4)
+
+	_aligning_table()
 	Widgets.gap(0.4)
 
 	_tire.draw(true)
@@ -313,6 +338,20 @@ func _table() -> void:
 				"%+.0f" % sample.lateral_force_n,
 				"%.0f" % sample.normal_load_n,
 				["%.0f%%" % (grip * 100.0), grip_color],
+			],
+	)
+
+
+func _aligning_table() -> void:
+	Widgets.wheel_table(
+		"aligning_table",
+		["Trail", "Twist"],
+		func(i: int) -> Array:
+			var wheel: Wheel = wheels()[i]
+
+			return [
+				"%.0f mm" % (wheel.pneumatic_trail_m * 1000.0),
+				"%+.1f Nm" % wheel.aligning_torque_nm,
 			],
 	)
 

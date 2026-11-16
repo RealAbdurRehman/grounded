@@ -52,6 +52,9 @@ var toe_rad: float = 0.0
 
 var grip_limit_n: float = 0.0
 
+var pneumatic_trail_m: float = 0.0
+var aligning_torque_nm: float = 0.0
+
 var _stick_x: float = 0.0
 var _stick_fx: float = 0.0
 
@@ -199,6 +202,7 @@ func update_wheel(
 		friction_coef,
 		lean,
 	)
+
 	var kappa_step: float = 0.02
 	var f_step: Vector2 = tire_model.compute_forces(
 		kappa_now + kappa_step,
@@ -302,6 +306,11 @@ func update_wheel(
 
 	longitudinal_force_n = fx
 	lateral_force_n = fy
+
+	var rolling_fade: float = smoothstep(0.5, 4.0, speed_long) * smoothstep(0.0, 1.5, v_long)
+	pneumatic_trail_m = tire_model.pneumatic_trail(alpha, fz)
+	aligning_torque_nm = fy * pneumatic_trail_m * rolling_fade
+
 	slip_ratio = kappa_new
 	slip_angle_rad = alpha
 
@@ -394,6 +403,9 @@ func _handle_airborne(
 	slip_angle_rad = 0.0
 
 	grip_limit_n = 0.0
+
+	pneumatic_trail_m = 0.0
+	aligning_torque_nm = 0.0
 
 	_prev_displacement = -1.0
 

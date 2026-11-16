@@ -62,6 +62,13 @@ extends Resource
 @export var low_speed_lat_saturation: float = 0.5
 @export var static_lateral_hold_speed: float = 0.5
 
+@export_group("Aligning Moment")
+## Strength of steering self centering force.
+@export_range(0.0, 0.08, 0.001) var pneumatic_trail_m: float = 0.03
+
+## How much slip is allowed before self centering fades.
+@export_range(0.5, 3.0, 0.05) var trail_zero_slip_ratio: float = 1.3
+
 @export_group("Static Hold")
 ## Speed below which braking wheels stick to the road, in meters per second.
 @export var stick_speed: float = 0.15
@@ -131,6 +138,24 @@ func _get_peak_mu(fz: float) -> float:
 
 func camber_grip_factor(lean_rad: float) -> float:
 	return clampf(1.0 - camber_grip_loss * lean_rad * lean_rad, 0.5, 1.0)
+
+
+func pneumatic_trail(slip_angle_rad: float, fz: float) -> float:
+	if fz <= 1.0:
+		return 0.0
+
+	_ensure_cache()
+
+	var load_scale: float = clampf(sqrt(fz / reference_load_n), 0.5, 1.5)
+
+	var sliding: float = clampf(
+		absf(slip_angle_rad) / (trail_zero_slip_ratio * _alpha_peak),
+		0.0,
+		1.0,
+	)
+	var shape: float = pow(1.0 - sliding, 3.0) / (1.0 - sliding + sliding * sliding / 3.0)
+
+	return pneumatic_trail_m * load_scale * shape
 
 
 func peak_longitudinal_force_n(fz: float, grip_scale: float = 1.0) -> float:

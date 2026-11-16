@@ -6,7 +6,7 @@
 [ext_resource type="Script" uid="uid://dwugrbcr8g24y" path="res://scripts/vehicle/drivetrain.gd" id="3_cs81w"]
 [ext_resource type="Resource" uid="uid://cmfrk76g865ug" path="res://resources/suspensions/front.tres" id="5_1bgs2"]
 [ext_resource type="Resource" uid="uid://oa7w8hj3m08i" path="res://resources/tires/front.tres" id="6_front"]
-[ext_resource type="Resource" path="res://resources/tires/rear.tres" id="6_rear"]
+[ext_resource type="Resource" uid="uid://c451ftplc6fx1" path="res://resources/tires/rear.tres" id="6_rear"]
 [ext_resource type="Resource" uid="uid://b3b8vkf1new28" path="res://resources/suspensions/rear.tres" id="7_1bgs2"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_8rti0"]

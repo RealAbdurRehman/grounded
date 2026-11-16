@@ -1,6 +1,8 @@
 class_name ChassisTab
 extends DebugPanel
 
+const DRIVER_LABEL_HOLD_S: float = 1.0
+
 var _chassis: Tuner
 var _brakes: Tuner
 var _mass: Tuner
@@ -94,6 +96,14 @@ func _build() -> void:
 				2000.0,
 				"%.0f",
 				"How strongly the wheel straightens itself when released.",
+			),
+			Tuner.slider(
+				&"relaxed_grip",
+				"Relaxed grip",
+				0.0,
+				1.0,
+				"%.2f",
+				"How firmly the driver holds the wheel at speed when no key is pressed.",
 			),
 		],
 	)
@@ -242,10 +252,17 @@ func _steering_status() -> void:
 	)
 
 	Widgets.key_value("Tire torque on steering", "%+.0f Nm" % steering.load_torque_nm)
+
+	var driver_state: String = "hands off"
+	if steering.idle_time_s < DRIVER_LABEL_HOLD_S:
+		driver_state = "steering"
+	elif steering.hands_on > 0.05:
+		driver_state = "relaxed grip"
+
 	Widgets.key_value(
 		"Driver",
-		"holding" if steering.hands_on > 0.5 else "hands off",
-		UITheme.TEXT if steering.hands_on > 0.5 else UITheme.DIM,
+		driver_state,
+		UITheme.DIM if driver_state == "hands off" else UITheme.TEXT,
 	)
 
 

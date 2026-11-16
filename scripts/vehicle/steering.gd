@@ -8,7 +8,13 @@ const DRIVER_DAMPING: float = 2500.0
 ## How quickly steering input turns on and off.
 const GRIP_RATE: float = 25.0
 
+const LOOSE_GRIP_START: float = 10.0
+const LOOSE_GRIP_FULL: float = 22.0
+
 var hands_on: float = 0.0
+
+## Seconds since the driver last pressed a steering key.
+var idle_time_s: float = 999.0
 
 var velocity_rad_s: float = 0.0
 
@@ -28,8 +34,18 @@ func step(
 	rate_rad_s: float,
 	lock_rad: float,
 	tire_torque_nm: float,
+	speed_m_s: float,
 ) -> float:
-	var grabbing: float = 1.0 if absf(steer_input) > 0.02 else 0.0
+	var loose_grip: float = config.relaxed_grip * smoothstep(
+		LOOSE_GRIP_START,
+		LOOSE_GRIP_FULL,
+		speed_m_s,
+	)
+
+	var pressing: bool = absf(steer_input) > 0.02
+	var grabbing: float = 1.0 if pressing else loose_grip
+	idle_time_s = 0.0 if pressing else idle_time_s + delta
+
 	hands_on = move_toward(hands_on, grabbing, delta * GRIP_RATE)
 
 	var inertia: float = maxf(config.steering_inertia, 0.01)

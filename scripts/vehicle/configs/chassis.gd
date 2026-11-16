@@ -42,6 +42,9 @@ extends Resource
 ## How strongly the wheel straightens itself when released.
 @export_range(0.0, 2000.0, 10.0) var low_speed_return_nm_per_rad: float = 1200.0
 
+## How firmly the driver holds the wheel at speed when no key is pressed.
+@export_range(0.0, 1.0, 0.05) var relaxed_grip: float = 0.3
+
 ## Limits the maximum steering angle based on the car's speed.
 @export_range(0.0, 1.0, 0.05) var steer_speed_sensitivity: float = 1.0
 

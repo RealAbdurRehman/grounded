@@ -145,6 +145,7 @@ func _update_steering(delta: float) -> void:
 		rate_rad_s,
 		lock_rad,
 		_tire_steering_torque_nm(),
+		linear_velocity.length(),
 	)
 
 	for w in [wheel_fl, wheel_fr, wheel_rl, wheel_rr]:

@@ -114,7 +114,7 @@ func _build() -> void:
 				-60.0,
 				20.0,
 				"%.0f deg/m",
-				"## How much wheel tilt changes as the suspension moves up.",
+				"How much wheel tilt changes as the suspension moves up.",
 			),
 			Tuner.slider(
 				&"alignment_compression",

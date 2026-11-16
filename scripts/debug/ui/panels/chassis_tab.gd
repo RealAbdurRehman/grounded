@@ -45,6 +45,60 @@ func _build() -> void:
 	)
 
 	_chassis.group(
+		"Steering feel",
+		[
+			Tuner.slider(
+				&"steering_ratio",
+				"Steering ratio",
+				8.0,
+				24.0,
+				"%.1f : 1",
+				"How much the steering wheel turns compared to the front wheels.",
+			),
+			Tuner.slider(
+				&"steering_inertia",
+				"Inertia",
+				0.1,
+				10.0,
+				"%.1f",
+				"How heavy the steering wheel feels.",
+			),
+			Tuner.slider(
+				&"steering_damping",
+				"Damping",
+				10.0,
+				2000.0,
+				"%.0f",
+				"How much the steering resists fast movements.",
+			),
+			Tuner.slider(
+				&"steering_friction_nm",
+				"Friction",
+				0.0,
+				60.0,
+				"%.0f Nm",
+				"Friction in the steering rack.",
+			),
+			Tuner.slider(
+				&"driver_strength_nm",
+				"Driver Strength",
+				50.0,
+				2000.0,
+				"%.0f Nm",
+				"Maximum turning force the driver can apply.",
+			),
+			Tuner.slider(
+				&"low_speed_return_nm_per_rad",
+				"Low speed return",
+				0.0,
+				2000.0,
+				"%.0f",
+				"How strongly the wheel straightens itself when released.",
+			),
+		],
+	)
+
+	_chassis.group(
 		"Pedal",
 		[
 			Tuner.slider(
@@ -134,6 +188,9 @@ func draw() -> void:
 	_status()
 	Widgets.gap(0.4)
 
+	_steering_status()
+	Widgets.gap(0.4)
+
 	_chassis.draw(true)
 	_brake_section()
 	_mass.draw(true)
@@ -162,6 +219,34 @@ func _brake_section() -> void:
 	):
 		front.max_torque_nm = total * bias[0] / 100.0
 		rear.max_torque_nm = total - front.max_torque_nm
+
+
+func _steering_status() -> void:
+	if not Widgets.section("Steering status", true):
+		return
+
+	var steering: Steering = vehicle.steering
+	var ratio: float = vehicle.config.steering_ratio
+
+	var wheel_deg: float = rad_to_deg(vehicle.steer_angle_rad) * ratio
+	Widgets.key_value("Steering wheel", "%+.0f deg" % wheel_deg)
+
+	var pull_nm: float = steering.load_torque_nm / ratio
+	var pull_color: Color = UITheme.GOOD if absf(pull_nm) < 8.0 else UITheme.WARN
+
+	Widgets.centered_bar(
+		"PULL",
+		pull_nm / 12.0,
+		"%.1f Nm %s" % [absf(pull_nm), "left" if pull_nm > 0.0 else "right"],
+		pull_color,
+	)
+
+	Widgets.key_value("Tire torque on steering", "%+.0f Nm" % steering.load_torque_nm)
+	Widgets.key_value(
+		"Driver",
+		"holding" if steering.hands_on > 0.5 else "hands off",
+		UITheme.TEXT if steering.hands_on > 0.5 else UITheme.DIM,
+	)
 
 
 func _status() -> void:

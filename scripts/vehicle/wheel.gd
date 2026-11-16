@@ -54,6 +54,7 @@ var grip_limit_n: float = 0.0
 
 var pneumatic_trail_m: float = 0.0
 var aligning_torque_nm: float = 0.0
+var steering_torque_nm: float = 0.0
 
 var _stick_x: float = 0.0
 var _stick_fx: float = 0.0
@@ -311,6 +312,11 @@ func update_wheel(
 	pneumatic_trail_m = tire_model.pneumatic_trail(alpha, fz)
 	aligning_torque_nm = fy * pneumatic_trail_m * rolling_fade
 
+	steering_torque_nm = 0.0
+	if can_steer:
+		var trail_m: float = pneumatic_trail_m + suspension_config.caster_trail()
+		steering_torque_nm = fy * trail_m * rolling_fade
+
 	slip_ratio = kappa_new
 	slip_angle_rad = alpha
 
@@ -406,6 +412,7 @@ func _handle_airborne(
 
 	pneumatic_trail_m = 0.0
 	aligning_torque_nm = 0.0
+	steering_torque_nm = 0.0
 
 	_prev_displacement = -1.0
 

@@ -28,6 +28,7 @@ var steer_cap_rad: float = 0.0
 var steer_angle_rad: float = 0.0
 
 var assists: Assists
+var steering: Steering = Steering.new()
 
 var _com_applied: Vector3 = Vector3.INF
 
@@ -135,14 +136,28 @@ func _update_steering(delta: float) -> void:
 	var cap_fraction: float = clampf(steer_cap_rad / lock_rad, 0.15, 1.0)
 	var rate_rad_s: float = deg_to_rad(config.steer_rate_deg_s) * cap_fraction
 
-	var unwinding: bool = (target_rad - steer_angle_rad) * steer_angle_rad < 0.0
-	if unwinding:
-		rate_rad_s *= config.steer_return_multiplier
+	steer_angle_rad = steering.step(
+		config,
+		delta,
+		steer_angle_rad,
+		steer_input,
+		target_rad,
+		rate_rad_s,
+		lock_rad,
+		_tire_steering_torque_nm(),
+	)
 
-	steer_angle_rad = move_toward(steer_angle_rad, target_rad, rate_rad_s * delta)
 	for w in [wheel_fl, wheel_fr, wheel_rl, wheel_rr]:
 		if w.can_steer:
 			w.steer_angle_rad = _ackermann_angle_rad(steer_angle_rad, _steer_x_offset.get(w, 0.0))
+
+
+func _tire_steering_torque_nm() -> float:
+	var total: float = 0.0
+	for w in [wheel_fl, wheel_fr, wheel_rl, wheel_rr]:
+		total += w.steering_torque_nm
+
+	return total
 
 
 func _speed_steer_cap_rad(speed: float, lock_rad: float) -> float:

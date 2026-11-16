@@ -24,8 +24,23 @@ extends Resource
 ## How fast wheels turn at low speed.
 @export var steer_rate_deg_s: float = 90.0
 
-## When returning the steering wheel to center, the wheels turn this many times faster.
-@export_range(1.0, 4.0, 0.1) var steer_return_multiplier: float = 1.5
+## How much the steering wheel turns compared to the front wheels.
+@export_range(8.0, 24.0, 0.5) var steering_ratio: float = 16.0
+
+## How heavy the steering wheel feels.
+@export_range(0.1, 10.0, 0.1) var steering_inertia: float = 2.0
+
+## How much the steering resists fast movements.
+@export_range(10.0, 2000.0, 10.0) var steering_damping: float = 600.0
+
+## Friction in the steering rack.
+@export_range(0.0, 60.0, 1.0) var steering_friction_nm: float = 6.0
+
+## Maximum turning force the driver can apply.
+@export_range(50.0, 2000.0, 10.0) var driver_strength_nm: float = 800.0
+
+## How strongly the wheel straightens itself when released.
+@export_range(0.0, 2000.0, 10.0) var low_speed_return_nm_per_rad: float = 1200.0
 
 ## Limits the maximum steering angle based on the car's speed.
 @export_range(0.0, 1.0, 0.05) var steer_speed_sensitivity: float = 1.0

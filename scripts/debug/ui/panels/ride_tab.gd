@@ -126,6 +126,20 @@ func _build() -> void:
 		],
 	)
 
+	_alignment.group(
+		"Toe",
+		[
+			Tuner.slider(
+				&"static_toe_deg",
+				"Static toe",
+				-2.0,
+				2.0,
+				"%.2f deg",
+				"How much the front of the wheels point inward. Negative means outward.",
+			),
+		],
+	)
+
 	_arb = Tuner.new(
 		"Anti-roll bars",
 		func() -> Object:
@@ -251,11 +265,15 @@ func _readouts() -> void:
 func _alignment_table() -> void:
 	Widgets.wheel_table(
 		"alignment_table",
-		["Camber"],
+		["Camber", "Toe"],
 		func(i: int) -> Array:
-			var camber: float = rad_to_deg(wheels()[i].camber_rad)
+			var wheel: Wheel = wheels()[i]
+			var camber: float = rad_to_deg(wheel.camber_rad)
 
-			return [["%+.2f deg" % camber, _camber_color(camber)]],
+			return [
+				["%+.2f deg" % camber, _camber_color(camber)],
+				"%+.2f deg" % rad_to_deg(wheel.toe_rad),
+			],
 	)
 
 

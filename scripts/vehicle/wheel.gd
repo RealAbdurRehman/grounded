@@ -48,6 +48,7 @@ var slip_ratio: float = 0.0
 var slip_angle_rad: float = 0.0
 
 var camber_rad: float = 0.0
+var toe_rad: float = 0.0
 
 var grip_limit_n: float = 0.0
 
@@ -84,8 +85,15 @@ func _design_camber_rad() -> float:
 	return deg_to_rad(config.static_camber_deg + config.camber_gain_deg_per_m * offset)
 
 
+func _design_toe_rad() -> float:
+	return deg_to_rad(suspension_config.static_toe_deg)
+
+
 func _alignment_basis() -> Basis:
-	return Basis(Vector3.UP, steer_angle_rad) * Basis(Vector3.FORWARD, _side * _design_camber_rad())
+	var camber := Basis(Vector3.FORWARD, _side * _design_camber_rad())
+	var toe := Basis(Vector3.UP, _side * _design_toe_rad())
+
+	return Basis(Vector3.UP, steer_angle_rad) * toe * camber
 
 
 func _update_visual(delta: float) -> void:
@@ -158,6 +166,7 @@ func update_wheel(
 
 	var lean: float = asin(clampf(wheel_basis.y.normalized().dot(wheel_right), -1.0, 1.0))
 	camber_rad = _side * lean
+	toe_rad = _design_toe_rad()
 
 	var com_world: Vector3 = chassis.to_global(chassis.center_of_mass)
 	var r: Vector3 = contact_point - com_world
@@ -397,4 +406,6 @@ func _handle_airborne(
 
 	if visual_mesh:
 		camber_rad = _design_camber_rad()
+		toe_rad = _design_toe_rad()
+
 		_update_visual(delta)

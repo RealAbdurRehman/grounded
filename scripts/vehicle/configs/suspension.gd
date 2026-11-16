@@ -27,6 +27,9 @@ extends Resource
 ## How much wheel tilt changes as the suspension moves up.
 @export_range(-60.0, 20.0, 0.5) var camber_gain_deg_per_m: float = -20.0
 
+## How much the front of the wheels point inward. Negative means outward.
+@export_range(-3.0, 3.0, 0.01) var static_toe_deg: float = 0.0
+
 # Resists suspension bouncing.
 @export_group("Damper")
 ## Resists the wheel moving up.

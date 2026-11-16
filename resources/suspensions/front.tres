@@ -4,4 +4,8 @@
 
 [resource]
 script = ExtResource("1_4sbc4")
+alignment_compression = 0.149
+static_camber_deg = -0.7000000000000002
+camber_gain_deg_per_m = -15.0
+static_toe_deg = 0.04999999999999982
 metadata/_custom_type_script = "uid://mnsyudn5vsag"

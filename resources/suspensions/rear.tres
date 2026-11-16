@@ -4,5 +4,8 @@
 
 [resource]
 script = ExtResource("1_hbop6")
-spring_stiffness = 24000.0
+alignment_compression = 0.137
+static_camber_deg = -1.2000000000000002
+static_toe_deg = 0.1499999999999999
+bump_steer_deg_per_m = 3.0
 metadata/_custom_type_script = "uid://mnsyudn5vsag"

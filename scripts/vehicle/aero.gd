@@ -61,7 +61,7 @@ func apply() -> void:
 
 	var velocity: Vector3 = _vehicle.linear_velocity
 	var speed: float = velocity.length()
-	var half_density: float = 0.5 * config.air_density
+	var half_density: float = 0.5 * Atmosphere.config.air_density
 
 	airspeed_mps = speed
 	dynamic_pressure_pa = half_density * speed * speed

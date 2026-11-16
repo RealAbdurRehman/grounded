@@ -23,6 +23,3 @@ extends Resource
 @export_group("Ride Height")
 ## Extra downforce when the car sits lower than normal.
 @export_range(0.0, 10.0, 0.1) var ground_effect_per_m: float = 2.0
-
-@export_group("Air")
-@export_range(0.5, 1.5, 0.005) var air_density: float = 1.225

@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="AirConfig" format=3 uid="uid://bx3y8wj3img4k"]
+
+[ext_resource type="Script" uid="uid://dbhryhxihmjrb" path="res://scripts/world/config/air.gd" id="1_pkr1b"]
+
+[resource]
+script = ExtResource("1_pkr1b")
+metadata/_custom_type_script = "uid://dbhryhxihmjrb"

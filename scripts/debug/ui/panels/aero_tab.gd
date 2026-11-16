@@ -81,13 +81,17 @@ func _build() -> void:
 	_aero.group(
 		"Air",
 		[
-			Tuner.slider(
+			Tuner.custom(
 				&"air_density",
 				"Air density",
+				func() -> float:
+					return Atmosphere.config.air_density,
+				func(value: float) -> void:
+					Atmosphere.config.air_density = value,
 				0.5,
 				1.5,
 				"%.3f",
-				"Controls drag and downforce caused by air.",
+				"Controls drag and downforce caused by air. The same for every car.",
 			),
 		],
 	)
@@ -196,7 +200,7 @@ func _curves() -> void:
 
 	for i in range(CURVE_SAMPLES):
 		var speed: float = x_max / 3.6 * float(i) / float(CURVE_SAMPLES - 1)
-		var pressure: float = 0.5 * config.air_density * speed * speed
+		var pressure: float = 0.5 * Atmosphere.config.air_density * speed * speed
 
 		var base: float = pressure * config.downforce_coefficient * config.frontal_area
 		var f: float = base * config.front_share * aero.ground_effect_front

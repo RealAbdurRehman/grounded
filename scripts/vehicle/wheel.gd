@@ -86,7 +86,10 @@ func _design_camber_rad() -> float:
 
 
 func _design_toe_rad() -> float:
-	return deg_to_rad(suspension_config.static_toe_deg)
+	var config: SuspensionConfig = suspension_config
+	var offset: float = spring_displacement - config.alignment_compression
+
+	return deg_to_rad(config.static_toe_deg + config.bump_steer_deg_per_m * offset)
 
 
 func _alignment_basis() -> Basis:

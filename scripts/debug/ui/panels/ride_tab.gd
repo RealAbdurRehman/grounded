@@ -137,6 +137,14 @@ func _build() -> void:
 				"%.2f deg",
 				"How much the front of the wheels point inward. Negative means outward.",
 			),
+			Tuner.slider(
+				&"bump_steer_deg_per_m",
+				"Bump steer",
+				-30.0,
+				30.0,
+				"%.0f deg/m",
+				"How much the toe changes as the wheel moves up.",
+			),
 		],
 	)
 

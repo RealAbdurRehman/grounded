@@ -33,6 +33,9 @@ extends Resource
 ## How much the toe changes as the wheel moves up.
 @export_range(-30.0, 30.0, 0.5) var bump_steer_deg_per_m: float = 0.0
 
+## Tilt of the steering axis.
+@export_range(-12.0, 12.0, 0.1) var caster_deg: float = 5.0
+
 # Resists suspension bouncing.
 @export_group("Damper")
 ## Resists the wheel moving up.
@@ -40,6 +43,10 @@ extends Resource
 
 ## Resists the wheel dropping.
 @export var damper_rebound: float = 3000.0
+
+
+func caster_trail() -> float:
+	return wheel_radius * tan(deg_to_rad(caster_deg))
 
 
 func wheel_rate() -> float:

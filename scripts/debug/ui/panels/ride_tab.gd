@@ -6,6 +6,7 @@ const HISTORY_LENGTH: int = 240
 
 var _susp: Tuner
 var _alignment: Tuner
+var _steering: Tuner
 var _arb: Tuner
 
 var _sample_timer: float = 0.0
@@ -148,6 +149,26 @@ func _build() -> void:
 		],
 	)
 
+	_steering = Tuner.new(
+		"Steering axis",
+		func() -> Object:
+			return vehicle.wheel_fl.suspension_config,
+	)
+
+	_steering.group(
+		"",
+		[
+			Tuner.slider(
+				&"caster_deg",
+				"Caster",
+				-12.0,
+				12.0,
+				"%.1f deg",
+				"Tilt of the steering axis.",
+			)
+		],
+	)
+
 	_arb = Tuner.new(
 		"Anti-roll bars",
 		func() -> Object:
@@ -205,6 +226,7 @@ func draw() -> void:
 
 	_susp.draw(true)
 	_alignment.draw(true)
+	_steering.draw(true)
 	_arb.draw(true)
 
 	fit_end()
@@ -258,6 +280,7 @@ func _readouts() -> void:
 				_sag_color(front_mass * gravity / front.wheel_rate(), front.suspension_rest_length),
 				_sag_color(rear_mass * gravity / rear.wheel_rate(), rear.suspension_rest_length),
 			],
+			["Caster trail", "%.0f mm" % (front.caster_trail() * 1000.0), "-"],
 		],
 	)
 

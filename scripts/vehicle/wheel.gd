@@ -96,7 +96,10 @@ func _alignment_basis() -> Basis:
 	var camber := Basis(Vector3.FORWARD, _side * _design_camber_rad())
 	var toe := Basis(Vector3.UP, _side * _design_toe_rad())
 
-	return Basis(Vector3.UP, steer_angle_rad) * toe * camber
+	var caster: float = deg_to_rad(suspension_config.caster_deg)
+	var steering_axis := Vector3(0.0, cos(caster), sin(caster))
+
+	return Basis(steering_axis, steer_angle_rad) * toe * camber
 
 
 func _update_visual(delta: float) -> void:

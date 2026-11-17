@@ -8,10 +8,10 @@ extends Resource
 @export_range(-180.0, 180.0, 1.0) var wind_heading_deg: float = 90.0
 
 @export_group("Shifts")
-@export_range(0.0, 90.0, 1.0) var wander_deg: float = 20.0
+@export_range(0.0, 180.0, 1.0) var wander_deg: float = 180.0
 
 @export_range(0.0, 0.9, 0.05) var wander_speed_ratio: float = 0.3
-@export_range(5.0, 300.0, 1.0) var wander_time_s: float = 60.0
+@export_range(5.0, 3600.0, 1.0) var wander_time_s: float = 1800.0
 
 @export_group("Turbulence")
 ## How much the wind changes all the time.

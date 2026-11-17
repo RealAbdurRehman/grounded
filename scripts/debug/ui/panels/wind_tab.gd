@@ -34,9 +34,9 @@ func _build() -> void:
 	_weather.group(
 		"Shifts",
 		[
-			Tuner.slider(&"wander_deg", "Direction", 0.0, 90.0, "%.0f deg"),
+			Tuner.slider(&"wander_deg", "Direction", 0.0, 180.0, "%.0f deg"),
 			Tuner.slider(&"wander_speed_ratio", "Speed", 0.0, 0.9, "%.2f"),
-			Tuner.slider(&"wander_time_s", "Time", 5.0, 300.0, "%.0f s"),
+			Tuner.slider(&"wander_time_s", "Time", 5.0, 3600.0, "%.0f s"),
 		],
 	)
 

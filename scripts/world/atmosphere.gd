@@ -12,6 +12,9 @@ const GUST_SPEED_MPS: float = 15.0
 
 const GUST_LEAD_S: float = 4.0
 
+const WANDER_PERIODS: Array[float] = [1.0, 0.61, 0.37]
+const WANDER_WEIGHTS: Array[float] = [1.0, 0.6, 0.4]
+
 var config: AirConfig = preload("res://resources/air/default.tres")
 
 var time_s: float = 0.0
@@ -27,6 +30,9 @@ var _wave: PackedVector2Array = PackedVector2Array()
 var _weight: PackedFloat32Array = PackedFloat32Array()
 var _phase: PackedFloat32Array = PackedFloat32Array()
 var _drift: PackedFloat32Array = PackedFloat32Array()
+
+var _wander_clock: float = 0.0
+var _wander_phase: PackedFloat32Array = PackedFloat32Array()
 
 var _next_gust_s: float = INF
 var _scheduled_interval_s: float = 0.0
@@ -44,6 +50,7 @@ func _physics_process(delta: float) -> void:
 		_build_waves()
 
 	time_s += delta
+	_wander_clock += delta / maxf(config.wander_time_s, 1.0)
 
 	for i in range(gusts.size() - 1, -1, -1):
 		if time_s - gusts[i].start_s > GUST_LEAD_S + 6.0 + gusts[i].length_m / GUST_SPEED_MPS:
@@ -70,13 +77,21 @@ func unwatch(node: Node3D) -> void:
 	_watched.erase(node)
 
 
+func current_heading_deg() -> float:
+	return config.wind_heading_deg + config.wander_deg * _wander(0)
+
+
+func current_speed_mps() -> float:
+	return config.wind_speed_mps * maxf(1.0 + config.wander_speed_ratio * _wander(3), 0.0)
+
+
 func wind_direction() -> Vector2:
-	var heading: float = deg_to_rad(config.wind_heading_deg)
+	var heading: float = deg_to_rad(current_heading_deg())
 	return Vector2(-sin(heading), -cos(heading))
 
 
 func mean_wind() -> Vector2:
-	return wind_direction() * config.wind_speed_mps
+	return wind_direction() * current_speed_mps()
 
 
 func wind_at(position: Vector3) -> Vector3:
@@ -93,7 +108,7 @@ func turbulence_at(spot: Vector2) -> Vector2:
 	if config.turbulence_mps <= 0.0 or _wave.size() == 0:
 		return Vector2.ZERO
 
-	var carried: Vector2 = mean_wind()
+	var carried: Vector2 = _carried()
 	var slowness: float = 1.0 / maxf(config.turbulence_time_s, 0.1)
 
 	var along: float = 0.0
@@ -116,7 +131,7 @@ func trigger_gust(peak_mps: float = -1.0, heading_deg: float = NAN) -> void:
 	var peak: float = peak_mps if peak_mps >= 0.0 else config.gust_peak_mps
 	var random_gust: bool = is_nan(heading_deg)
 
-	var heading: float = config.wind_heading_deg
+	var heading: float = current_heading_deg()
 	if random_gust:
 		heading += _rng.randf_range(-config.gust_spread_deg, config.gust_spread_deg)
 	else:
@@ -153,7 +168,7 @@ func clear_gusts() -> void:
 
 
 func wave_data() -> Dictionary:
-	var carried: Vector2 = mean_wind()
+	var carried: Vector2 = _carried()
 	var slowness: float = 1.0 / maxf(config.turbulence_time_s, 0.1)
 
 	var waves := PackedVector4Array()
@@ -239,6 +254,25 @@ func _schedule_gust() -> void:
 	_next_gust_s = time_s - config.gust_interval_s * log(maxf(_rng.randf(), 0.0001))
 
 
+func _carried() -> Vector2:
+	var heading: float = deg_to_rad(config.wind_heading_deg)
+	return Vector2(-sin(heading), -cos(heading)) * config.wind_speed_mps
+
+
+func _wander(offset: int) -> float:
+	if _wander_phase.size() < offset + 3:
+		return 0.0
+
+	var total: float = 0.0
+	var weights: float = 0.0
+	for i in range(3):
+		var cycles: float = _wander_clock / WANDER_PERIODS[i]
+		total += WANDER_WEIGHTS[i] * sin(TAU * cycles + _wander_phase[offset + i])
+		weights += WANDER_WEIGHTS[i]
+
+	return total / weights
+
+
 func _build_waves() -> void:
 	_built_seed = config.random_seed
 
@@ -273,3 +307,7 @@ func _build_waves() -> void:
 
 		for i in range(MODE_COUNT):
 			_weight[first + i] /= sqrt(energy)
+
+	_wander_phase = PackedFloat32Array()
+	for i in range(6):
+		_wander_phase.append(_rng.randf() * TAU)

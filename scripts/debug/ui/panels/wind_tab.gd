@@ -32,6 +32,15 @@ func _build() -> void:
 	)
 
 	_weather.group(
+		"Shifts",
+		[
+			Tuner.slider(&"wander_deg", "Direction", 0.0, 90.0, "%.0f deg"),
+			Tuner.slider(&"wander_speed_ratio", "Speed", 0.0, 0.9, "%.2f"),
+			Tuner.slider(&"wander_time_s", "Time", 5.0, 300.0, "%.0f s"),
+		],
+	)
+
+	_weather.group(
 		"Turbulence",
 		[
 			Tuner.slider(
@@ -140,6 +149,12 @@ func _bars() -> void:
 
 func _details() -> void:
 	var aero: Aero = vehicle.aero
+
+	Widgets.key_value(
+		"Wind now",
+		"%.1f m/s at %.0f deg"
+		% [Atmosphere.current_speed_mps(), wrapf(Atmosphere.current_heading_deg(), -180.0, 180.0)],
+	)
 
 	Widgets.key_value("Air angle", "%.1f deg" % aero.flow_angle_deg)
 	Widgets.key_value("Airspeed", "%.0f km/h" % (aero.airspeed_mps * 3.6))

@@ -41,7 +41,11 @@ func _process(_delta: float) -> void:
 	_material.set_shader_parameter("u_gust_scale", maxf(air.gust_peak_mps, 4.0))
 	_material.set_shader_parameter(
 		"u_speed_scale",
-		maxf(air.wind_speed_mps + air.turbulence_mps * 2.0 + air.gust_peak_mps, 10.0),
+		maxf(
+			air.wind_speed_mps * (1.0 + air.wander_speed_ratio)
+			+ air.turbulence_mps * 2.0 + air.gust_peak_mps,
+			10.0,
+		),
 	)
 
 	_material.set_shader_parameter("u_center", Vector2(global_position.x, global_position.z))

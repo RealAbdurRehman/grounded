@@ -189,10 +189,10 @@ func _draw_vectors(
 	front_point: Vector3,
 	rear_point: Vector3,
 ) -> void:
-	var debug_scale: float = 1.0 / 3500.0
+	var debug_scale: float = 1.0 / 2000.0
 
 	var origin: Vector3 = _vehicle.global_position
-	var above: Vector3 = -down * 1.2
+	var above: Vector3 = -down
 
 	DebugDraw3D.draw_vector(
 		origin + basis * front_point + above,

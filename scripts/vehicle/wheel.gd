@@ -59,6 +59,8 @@ var steering_torque_nm: float = 0.0
 var _stick_x: float = 0.0
 var _stick_fx: float = 0.0
 
+var _stick_y: float = 0.0
+
 var _prev_displacement: float = -1.0
 var _spin_angle: float = 0.0
 
@@ -192,6 +194,9 @@ func update_wheel(
 	var fz: float = normal_load_n
 	grip_limit_n = tire_model.peak_force_n(fz) * friction_coef
 
+	var mass_share: float = chassis.mass * 0.25
+	var hold_fy: float = _lateral_hold(delta, v_lat, v_long, fz, lean, mass_share)
+
 	var alpha: float = atan2(-v_lat, maxf(speed_long, tire_model.slip_speed_floor))
 
 	var speed_denominator: float = maxf(speed_long, tire_model.slip_speed_floor)
@@ -200,7 +205,7 @@ func update_wheel(
 	var f_now: Vector2 = tire_model.compute_forces(
 		kappa_now,
 		alpha,
-		v_lat,
+		hold_fy,
 		speed_long,
 		fz,
 		friction_coef,
@@ -211,7 +216,7 @@ func update_wheel(
 	var f_step: Vector2 = tire_model.compute_forces(
 		kappa_now + kappa_step,
 		alpha,
-		v_lat,
+		hold_fy,
 		speed_long,
 		fz,
 		friction_coef,
@@ -230,8 +235,6 @@ func update_wheel(
 	)
 
 	w_new = move_toward(w_new, 0.0, delta * brake_torque_nm / implicit_inertia)
-
-	var mass_share: float = chassis.mass * 0.25
 
 	is_stuck = _update_stick(
 		delta,
@@ -253,7 +256,7 @@ func update_wheel(
 	var f_final: Vector2 = tire_model.compute_forces(
 		kappa_new,
 		alpha,
-		v_lat,
+		hold_fy,
 		speed_long,
 		fz,
 		friction_coef,
@@ -267,7 +270,9 @@ func update_wheel(
 	var fy: float = f_final.y
 
 	if absf(v_lat) > 0.0001 and fy * v_lat < 0.0:
-		fy = fy * mass_share * absf(v_lat) / (mass_share * absf(v_lat) + delta * absf(fy))
+		var momentum: float = mass_share * absf(v_lat)
+		var limited: float = fy * momentum / (momentum + delta * absf(fy))
+		fy = lerpf(fy, limited, tire_model.curve_weight(speed_long))
 
 	var wheel_surface_speed: float = absf(angular_velocity_rad_s * radius)
 	if (
@@ -277,28 +282,6 @@ func update_wheel(
 		fx = fx * mass_share * speed_long / (mass_share * speed_long + delta * absf(fx))
 
 	fx += -rolling_resistance_coef * fz * clampf(v_long / 0.5, -1.0, 1.0)
-
-	var gravity_dir: Vector3 = ProjectSettings.get_setting("physics/3d/default_gravity_vector")
-	var gravity_strength: float = ProjectSettings.get_setting("physics/3d/default_gravity")
-	var gravity: Vector3 = gravity_dir * gravity_strength * chassis.gravity_scale
-
-	var gravity_tangent: Vector3 = gravity - (contact_normal * gravity.dot(contact_normal))
-	var expected_normal_load: float = chassis.mass * absf(gravity.dot(contact_normal))
-	var load_share: float = clampf(fz / maxf(expected_normal_load, 1.0), 0.0, 1.0)
-
-	var tangent_velocity: Vector3 = (
-		contact_velocity - contact_normal * contact_velocity.dot(contact_normal)
-	)
-	var static_blend: float = 1.0 - smoothstep(
-		0.05,
-		tire_model.static_lateral_hold_speed,
-		tangent_velocity.length(),
-	)
-
-	var static_lateral_force: float = (
-		-gravity_tangent * chassis.mass * load_share
-	).dot(wheel_right)
-	fy += static_lateral_force * static_blend
 
 	var combined_force: Vector2 = tire_model.project_to_friction_ellipse(
 		Vector2(fx, fy),
@@ -351,6 +334,31 @@ func update_wheel(
 		Color.BLUE,
 		chassis,
 	)
+
+
+func _lateral_hold(
+	delta: float,
+	v_lat: float,
+	v_long: float,
+	fz: float,
+	lean: float,
+	mass_share: float,
+) -> float:
+	var peak: float = tire_model.peak_lateral_force_n(fz, friction_coef, lean)
+	if peak <= 1.0:
+		_stick_y = 0.0
+		return 0.0
+
+	var reach: float = maxf(tire_model.stick_deflection_m, peak * delta * delta / mass_share)
+	var stiffness: float = peak / reach
+
+	var damping: float = 2.0 * tire_model.stick_damping_ratio * sqrt(stiffness * mass_share)
+	damping = minf(damping, 0.9 * mass_share / delta)
+
+	var fade: float = absf(v_long) * delta / maxf(tire_model.relaxation_length_m(), 0.01)
+	_stick_y = clampf((_stick_y + v_lat * delta) / (1.0 + fade), -reach, reach)
+
+	return clampf(-(stiffness * _stick_y + damping * v_lat), -peak, peak)
 
 
 func _update_stick(
@@ -418,6 +426,8 @@ func _handle_airborne(
 	steering_torque_nm = 0.0
 
 	_prev_displacement = -1.0
+
+	_stick_y = 0.0
 
 	var T_bearing: float = -signf(angular_velocity_rad_s) * minf(
 		absf(angular_velocity_rad_s) * 0.5,

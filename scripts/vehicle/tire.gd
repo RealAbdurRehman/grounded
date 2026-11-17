@@ -53,14 +53,8 @@ extends Resource
 @export_group("Low Speed Handling")
 @export var slip_speed_floor: float = 1.0
 
-## Below this speed a simpler lateral model is used. In meters per second.
 @export var low_speed_start: float = 1.0
-
-## Below this speed, a simpler grip model is used to stop the car from vibrating. In meters per second.
 @export var low_speed_threshold: float = 3.0
-
-@export var low_speed_lat_saturation: float = 0.5
-@export var static_lateral_hold_speed: float = 0.5
 
 @export_group("Aligning Moment")
 ## Strength of steering self centering force.
@@ -193,6 +187,18 @@ func compute_fx(slip_ratio: float, fz: float) -> float:
 	return _pacejka(slip_ratio, long_B, long_C, D_scaled, long_E)
 
 
+func curve_weight(speed_long: float) -> float:
+	return smoothstep(
+		low_speed_start,
+		maxf(low_speed_threshold, low_speed_start + 0.01),
+		speed_long,
+	)
+
+
+func relaxation_length_m() -> float:
+	return lat_B * lat_C * stick_deflection_m
+
+
 ## Lateral force
 func compute_fy(slip_angle_rad: float, fz: float) -> float:
 	if fz <= 0.0:
@@ -210,7 +216,7 @@ func compute_combined(slip_ratio: float, slip_angle_rad: float, fz: float) -> Ve
 func compute_forces(
 	slip_ratio: float,
 	slip_angle_rad: float,
-	v_lat: float,
+	hold_fy: float,
 	speed_long: float,
 	fz: float,
 	grip_scale: float = 1.0,
@@ -238,13 +244,7 @@ func compute_forces(
 	var shifted_angle: float = slip_angle_rad + camber_stiffness_ratio * lean_rad
 	var fy_curve: float = _pacejka(shifted_angle, lat_B, lat_C, peak_y * lat_scale, lat_E)
 
-	var fy_low: float = -peak_y * clampf(v_lat / maxf(low_speed_lat_saturation, 0.01), -1.0, 1.0)
-	var blend: float = smoothstep(
-		low_speed_start,
-		maxf(low_speed_threshold, low_speed_start + 0.01),
-		speed_long,
-	)
-	var fy: float = lerpf(fy_low, fy_curve, blend)
+	var fy: float = lerpf(hold_fy, fy_curve, curve_weight(speed_long))
 
 	var ellipse_sq: float = (fx / peak_x) * (fx / peak_x) + (fy / peak_y) * (fy / peak_y)
 	if ellipse_sq > 1.0:

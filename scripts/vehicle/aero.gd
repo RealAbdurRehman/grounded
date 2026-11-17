@@ -222,4 +222,4 @@ func _draw_vectors(
 		_vehicle,
 	)
 
-	DebugDraw3D.draw_vector(origin + Vector3(0.0, 2.0, 0.0), wind_mps * 0.25, WIND_COLOR, _vehicle)
+	DebugDraw3D.draw_vector(origin + Vector3(0.0, 1.25, 0.0), wind_mps * 0.25, WIND_COLOR, _vehicle)

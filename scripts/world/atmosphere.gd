@@ -58,10 +58,9 @@ func _physics_process(delta: float) -> void:
 
 
 func watch(node: Node3D) -> void:
-	_watched = _watched.filter(
-		func(other: Node3D) -> bool:
-			return is_instance_valid(other),
-	)
+	for i in range(_watched.size() - 1, -1, -1):
+		if not is_instance_valid(_watched[i]):
+			_watched.remove_at(i)
 
 	if not _watched.has(node):
 		_watched.append(node)

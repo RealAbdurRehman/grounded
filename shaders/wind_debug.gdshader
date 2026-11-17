@@ -1,9 +1,10 @@
 shader_type spatial;
 render_mode unshaded, blend_mix, depth_draw_never, cull_disabled;
 
-const int WAVES = 16;
 const int HALF = 8;
 const int GUSTS = 4;
+
+const float PULSE_RATE = 0.7;
 
 uniform float u_time;
 
@@ -92,15 +93,19 @@ void fragment() {
 	float heat = clamp(strength / u_speed_scale, 0.0, 1.0);
 
 	vec3 calm = vec3(0.20, 0.70, 1.00);
+	vec3 middle_color = vec3(1.00, 1.00, 1.00);
 	vec3 strong = vec3(1.00, 0.32, 0.12);
-	vec3 color = mix(calm, strong, heat);
+
+	vec3 color = heat < 0.5
+		? mix(calm, middle_color, heat * 2.0)
+		: mix(middle_color, strong, heat * 2.0 - 1.0);
 
 	float alpha = 0.0;
 
 	float glow = clamp(length(gust_here) / u_gust_scale, 0.0, 1.0);
 	vec3 glow_color = vec3(1.00, 0.80, 0.30);
 
-	if (strength > 0.25) {
+	if (strength > 0.05) {
 		vec2 direction = wind / strength;
 		vec2 side = vec2(-direction.y, direction.x);
 
@@ -119,10 +124,10 @@ void fragment() {
 		float wing = (1.0 - smoothstep(tip * head * 0.45 - 0.03, tip * head * 0.45, abs(b)))
 			* step(half_length - head, a) * step(a, half_length);
 
-		float flow = fract((a + half_length) / (half_length * 2.0) - u_time * (0.4 + heat * 0.8));
-		float pulse = 0.35 + 0.65 * flow;
+		float flow = (a + half_length) / (half_length * 2.0) - u_time * PULSE_RATE;
+		float pulse = 0.65 + 0.35 * cos(6.2831853 * flow);
 
-		alpha = max(body * pulse, wing);
+				alpha = max(body * pulse, wing) * smoothstep(0.1, 0.5, strength);
 	}
 
 	vec3 final_color = mix(color, glow_color, glow * 0.6);

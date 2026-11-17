@@ -8,7 +8,7 @@ extends Resource
 @export_range(-180.0, 180.0, 1.0) var wind_heading_deg: float = 90.0
 
 @export_group("Turbulence")
-## How bumpy the wind is.
+## How much the wind changes all the time.
 @export_range(0.0, 15.0, 0.1) var turbulence_mps: float = 0.0
 
 @export_range(0.5, 20.0, 0.5) var turbulence_time_s: float = 4.0
@@ -22,7 +22,7 @@ extends Resource
 ## How far a gust can turn away from the wind direction.
 @export_range(0.0, 90.0, 1.0) var gust_spread_deg: float = 45.0
 
-@export_range(10.0, 200.0, 1.0) var gust_width_meter: float = 60.0
+@export_range(10.0, 200.0, 1.0) var gust_width_m: float = 60.0
 
 ## 0 means different every time.
 @export var random_seed: int = 0

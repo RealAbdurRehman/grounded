@@ -12,7 +12,7 @@ extends Resource
 
 @export_group("Crosswind")
 ## How hard air pushes the car sideways.
-@export_range(0.0, 4.0, 0.05) var side_force_coefficient: float = 2.0
+@export_range(0.0, 4.0, 0.05) var side_force_coefficient: float = 2.5
 
 ## How much the air resistance grows when the air hits the car at an angle.
 @export_range(0.0, 3.0, 0.05) var drag_yaw_gain: float = 0.0

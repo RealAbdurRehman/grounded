@@ -3,6 +3,7 @@ extends RefCounted
 
 const DOWNFORCE_COLOR := Color(0.70, 0.45, 1.00)
 const DRAG_COLOR := Color(1.00, 0.62, 0.20)
+const WIND_COLOR := Color(0.35, 0.85, 1.00)
 
 const GROUND_EFFECT_MIN: float = 0.4
 const GROUND_EFFECT_MAX: float = 1.6
@@ -15,6 +16,15 @@ var flow_angle_deg: float = 0.0
 
 var drag_n: float = 0.0
 var induced_drag_n: float = 0.0
+
+var force_long_n: float = 0.0
+var force_side_n: float = 0.0
+
+var yaw_moment_nm: float = 0.0
+
+var wind_mps: Vector3 = Vector3.ZERO
+var headwind_mps: float = 0.0
+var crosswind_mps: float = 0.0
 
 var downforce_front_n: float = 0.0
 var downforce_rear_n: float = 0.0
@@ -33,6 +43,7 @@ var _rear_local: Vector3 = Vector3.ZERO
 
 func _init(vehicle: Vehicle) -> void:
 	_vehicle = vehicle
+	Atmosphere.watch(vehicle)
 
 	var fl: Vector3 = vehicle.to_local(vehicle.wheel_fl.global_position)
 	var fr: Vector3 = vehicle.to_local(vehicle.wheel_fr.global_position)
@@ -59,23 +70,41 @@ func apply() -> void:
 	var config: AeroConfig = _vehicle.aero_config
 	var basis: Basis = _vehicle.global_transform.basis.orthonormalized()
 
-	var velocity: Vector3 = _vehicle.linear_velocity
-	var speed: float = velocity.length()
+	var forward: Vector3 = -basis.z
+	var right: Vector3 = basis.x
+	var up: Vector3 = basis.y
+
+	var center_of_mass: Vector3 = _vehicle.center_of_mass
 	var half_density: float = 0.5 * Atmosphere.config.air_density
+
+	wind_mps = Atmosphere.wind_at(_vehicle.to_global(center_of_mass))
+	headwind_mps = -wind_mps.dot(forward)
+	crosswind_mps = -wind_mps.dot(right)
+
+	var air: Vector3 = wind_mps - _vehicle.linear_velocity
+	var speed: float = air.length()
+
+	var along: float = air.dot(forward)
+	var across: float = air.dot(right)
+	var over: float = air.dot(up)
 
 	airspeed_mps = speed
 	dynamic_pressure_pa = half_density * speed * speed
-
-	var along: float = velocity.dot(-basis.z)
-	var across: float = velocity.dot(basis.x)
 	flow_angle_deg = rad_to_deg(atan2(absf(across), absf(along)))
 
-	var drag_force: Vector3 = (
-		-velocity * speed * half_density * config.drag_coefficient * config.frontal_area
-	)
+	var slant: float = 0.0
+	if speed > 0.01:
+		slant = across * across / (speed * speed)
 
-	var forward_speed: float = maxf(along, 0.0)
-	var base_force: float = half_density * forward_speed * forward_speed * (
+	var drag_area: float = half_density * config.drag_coefficient * config.frontal_area
+	var yaw_gain: float = 1.0 + config.drag_yaw_gain * slant
+
+	force_long_n = drag_area * yaw_gain * speed * along
+	force_side_n = half_density * config.side_force_coefficient * config.frontal_area * speed * across
+	var force_up: float = drag_area * speed * over
+
+	var head_on: float = maxf(-along, 0.0)
+	var base_force: float = half_density * head_on * head_on * (
 		config.downforce_coefficient * config.frontal_area
 	)
 
@@ -94,22 +123,44 @@ func apply() -> void:
 	)
 
 	if speed > 0.01:
-		drag_force -= velocity / speed * induced_drag_n
+		force_long_n += induced_drag_n * along / speed
+		force_side_n += induced_drag_n * across / speed
 
-	drag_n = drag_force.length()
+		force_up += induced_drag_n * over / speed
 
-	var center_of_mass: Vector3 = _vehicle.center_of_mass
+	drag_n = absf(force_long_n)
+	yaw_moment_nm = -config.center_of_pressure_m * force_side_n
+
 	var drag_point: Vector3 = center_of_mass + Vector3(0.0, config.drag_height_m, 0.0)
+	var drag_force: Vector3 = forward * force_long_n + up * force_up
 	_vehicle.apply_force(drag_force, basis * drag_point)
 
-	var down: Vector3 = -basis.y
+	var push_point: Vector3 = center_of_mass + Vector3(
+		0.0,
+		config.side_force_height_m,
+		-config.center_of_pressure_m,
+	)
+
+	var side_force: Vector3 = right * force_side_n
+	_vehicle.apply_force(side_force, basis * push_point)
+
+	var down: Vector3 = -up
 	var front_point := Vector3(_front_local.x, center_of_mass.y, _front_local.z)
 	var rear_point := Vector3(_rear_local.x, center_of_mass.y, _rear_local.z)
 
 	_vehicle.apply_force(down * downforce_front_n, basis * front_point)
 	_vehicle.apply_force(down * downforce_rear_n, basis * rear_point)
 
-	_draw_vectors(basis, down, drag_force, drag_point, front_point, rear_point)
+	_draw_vectors(
+		basis,
+		down,
+		drag_force,
+		drag_point,
+		side_force,
+		push_point,
+		front_point,
+		rear_point,
+	)
 
 
 func _ground_effect(left: Wheel, right: Wheel, config: AeroConfig) -> float:
@@ -133,10 +184,13 @@ func _draw_vectors(
 	down: Vector3,
 	drag_force: Vector3,
 	drag_point: Vector3,
+	side_force: Vector3,
+	push_point: Vector3,
 	front_point: Vector3,
 	rear_point: Vector3,
 ) -> void:
 	var debug_scale: float = 1.0 / 3500.0
+
 	var origin: Vector3 = _vehicle.global_position
 	var above: Vector3 = -down * 1.2
 
@@ -160,3 +214,12 @@ func _draw_vectors(
 		DRAG_COLOR,
 		_vehicle,
 	)
+
+	DebugDraw3D.draw_vector(
+		origin + basis * push_point,
+		side_force * debug_scale,
+		WIND_COLOR,
+		_vehicle,
+	)
+
+	DebugDraw3D.draw_vector(origin + Vector3(0.0, 2.0, 0.0), wind_mps * 0.25, WIND_COLOR, _vehicle)

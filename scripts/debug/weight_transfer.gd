@@ -138,9 +138,8 @@ func _update_prediction() -> void:
 	var front_static: float = weight * cg_to_rear / safe_wheelbase + aero.downforce_front_n
 	var rear_static: float = weight * cg_to_front / safe_wheelbase + aero.downforce_rear_n
 
-	var forward_speed: float = vehicle.linear_velocity.dot(-vehicle.global_transform.basis.z)
 	var drag_height: float = cg_height + vehicle.aero_config.drag_height_m
-	var dw_drag: float = signf(forward_speed) * aero.drag_n * drag_height / safe_wheelbase
+	var dw_drag: float = -aero.force_long_n * drag_height / safe_wheelbase
 
 	var dw_long: float = m * accel_long * cg_height / safe_wheelbase - dw_drag
 	var front_axle: float = maxf(front_static - dw_long, 0.0)

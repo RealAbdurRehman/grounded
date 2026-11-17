@@ -41,6 +41,44 @@ func _build() -> void:
 	)
 
 	_aero.group(
+		"Crosswind",
+		[
+			Tuner.slider(
+				&"side_force_coefficient",
+				"Side push",
+				0.0,
+				4.0,
+				"%.2f",
+				"How hard air pushes the car sideways.",
+			),
+			Tuner.slider(
+				&"drag_yaw_gain",
+				"Angled drag",
+				0.0,
+				3.0,
+				"%.2f",
+				"How much the air resistance grows when the air hits the car at an angle.",
+			),
+			Tuner.slider(
+				&"center_of_pressure_m",
+				"Push point",
+				-1.5,
+				1.5,
+				"%.2f m",
+				"How far ahead of the center of mass the sideways push acts.",
+			),
+			Tuner.slider(
+				&"side_force_height_m",
+				"Push height",
+				-0.5,
+				1.0,
+				"%.2f m",
+				"How high above the center of mass the sideways push acts.",
+			),
+		],
+	)
+
+	_aero.group(
 		"Downforce",
 		[
 			Tuner.slider(
@@ -123,7 +161,7 @@ func _summary() -> void:
 	Widgets.stat_row(
 		"aero_stats",
 		[
-			["Speed", "%.0f km/h" % (aero.airspeed_mps * 3.6)],
+			["Airspeed", "%.0f km/h" % (aero.airspeed_mps * 3.6)],
 			["Downforce" if total >= 0.0 else "Lift", "%.0f N" % absf(total), _force_color(total)],
 			["Drag", "%.0f N" % aero.drag_n, DRAG_COLOR],
 		],

@@ -118,6 +118,22 @@ func _build() -> void:
 				"%.2f",
 				"How hard the wheel is to spin up.",
 			),
+			Tuner.slider(
+				&"unsprung_mass",
+				"Hub weight",
+				10.0,
+				80.0,
+				"%.0f",
+				"Weight of the wheel and brake. Affects how bumps move the wheel.",
+			),
+			Tuner.slider(
+				&"tire_stiffness",
+				"Tire stiffness",
+				60000.0,
+				400000.0,
+				"%.0f",
+				"## How stiff the tire is when squashed.",
+			),
 		],
 	)
 

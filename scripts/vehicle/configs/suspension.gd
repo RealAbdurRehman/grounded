@@ -8,6 +8,13 @@ extends Resource
 ## How hard it is to spin the wheel.
 @export var wheel_inertia: float = 1.2
 
+@export_group("Tire and Hub")
+## Weight of the wheel and brake. Affects how bumps move the wheel.
+@export var unsprung_mass: float = 35.0
+
+## How stiff the tire is when squashed.
+@export var tire_stiffness: float = 190000.0
+
 @export_group("Spring")
 @export var spring_stiffness: float = 24000.0
 

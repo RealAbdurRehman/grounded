@@ -65,7 +65,10 @@ var _stick_fx: float = 0.0
 
 var _stick_y: float = 0.0
 
-var _prev_displacement: float = -1.0
+var _hub_speed: float = 0.0
+var _tire_squash: float = 0.0
+var _hub_started: bool = false
+
 var _spin_angle: float = 0.0
 
 var _side: float = 0.0
@@ -125,6 +128,7 @@ func update_wheel(
 		_side = 1.0 if chassis.to_local(global_position).x >= 0.0 else -1.0
 
 	is_grounded = _ground.find(self, chassis, suspension_config, collision_mask)
+	_step_hub(delta)
 
 	var radius: float = suspension_config.wheel_radius
 	var base_inertia: float = suspension_config.wheel_inertia
@@ -141,22 +145,16 @@ func update_wheel(
 	contact_point = _ground.contact_point
 	contact_normal = _ground.contact_normal
 
-	spring_displacement = _ground.displacement
 	compression = spring_displacement / rest_len
-
-	if _prev_displacement < 0.0:
-		_prev_displacement = spring_displacement
-
-	var compression_speed: float = (spring_displacement - _prev_displacement) / max(delta, 0.0001)
-	_prev_displacement = spring_displacement
 
 	var f_spring: float = (
 		k_spring * spring_displacement + suspension_config.bump_stop_force(spring_displacement)
 	)
 
-	var f_damper: float = suspension_config.damper_force(compression_speed)
-	suspension_force_n = max(0.0, f_spring + f_damper)
-	normal_load_n = maxf(0.0, suspension_force_n + arb_force_n)
+	var f_damper: float = suspension_config.damper_force(_hub_speed)
+	suspension_force_n = maxf(0.0, f_spring + f_damper + arb_force_n)
+
+	normal_load_n = suspension_config.tire_stiffness * _tire_squash
 
 	var wheel_basis: Basis = chassis.global_transform.basis * _alignment_basis()
 
@@ -294,9 +292,12 @@ func update_wheel(
 	slip_ratio = kappa_new
 	slip_angle_rad = alpha
 
+	var strut_up: Vector3 = global_transform.basis.orthonormalized().y
+	var strut_extra_n: float = suspension_force_n - normal_load_n
+
 	var total_force: Vector3 = (
-		(contact_normal * normal_load_n) + (wheel_forward * longitudinal_force_n)
-		+ (wheel_right * lateral_force_n)
+		(contact_normal * normal_load_n) + (strut_up * strut_extra_n)
+		+ (wheel_forward * longitudinal_force_n) + (wheel_right * lateral_force_n)
 	)
 	chassis.apply_force(total_force, contact_point - chassis.global_position)
 
@@ -322,6 +323,50 @@ func update_wheel(
 		Color.BLUE,
 		chassis,
 	)
+
+
+func _step_hub(delta: float) -> void:
+	var config: SuspensionConfig = suspension_config
+
+	if not _hub_started:
+		_hub_started = true
+		spring_displacement = _ground.displacement if is_grounded else 0.0
+
+	var squash: float = 0.0
+	if is_grounded:
+		squash = maxf(_ground.displacement - spring_displacement, 0.0)
+
+	var tire_force: float = config.tire_stiffness * squash
+	var spring_force: float = (
+		config.wheel_rate() * spring_displacement
+		+ config.bump_stop_force(spring_displacement) + arb_force_n
+	)
+
+	var damper_rate: float = config.wheel_bump()
+	if absf(_hub_speed) > 0.001:
+		damper_rate = config.damper_force(_hub_speed) / _hub_speed
+
+	var mass: float = maxf(config.unsprung_mass, 1.0)
+	var speed: float = (
+		(_hub_speed + delta * (tire_force - spring_force) / mass)
+		/ (1.0 + delta * damper_rate / mass)
+	)
+	var displacement: float = spring_displacement + delta * speed
+
+	var travel: float = config.suspension_rest_length
+	if displacement < 0.0:
+		displacement = 0.0
+		speed = maxf(speed, 0.0)
+	elif displacement > travel:
+		displacement = travel
+		speed = minf(speed, 0.0)
+
+	spring_displacement = displacement
+	_hub_speed = speed
+
+	_tire_squash = 0.0
+	if is_grounded:
+		_tire_squash = maxf(_ground.displacement - displacement, 0.0)
 
 
 func _lateral_hold(
@@ -395,8 +440,7 @@ func _handle_airborne(
 	is_stuck = false
 	is_locked = false
 
-	compression = 0.0
-	spring_displacement = 0.0
+	compression = spring_displacement / suspension_config.suspension_rest_length
 
 	suspension_force_n = 0.0
 	normal_load_n = 0.0
@@ -412,8 +456,6 @@ func _handle_airborne(
 	pneumatic_trail_m = 0.0
 	aligning_torque_nm = 0.0
 	steering_torque_nm = 0.0
-
-	_prev_displacement = -1.0
 
 	_stick_y = 0.0
 

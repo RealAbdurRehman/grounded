@@ -1,9 +1,13 @@
 class_name Wheel
-extends RayCast3D
+extends Node3D
 
 @export var suspension_config: SuspensionConfig
 
 @export var tire_model: Tire
+
+@export_group("Ground")
+## What the wheel can drive on.
+@export_flags_3d_physics var collision_mask: int = 1
 
 @export_group("Wheel")
 @export var is_front: bool = false
@@ -67,21 +71,12 @@ var _spin_angle: float = 0.0
 var _side: float = 0.0
 var _mesh_rest: Basis = Basis.IDENTITY
 
+var _ground: GroundProbe = GroundProbe.new()
+
 
 func _ready() -> void:
-	_update_ray_length()
-
-	enabled = true
-	exclude_parent = true
-
 	if visual_mesh:
 		_mesh_rest = visual_mesh.basis
-
-
-func _update_ray_length() -> void:
-	var length: float = suspension_config.suspension_rest_length + suspension_config.wheel_radius
-	if not is_equal_approx(-target_position.y, length):
-		target_position = Vector3(0.0, -length, 0.0)
 
 
 func _design_camber_rad() -> float:
@@ -129,9 +124,7 @@ func update_wheel(
 	if _side == 0.0:
 		_side = 1.0 if chassis.to_local(global_position).x >= 0.0 else -1.0
 
-	_update_ray_length()
-	force_raycast_update()
-	is_grounded = is_colliding()
+	is_grounded = _ground.find(self, chassis, suspension_config, collision_mask)
 
 	var radius: float = suspension_config.wheel_radius
 	var base_inertia: float = suspension_config.wheel_inertia
@@ -148,12 +141,10 @@ func update_wheel(
 		_handle_airborne(delta, drive_torque_nm, brake_torque_nm, inertia)
 		return
 
-	contact_point = get_collision_point()
-	contact_normal = get_collision_normal()
-	var hit_dist: float = (contact_point - global_position).length()
+	contact_point = _ground.contact_point
+	contact_normal = _ground.contact_normal
 
-	var total_length: float = rest_len + radius
-	spring_displacement = clamp(total_length - hit_dist, 0.0, rest_len)
+	spring_displacement = _ground.displacement
 	compression = spring_displacement / rest_len
 
 	if _prev_displacement < 0.0:

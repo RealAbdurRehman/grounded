@@ -93,6 +93,7 @@ func _build() -> void:
 		"Wheel",
 		[
 			Tuner.slider(&"wheel_radius", "Wheel radius", 0.2, 0.5, "%.2f", "In m."),
+			Tuner.slider(&"wheel_width", "Wheel width", 0.1, 0.4, "%.2f", "In m."),
 			Tuner.slider(
 				&"wheel_inertia",
 				"Wheel inertia",

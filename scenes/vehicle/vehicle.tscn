@@ -44,7 +44,7 @@ script = ExtResource("3_cs81w")
 
 [node name="Wheels" type="Node3D" parent="." unique_id=2027221242]
 
-[node name="WheelFL" type="RayCast3D" parent="Wheels" unique_id=1185262635]
+[node name="WheelFL" type="Node3D" parent="Wheels" unique_id=796668443]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.8, 0.25, -1.35)
 script = ExtResource("2_2aj0h")
 suspension_config = ExtResource("5_1bgs2")
@@ -56,7 +56,7 @@ is_driven = false
 transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
 mesh = SubResource("CylinderMesh_8rti0")
 
-[node name="WheelFR" type="RayCast3D" parent="Wheels" unique_id=1065968054]
+[node name="WheelFR" type="Node3D" parent="Wheels" unique_id=922442114]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.8, 0.25, -1.35)
 script = ExtResource("2_2aj0h")
 suspension_config = ExtResource("5_1bgs2")
@@ -68,7 +68,7 @@ is_driven = false
 transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
 mesh = SubResource("CylinderMesh_8rti0")
 
-[node name="WheelRL" type="RayCast3D" parent="Wheels" unique_id=136557973]
+[node name="WheelRL" type="Node3D" parent="Wheels" unique_id=398066511]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.8, 0.25, 1.35)
 script = ExtResource("2_2aj0h")
 suspension_config = ExtResource("7_1bgs2")
@@ -78,7 +78,7 @@ tire_model = ExtResource("6_rear")
 transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 0, 0, 0)
 mesh = SubResource("CylinderMesh_8rti0")
 
-[node name="WheelRR" type="RayCast3D" parent="Wheels" unique_id=834798633]
+[node name="WheelRR" type="Node3D" parent="Wheels" unique_id=669380842]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.8, 0.25, 1.35)
 script = ExtResource("2_2aj0h")
 suspension_config = ExtResource("7_1bgs2")

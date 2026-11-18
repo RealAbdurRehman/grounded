@@ -2,8 +2,8 @@ class_name SuspensionConfig
 extends Resource
 
 @export_group("Wheel Geometry")
-## Size of the wheel, in meters.
 @export var wheel_radius: float = 0.31
+@export var wheel_width: float = 0.22
 
 ## How hard it is to spin the wheel.
 @export var wheel_inertia: float = 1.2

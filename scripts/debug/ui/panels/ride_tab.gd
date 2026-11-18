@@ -86,6 +86,22 @@ func _build() -> void:
 				"%.0f",
 				"Resists the wheel dropping. Usually higher than bump.",
 			),
+			Tuner.slider(
+				&"damper_knee_speed",
+				"Gives way at",
+				0.05,
+				3.0,
+				"%.2f m/s",
+				"Speed where damper softens.",
+			),
+			Tuner.slider(
+				&"damper_knee_ratio",
+				"Left above that",
+				0.0,
+				1.0,
+				"%.2f",
+				"Damper strength remaining after softening.",
+			),
 		],
 	)
 

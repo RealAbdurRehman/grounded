@@ -52,6 +52,12 @@ extends Resource
 ## Resists the wheel dropping.
 @export var damper_rebound: float = 3000.0
 
+## Speed where damper softens.
+@export_range(0.05, 3.0, 0.05) var damper_knee_speed: float = 1.5
+
+## Damper strength remaining after softening.
+@export_range(0.05, 1.0, 0.05) var damper_knee_ratio: float = 0.5
+
 
 func caster_trail() -> float:
 	return wheel_radius * tan(deg_to_rad(caster_deg))
@@ -67,6 +73,17 @@ func bump_stop_force(displacement: float) -> float:
 	var over: float = maxf(displacement - start, 0.0)
 
 	return bump_stop_stiffness * motion_ratio * motion_ratio * over * over / span
+
+
+func damper_force(speed: float) -> float:
+	var pace: float = absf(speed)
+	var effective: float = (
+		minf(pace, damper_knee_speed) + maxf(pace - damper_knee_speed, 0.0) * damper_knee_ratio
+	)
+
+	var rate: float = wheel_bump() if speed > 0.0 else wheel_rebound()
+
+	return signf(speed) * rate * effective
 
 
 func wheel_bump() -> float:

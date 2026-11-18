@@ -54,8 +54,12 @@ func get_current_ratio() -> float:
 	return config.gear_ratios[current_gear_index]
 
 
+func is_in_gear() -> bool:
+	return config.gear_ratios[current_gear_index] != 0.0
+
+
 func is_clutch_engaged() -> bool:
-	return (not is_shifting) and (config.gear_ratios[current_gear_index] != 0.0)
+	return (not is_shifting) and is_in_gear()
 
 
 func get_gear_name() -> String:

@@ -55,6 +55,14 @@ extends Resource
 @export var front_brakes: BrakeConfig
 @export var rear_brakes: BrakeConfig
 
+@export_group("Gear Hold")
+## Speed below which a car in gear with no throttle is held still.
+@export_range(0.05, 1.0, 0.05) var gear_hold_speed: float = 0.3
+
+## How hard a car in gear is held when it is parked.
+@export_range(0.0, 1.0, 0.05) var gear_hold_strength: float = 0.1
+
+
 @export_group("Handbrake")
 @export var handbrake_pull_rate: float = 6.0
 @export var handbrake_release_rate: float = 10.0

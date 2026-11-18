@@ -1,6 +1,9 @@
 class_name Vehicle
 extends RigidBody3D
 
+const GEAR_HOLD_FREE: float = 0.02
+const GEAR_HOLD_FADE: float = 0.02
+
 @export var config: ChassisConfig
 
 @export_group("References")
@@ -27,6 +30,9 @@ var handbrake_input: float = 0.0
 var steer_input: float = 0.0
 
 var handbrake_latched: bool = false
+
+var gear_hold: float = 0.0
+var _gear_holding: bool = false
 
 var steer_cap_rad: float = 0.0
 var steer_angle_rad: float = 0.0
@@ -81,6 +87,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func _physics_process(delta: float) -> void:
 	_handle_inputs(delta)
 
+	_update_gear_hold()
 	_compute_anti_roll_bars()
 	_update_drivetrain_and_wheels(delta)
 
@@ -264,9 +271,34 @@ func _update_drivetrain_and_wheels(delta: float) -> void:
 		var w_drive_torque: float = drive_torques.get(w, 0.0)
 		var w_reflected: float = engine_inertia * drivetrain_node.get_wheel_share(w)
 
-		var w_brake_torque: float = assists.brake_torque(w) + get_handbrake_torque_nm(w)
+		var w_brake_torque: float = (
+			assists.brake_torque(w) + get_handbrake_torque_nm(w) + get_gear_hold_torque_nm(w)
+		)
 
 		w.update_wheel(self, delta, w_drive_torque, w_brake_torque, w_reflected)
+
+
+func _update_gear_hold() -> void:
+	if not drivetrain_node.is_in_gear():
+		_gear_holding = false
+		gear_hold = 0.0
+
+		return
+
+	var speed: float = linear_velocity.length()
+	var limit: float = config.gear_hold_speed
+
+	if _gear_holding:
+		_gear_holding = speed < limit * 2.0
+	else:
+		_gear_holding = speed < limit
+
+	var release: float = 1.0 - clampf((throttle_input - GEAR_HOLD_FREE) / GEAR_HOLD_FADE, 0.0, 1.0)
+	gear_hold = release if _gear_holding else 0.0
+
+
+func get_gear_hold_torque_nm(wheel: Wheel) -> float:
+	return gear_hold * config.gear_hold_strength * brakes_for(wheel).max_torque_nm
 
 
 func brakes_for(wheel: Wheel) -> BrakeConfig:

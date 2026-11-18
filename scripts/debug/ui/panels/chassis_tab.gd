@@ -122,6 +122,28 @@ func _build() -> void:
 		],
 	)
 
+	_chassis.group(
+		"Gear hold",
+		[
+			Tuner.slider(
+				&"gear_hold_strength",
+				"Strength",
+				0.0,
+				1.0,
+				"%.2f",
+				"How hard a car in gear is held when it is parked.",
+			),
+			Tuner.slider(
+				&"gear_hold_speed",
+				"Speed",
+				0.05,
+				1.0,
+				"%.2f m/s",
+				"Speed below which a car in gear with no throttle is held still.",
+			),
+		],
+	)
+
 	_brakes = Tuner.new(
 		"Brakes",
 		func() -> Object:
@@ -317,8 +339,9 @@ func _slope_hold() -> void:
 		if wheel.is_stuck:
 			holding += 1
 
-		var brake_nm: float = vehicle.assists.brake_torque(wheel) + vehicle.get_handbrake_torque_nm(
-			wheel
+		var brake_nm: float = (
+			vehicle.assists.brake_torque(wheel) + vehicle.get_handbrake_torque_nm(wheel)
+			+ vehicle.get_gear_hold_torque_nm(wheel)
 		)
 
 		var grip_n: float = wheel.tire_model.peak_longitudinal_force_n(

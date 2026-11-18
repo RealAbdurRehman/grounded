@@ -22,6 +22,8 @@ var contact_normal: Vector3 = Vector3.UP
 
 var displacement: float = 0.0
 
+var first_touch_along: float = 0.0
+
 var _tire: CylinderShape3D = CylinderShape3D.new()
 var _slice: CylinderShape3D = CylinderShape3D.new()
 
@@ -92,6 +94,8 @@ func find(wheel: Node3D, chassis: RigidBody3D, config: SuspensionConfig, mask: i
 	var along_sum: float = 0.0
 	var reach_sum: float = 0.0
 
+	var along_min: float = travel
+
 	for i in range(SLICES):
 		var offset: float = (i - (SLICES - 1) * 0.5) * slice_width
 		_offsets[i] = offset
@@ -108,6 +112,8 @@ func find(wheel: Node3D, chassis: RigidBody3D, config: SuspensionConfig, mask: i
 		touching_count += 1
 		along_sum += _found_along
 		reach_sum += _found_reach
+
+		along_min = minf(along_min, _found_along)
 
 	if touching_count == 0:
 		return false
@@ -136,6 +142,7 @@ func find(wheel: Node3D, chassis: RigidBody3D, config: SuspensionConfig, mask: i
 	contact_point = hub_position - normal * reach + axis * (side_sum / weight_sum)
 
 	displacement = travel - along
+	first_touch_along = along_min
 
 	return true
 

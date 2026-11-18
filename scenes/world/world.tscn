@@ -919,7 +919,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 57.35823, 0, -94.94403)
 transform = Transform3D(1, 0, 0, 0, 0.9659258, -0.25881904, 0, 0.25881904, 0.9659258, 0, 7.764571, -28.977776)
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="Tests/Slope/Incline" unique_id=1013573780]
-transform = Transform3D(1, 0, 0, 0, 1.0000001, 0, 0, 0, 1.0000001, -0.002737999, -0.004135132, -0.0154418945)
+transform = Transform3D(1, 0, 0, 0, 1.0000002, 0, 0, 0, 1.0000002, -0.007964134, -0.007408142, -0.027648926)
 mesh = SubResource("BoxMesh_oo0aq")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Tests/Slope/Incline" unique_id=631291689]

@@ -42,6 +42,8 @@ var steering: Steering = Steering.new()
 
 var aero: Aero
 
+var obstacles: ObstacleSolver = ObstacleSolver.new()
+
 var _com_applied: Vector3 = Vector3.INF
 
 var _wheelbase_m: float = 2.7
@@ -276,6 +278,12 @@ func _update_drivetrain_and_wheels(delta: float) -> void:
 		)
 
 		w.update_wheel(self, delta, w_drive_torque, w_brake_torque, w_reflected)
+
+	var wheels: Array[Wheel] = [wheel_fl, wheel_fr, wheel_rl, wheel_rr]
+	for w in wheels:
+		w.find_obstacles(self, delta)
+
+	obstacles.solve(self, wheels, delta)
 
 
 func _update_gear_hold() -> void:

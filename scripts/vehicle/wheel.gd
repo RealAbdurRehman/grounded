@@ -76,6 +76,11 @@ var _mesh_rest: Basis = Basis.IDENTITY
 
 var _ground: GroundProbe = GroundProbe.new()
 
+var collider: TireCollider = TireCollider.new()
+
+var spin_inertia: float = 1.2
+var obstacle_impulse_n_s: Vector3 = Vector3.ZERO
+
 
 func _ready() -> void:
 	if visual_mesh:
@@ -97,13 +102,17 @@ func _design_toe_rad() -> float:
 
 
 func _alignment_basis() -> Basis:
+	return _alignment_basis_at(steer_angle_rad)
+
+
+func _alignment_basis_at(steer: float) -> Basis:
 	var camber := Basis(Vector3.FORWARD, _side * _design_camber_rad())
 	var toe := Basis(Vector3.UP, _side * _design_toe_rad())
 
 	var caster: float = deg_to_rad(suspension_config.caster_deg)
 	var steering_axis := Vector3(0.0, cos(caster), sin(caster))
 
-	return Basis(steering_axis, steer_angle_rad) * toe * camber
+	return Basis(steering_axis, steer) * toe * camber
 
 
 func _update_visual(delta: float) -> void:
@@ -115,6 +124,67 @@ func _update_visual(delta: float) -> void:
 
 	_spin_angle += angular_velocity_rad_s * delta
 	visual_mesh.basis = _alignment_basis() * Basis(Vector3.RIGHT, -_spin_angle) * _mesh_rest
+
+
+func hub_world_position() -> Vector3:
+	var up: Vector3 = global_transform.basis.orthonormalized().y
+	return global_position - up * (suspension_config.suspension_rest_length - spring_displacement)
+
+
+func spin_axis(chassis: RigidBody3D) -> Vector3:
+	return -(chassis.global_transform.basis * _alignment_basis()).x
+
+
+func hub_speed() -> float:
+	return _hub_speed
+
+
+func kick_hub(speed_change: float) -> void:
+	_hub_speed += speed_change
+
+
+func kick_spin(speed_change: float) -> void:
+	angular_velocity_rad_s += speed_change
+
+
+func _tire_center() -> Vector3:
+	var up: Vector3 = global_transform.basis.orthonormalized().y
+
+	var along: float = suspension_config.suspension_rest_length - spring_displacement
+	if is_grounded:
+		along = _ground.first_touch_along
+
+	return global_position - up * along + up * TireCollider.LIFT_M
+
+
+func _tire_basis(chassis: RigidBody3D, steer: float) -> Basis:
+	var wheel_basis: Basis = chassis.global_transform.basis * _alignment_basis_at(steer)
+	return wheel_basis * Basis(Vector3.BACK, PI * 0.5)
+
+
+func find_obstacles(chassis: RigidBody3D, delta: float) -> void:
+	var config: SuspensionConfig = suspension_config
+
+	var up: Vector3 = global_transform.basis.orthonormalized().y
+	var center: Vector3 = _tire_center()
+
+	var com: Vector3 = chassis.to_global(chassis.center_of_mass)
+	var velocity: Vector3 = chassis.linear_velocity + chassis.angular_velocity.cross(center - com)
+	var motion: Vector3 = (velocity - up * velocity.dot(up)) * delta * 1.5
+
+	var exclude: Array[RID] = [chassis.get_rid()]
+
+	collider.scan(
+		get_world_3d().direct_space_state,
+		exclude,
+		collision_mask,
+		config.wheel_radius,
+		maxf(config.wheel_width, GroundProbe.MIN_WIDTH_M),
+		_tire_basis(chassis, steer_angle_rad),
+		center,
+		up,
+		motion,
+	)
 
 
 func update_wheel(
@@ -137,6 +207,7 @@ func update_wheel(
 	var k_spring: float = suspension_config.wheel_rate()
 
 	var inertia: float = base_inertia + reflected_inertia
+	spin_inertia = inertia
 
 	if not is_grounded:
 		_handle_airborne(delta, drive_torque_nm, brake_torque_nm, inertia)

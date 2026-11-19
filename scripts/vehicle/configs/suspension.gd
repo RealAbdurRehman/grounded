@@ -3,7 +3,7 @@ extends Resource
 
 @export_group("Wheel Geometry")
 @export var wheel_radius: float = 0.31
-@export var wheel_width: float = 0.22
+@export var wheel_width: float = 0.25
 
 ## How hard it is to spin the wheel.
 @export var wheel_inertia: float = 1.2

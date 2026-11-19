@@ -192,6 +192,17 @@ func find_obstacles(chassis: RigidBody3D, delta: float) -> void:
 	)
 
 
+func _tick_path(chassis: RigidBody3D, delta: float) -> Vector3:
+	var up: Vector3 = global_transform.basis.orthonormalized().y
+	var center: Vector3 = chassis.to_global(chassis.center_of_mass)
+
+	var velocity: Vector3 = (chassis.linear_velocity + chassis.angular_velocity.cross(
+			global_position - center
+		))
+
+	return (velocity - up * velocity.dot(up)) * delta
+
+
 func update_wheel(
 	chassis: RigidBody3D,
 	delta: float,
@@ -208,6 +219,7 @@ func update_wheel(
 		suspension_config,
 		collision_mask,
 		_tire_basis(chassis, steer_angle_rad, false),
+		_tick_path(chassis, delta),
 	)
 
 	_step_hub(delta)

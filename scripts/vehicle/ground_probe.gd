@@ -68,7 +68,13 @@ func _init() -> void:
 	_offsets.resize(SLICES)
 
 
-func find(wheel: Node3D, chassis: RigidBody3D, config: SuspensionConfig, mask: int) -> bool:
+func find(
+	wheel: Node3D,
+	chassis: RigidBody3D,
+	config: SuspensionConfig,
+	mask: int,
+	tire_basis: Basis,
+) -> bool:
 	var basis: Basis = wheel.global_transform.basis.orthonormalized()
 
 	_space = wheel.get_world_3d().direct_space_state
@@ -83,7 +89,7 @@ func find(wheel: Node3D, chassis: RigidBody3D, config: SuspensionConfig, mask: i
 	var slice_width: float = width / SLICES
 	_fit_shapes(config.wheel_radius, width, slice_width)
 
-	_wheel_basis = basis * Basis(Vector3.BACK, PI * 0.5)
+	_wheel_basis = tire_basis
 
 	var axis: Vector3 = _wheel_basis.y
 	var travel: float = config.suspension_rest_length

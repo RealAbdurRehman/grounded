@@ -105,8 +105,11 @@ func _alignment_basis() -> Basis:
 	return _alignment_basis_at(steer_angle_rad)
 
 
-func _alignment_basis_at(steer: float) -> Basis:
-	var camber := Basis(Vector3.FORWARD, _side * _design_camber_rad())
+func _alignment_basis_at(steer: float, with_camber: bool = true) -> Basis:
+	var camber := Basis.IDENTITY
+	if with_camber:
+		camber = Basis(Vector3.FORWARD, _side * _design_camber_rad())
+
 	var toe := Basis(Vector3.UP, _side * _design_toe_rad())
 
 	var caster: float = deg_to_rad(suspension_config.caster_deg)
@@ -157,8 +160,10 @@ func _tire_center() -> Vector3:
 	return global_position - up * along + up * TireCollider.LIFT_M
 
 
-func _tire_basis(chassis: RigidBody3D, steer: float) -> Basis:
-	var wheel_basis: Basis = chassis.global_transform.basis * _alignment_basis_at(steer)
+func _tire_basis(chassis: RigidBody3D, steer: float, with_camber: bool = true) -> Basis:
+	var alignment: Basis = _alignment_basis_at(steer, with_camber)
+	var wheel_basis: Basis = chassis.global_transform.basis * alignment
+
 	return wheel_basis * Basis(Vector3.BACK, PI * 0.5)
 
 
@@ -197,7 +202,14 @@ func update_wheel(
 	if _side == 0.0:
 		_side = 1.0 if chassis.to_local(global_position).x >= 0.0 else -1.0
 
-	is_grounded = _ground.find(self, chassis, suspension_config, collision_mask)
+	is_grounded = _ground.find(
+		self,
+		chassis,
+		suspension_config,
+		collision_mask,
+		_tire_basis(chassis, steer_angle_rad, false),
+	)
+
 	_step_hub(delta)
 
 	var radius: float = suspension_config.wheel_radius

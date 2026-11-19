@@ -1,7 +1,7 @@
 class_name WindDebug
 extends MeshInstance3D
 
-const SHADER: Shader = preload("res://shaders/wind_debug.gdshader")
+const SHADER: Shader = preload("res://shaders/debug/wind_debug.gdshader")
 
 @export var cell_m: float = 5.0
 @export var radius_m: float = 70.0

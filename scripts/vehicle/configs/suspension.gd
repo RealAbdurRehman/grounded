@@ -1,9 +1,15 @@
 class_name SuspensionConfig
 extends Resource
 
+const MIN_WIDTH_M: float = 0.05
+const MIN_SIDEWALL_M: float = 0.02
+
 @export_group("Wheel Geometry")
 @export var wheel_radius: float = 0.31
 @export var wheel_width: float = 0.25
+
+## The tire can only squash as far as this.
+@export var rim_radius: float = 0.19
 
 ## How hard it is to spin the wheel.
 @export var wheel_inertia: float = 1.2
@@ -14,6 +20,8 @@ extends Resource
 
 ## How stiff the tire is when squashed.
 @export var tire_stiffness: float = 190000.0
+
+@export_range(0.3, 0.95, 0.01) var max_squash_fraction: float = 0.8
 
 @export_group("Spring")
 @export var spring_stiffness: float = 24000.0
@@ -64,6 +72,26 @@ extends Resource
 
 ## Damper strength remaining after softening.
 @export_range(0.05, 1.0, 0.05) var damper_knee_ratio: float = 0.5
+
+
+func width_m() -> float:
+	return maxf(wheel_width, MIN_WIDTH_M)
+
+
+func rim_m() -> float:
+	return minf(rim_radius, wheel_radius - MIN_SIDEWALL_M)
+
+
+func sidewall_m() -> float:
+	return wheel_radius - rim_m()
+
+
+func tire_size() -> Vector3:
+	return Vector3(wheel_radius, width_m(), rim_m())
+
+
+func max_squash_m() -> float:
+	return max_squash_fraction * sidewall_m()
 
 
 func caster_trail() -> float:

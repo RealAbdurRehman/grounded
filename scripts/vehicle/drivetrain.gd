@@ -277,7 +277,7 @@ func _subtree_fix(node: DriveNode, fix: Dictionary[Wheel, float]) -> float:
 func _subtree_tire_torque(node: DriveNode) -> float:
 	var total: float = 0.0
 	for w in node.leaves:
-		total += w.suspension_config.wheel_radius * w.longitudinal_force_n
+		total += w.rolling_radius_m() * w.longitudinal_force_n
 
 	return total
 

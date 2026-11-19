@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="Tire" format=3 uid="uid://c451ftplc6fx1"]
 
-[ext_resource type="Script" uid="uid://cebjfe6e5lo5m" path="res://scripts/vehicle/tire.gd" id="1_tire"]
+[ext_resource type="Script" uid="uid://cebjfe6e5lo5m" path="res://scripts/vehicle/wheel/tire/tire.gd" id="1_tire"]
 
 [resource]
 script = ExtResource("1_tire")

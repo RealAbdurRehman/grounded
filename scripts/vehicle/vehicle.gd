@@ -269,7 +269,9 @@ func _update_drivetrain_and_wheels(delta: float) -> void:
 		delta,
 	)
 
-	for w in [wheel_fl, wheel_fr, wheel_rl, wheel_rr]:
+	var wheels: Array[Wheel] = [wheel_fl, wheel_fr, wheel_rl, wheel_rr]
+
+	for w in wheels:
 		var w_drive_torque: float = drive_torques.get(w, 0.0)
 		var w_reflected: float = engine_inertia * drivetrain_node.get_wheel_share(w)
 
@@ -278,10 +280,8 @@ func _update_drivetrain_and_wheels(delta: float) -> void:
 		)
 
 		w.update_wheel(self, delta, w_drive_torque, w_brake_torque, w_reflected)
-
-	var wheels: Array[Wheel] = [wheel_fl, wheel_fr, wheel_rl, wheel_rr]
-	for w in wheels:
 		w.find_obstacles(self, delta)
+		w.update_squash(self, delta)
 
 	obstacles.solve(self, wheels, delta)
 

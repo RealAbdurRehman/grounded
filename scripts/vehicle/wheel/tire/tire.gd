@@ -63,6 +63,10 @@ extends Resource
 ## How much slip is allowed before self centering fades.
 @export_range(0.5, 3.0, 0.05) var trail_zero_slip_ratio: float = 1.3
 
+@export_group("Rolling Radius")
+## How much the tire's rolling radius shrinks when squashed.
+@export_range(0.0, 1.0, 0.01) var rolling_radius_loss: float = 0.25 # 0.25 is a realistic amount.
+
 @export_group("Static Hold")
 ## Speed below which braking wheels stick to the road, in meters per second.
 @export var stick_speed: float = 0.15
@@ -73,7 +77,8 @@ extends Resource
 ## How smooth the sticking effect is.
 @export_range(0.1, 2.0, 0.05) var stick_damping_ratio: float = 0.8
 
-var _cache_signature: float = -1.0
+var _cache_long: Vector3 = Vector3.INF
+var _cache_lat: Vector3 = Vector3.INF
 
 var _kappa_peak: float = 0.1
 var _alpha_peak: float = 0.14
@@ -102,11 +107,14 @@ static func _find_peak(B: float, C: float, E: float, x_max: float) -> float:
 
 
 func _ensure_cache() -> void:
-	var signature: float = long_B + long_C * 7.0 + long_E * 13.0 + lat_B * 17.0 + lat_C * 23.0 + lat_E * 29.0
-	if is_equal_approx(signature, _cache_signature):
+	var long_now := Vector3(long_B, long_C, long_E)
+	var lat_now := Vector3(lat_B, lat_C, lat_E)
+	if long_now == _cache_long and lat_now == _cache_lat:
 		return
 
-	_cache_signature = signature
+	_cache_long = long_now
+	_cache_lat = lat_now
+
 	_kappa_peak = _find_peak(long_B, long_C, long_E, 1.5)
 	_alpha_peak = _find_peak(lat_B, lat_C, lat_E, 0.8)
 

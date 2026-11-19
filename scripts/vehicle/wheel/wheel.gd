@@ -1,6 +1,8 @@
 class_name Wheel
 extends Node3D
 
+const RIM_PUSH_OUT_MPS: float = 1.5
+
 @export var suspension_config: SuspensionConfig
 
 @export var tire_model: Tire
@@ -25,7 +27,7 @@ extends Node3D
 
 
 @export_group("Mesh")
-@onready var visual_mesh: MeshInstance3D = $Mesh
+@onready var visual_mesh: MeshInstance3D = get_node_or_null("Mesh")
 
 var is_grounded: bool = false
 
@@ -67,6 +69,8 @@ var _stick_y: float = 0.0
 
 var _hub_speed: float = 0.0
 var _tire_squash: float = 0.0
+var _stop_force_n: float = 0.0
+
 var _hub_started: bool = false
 
 var _spin_angle: float = 0.0
@@ -76,6 +80,8 @@ var _mesh_rest: Basis = Basis.IDENTITY
 
 var _ground: GroundProbe = GroundProbe.new()
 
+var _visual: TireVisual = TireVisual.new()
+
 var collider: TireCollider = TireCollider.new()
 
 var spin_inertia: float = 1.2
@@ -83,8 +89,14 @@ var obstacle_impulse_n_s: Vector3 = Vector3.ZERO
 
 
 func _ready() -> void:
-	if visual_mesh:
-		_mesh_rest = visual_mesh.basis
+	if not visual_mesh:
+		visual_mesh = MeshInstance3D.new()
+		visual_mesh.name = "Mesh"
+
+		add_child(visual_mesh)
+
+	_visual.setup(visual_mesh, suspension_config, tire_model)
+	_mesh_rest = _visual.rest_basis
 
 
 func _design_camber_rad() -> float:
@@ -125,8 +137,16 @@ func _update_visual(delta: float) -> void:
 	var rest_len: float = suspension_config.suspension_rest_length
 	visual_mesh.position = Vector3(0.0, -(rest_len - spring_displacement), 0.0)
 
-	_spin_angle += angular_velocity_rad_s * delta
+	_spin_angle = fposmod(_spin_angle + angular_velocity_rad_s * delta, TAU)
 	visual_mesh.basis = _alignment_basis() * Basis(Vector3.RIGHT, -_spin_angle) * _mesh_rest
+
+
+func rolling_radius_m() -> float:
+	return suspension_config.wheel_radius - tire_model.rolling_radius_loss * _tire_squash
+
+
+func hub_basis() -> Basis:
+	return global_transform.basis.orthonormalized() * _alignment_basis()
 
 
 func hub_world_position() -> Vector3:
@@ -184,12 +204,16 @@ func find_obstacles(chassis: RigidBody3D, delta: float) -> void:
 		exclude,
 		collision_mask,
 		config.wheel_radius,
-		maxf(config.wheel_width, GroundProbe.MIN_WIDTH_M),
+		config.width_m(),
 		_tire_basis(chassis, steer_angle_rad),
 		center,
 		up,
 		motion,
 	)
+
+
+func update_squash(chassis: RigidBody3D, delta: float) -> void:
+	_visual.update(self, chassis, delta)
 
 
 func _tick_path(chassis: RigidBody3D, delta: float) -> Vector3:
@@ -222,9 +246,9 @@ func update_wheel(
 		_tick_path(chassis, delta),
 	)
 
-	_step_hub(delta)
+	_step_hub(chassis, delta)
 
-	var radius: float = suspension_config.wheel_radius
+	var radius: float = rolling_radius_m()
 	var base_inertia: float = suspension_config.wheel_inertia
 	var rest_len: float = suspension_config.suspension_rest_length
 
@@ -388,7 +412,7 @@ func update_wheel(
 	slip_angle_rad = alpha
 
 	var strut_up: Vector3 = global_transform.basis.orthonormalized().y
-	var strut_extra_n: float = suspension_force_n - normal_load_n
+	var strut_extra_n: float = suspension_force_n - normal_load_n + _stop_force_n
 
 	var total_force: Vector3 = (
 		(contact_normal * normal_load_n) + (strut_up * strut_extra_n)
@@ -420,12 +444,15 @@ func update_wheel(
 	)
 
 
-func _step_hub(delta: float) -> void:
+func _step_hub(chassis: RigidBody3D, delta: float) -> void:
 	var config: SuspensionConfig = suspension_config
 
 	if not _hub_started:
 		_hub_started = true
-		spring_displacement = _ground.displacement if is_grounded else 0.0
+		spring_displacement = 0.0
+
+		if is_grounded:
+			spring_displacement = minf(_ground.displacement, config.suspension_rest_length)
 
 	var squash: float = 0.0
 	if is_grounded:
@@ -446,9 +473,24 @@ func _step_hub(delta: float) -> void:
 		(_hub_speed + delta * (tire_force - spring_force) / mass)
 		/ (1.0 + delta * damper_rate / mass)
 	)
+
 	var displacement: float = spring_displacement + delta * speed
 
 	var travel: float = config.suspension_rest_length
+
+	var needed: float = _rim_room(chassis, delta)
+	if is_grounded and needed > minf(displacement, travel):
+		displacement = minf(needed, travel)
+		speed = maxf(speed, 0.0)
+
+		var share: float = chassis.mass * 0.25
+		var leftover: float = needed - travel
+		if leftover > 0.0:
+			var up: Vector3 = global_transform.basis.orthonormalized().y
+			var at: Vector3 = hub_world_position() - chassis.global_position
+			chassis.apply_impulse(up * (share * leftover / delta), at)
+
+	_stop_force_n = 0.0
 	if displacement < 0.0:
 		displacement = 0.0
 		speed = maxf(speed, 0.0)
@@ -456,12 +498,33 @@ func _step_hub(delta: float) -> void:
 		displacement = travel
 		speed = minf(speed, 0.0)
 
+		_stop_force_n = maxf(tire_force - spring_force, 0.0)
+
 	spring_displacement = displacement
 	_hub_speed = speed
 
 	_tire_squash = 0.0
 	if is_grounded:
 		_tire_squash = maxf(_ground.displacement - displacement, 0.0)
+
+
+func _rim_room(chassis: RigidBody3D, delta: float) -> float:
+	var up: Vector3 = global_transform.basis.orthonormalized().y
+	var com: Vector3 = chassis.to_global(chassis.center_of_mass)
+	var mount_velocity: Vector3 = (chassis.linear_velocity + chassis.angular_velocity.cross(
+			global_position - com
+		))
+
+	var coming_down: float = maxf(-mount_velocity.dot(up), 0.0)
+
+	var limit: float = suspension_config.max_squash_m()
+	var needed: float = _ground.displacement + coming_down * delta - limit
+
+	var travel: float = suspension_config.suspension_rest_length
+	var past: float = maxf(_ground.displacement - travel - limit, 0.0)
+	needed -= maxf(past - RIM_PUSH_OUT_MPS * delta, 0.0)
+
+	return needed
 
 
 func _lateral_hold(

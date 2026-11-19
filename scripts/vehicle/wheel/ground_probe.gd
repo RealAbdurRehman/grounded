@@ -14,7 +14,6 @@ const SHARPEN_LIMIT_M: float = 0.004
 
 const SLICE_LOAD_FLOOR_M: float = 0.005
 
-const MIN_WIDTH_M: float = 0.05
 const PATCH_HALF_M: float = 0.10
 
 const MAX_SAMPLES: int = 6
@@ -113,7 +112,7 @@ func find(
 	_excluded = [chassis.get_rid()]
 	_wheel_basis = tire_basis
 
-	var width: float = maxf(config.wheel_width, MIN_WIDTH_M)
+	var width: float = config.width_m()
 	_fit_shapes(config.wheel_radius, width)
 
 	var travel: float = config.suspension_rest_length
@@ -376,9 +375,19 @@ func _squash(buried: Dictionary, origin: Vector3) -> bool:
 	if normal.length_squared() < 0.5 or normal.dot(-_down) < MIN_GROUND_COS:
 		return _find_with_ray(origin)
 
-	_found_along = 0.0
-	_found_normal = normal.normalized()
-	_found_reach = _config.wheel_radius
+	normal = normal.normalized()
+
+	var tilt: float = normal.dot(_wheel_basis.y)
+	var round_part: float = _config.wheel_radius * sqrt(maxf(1.0 - tilt * tilt, 0.0))
+	var reach: float = round_part + _slice_shape.height * 0.5 * absf(tilt)
+
+	var along: float = 0.0
+	if buried.has("point"):
+		along = ((reach - normal.dot(origin - (buried["point"] as Vector3))) / normal.dot(_down))
+
+	_found_along = clampf(along, -_config.wheel_radius, 0.0)
+	_found_normal = normal
+	_found_reach = reach
 
 	return true
 
@@ -399,7 +408,12 @@ func _find_with_ray(origin: Vector3) -> bool:
 
 	var distance: float = origin.distance_to(hit["position"])
 
-	_found_along = clampf(distance - _config.wheel_radius, 0.0, _config.suspension_rest_length)
+	_found_along = clampf(
+		distance - _config.wheel_radius,
+		-_config.wheel_radius,
+		_config.suspension_rest_length,
+	)
+
 	_found_normal = hit["normal"]
 	_found_reach = _config.wheel_radius
 

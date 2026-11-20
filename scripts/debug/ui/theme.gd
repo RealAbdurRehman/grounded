@@ -12,16 +12,31 @@ const BAD := Color(1.0, 0.35, 0.35)
 const GRID := Color(0.45, 0.52, 0.65, 0.40)
 const PEAK := Color(0.35, 0.80, 0.45, 0.35)
 
-const WHEEL_NAMES: Array[String] = ["FL", "FR", "RL", "RR"]
-const WHEEL_COLORS: Array[Color] = [
+const FIRST_WHEEL_COLORS: Array[Color] = [
 	Color(1.0, 0.90, 0.20),
 	Color(1.0, 0.60, 0.20),
 	Color(0.30, 0.90, 1.00),
 	Color(1.0, 0.40, 1.00),
 ]
 
+static var WHEEL_NAMES: Array[String] = ["FL", "FR", "RL", "RR"]
+static var WHEEL_COLORS: Array[Color] = FIRST_WHEEL_COLORS.duplicate()
+
 static var _pushed_colors: int = 0
 static var _pushed_vars: int = 0
+
+
+static func set_wheels(wheels: Array[Wheel]) -> void:
+	WHEEL_NAMES.clear()
+	WHEEL_COLORS.clear()
+
+	for i in range(wheels.size()):
+		WHEEL_NAMES.append(wheels[i].label)
+
+		if i < FIRST_WHEEL_COLORS.size():
+			WHEEL_COLORS.append(FIRST_WHEEL_COLORS[i])
+		else:
+			WHEEL_COLORS.append(Color.from_hsv(fmod(0.08 + 0.137 * float(i), 1.0), 0.6, 1.0))
 
 
 static func push() -> void:

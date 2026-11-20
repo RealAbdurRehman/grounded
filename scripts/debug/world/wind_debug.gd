@@ -64,7 +64,7 @@ func _process(_delta: float) -> void:
 
 func _follow_ground() -> void:
 	var lowest: float = INF
-	for wheel in [target.wheel_fl, target.wheel_fr, target.wheel_rl, target.wheel_rr]:
+	for wheel in target.wheels:
 		if wheel.is_grounded:
 			lowest = minf(lowest, wheel.contact_point.y)
 

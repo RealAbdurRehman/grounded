@@ -32,6 +32,7 @@ func _ready() -> void:
 
 	await get_tree().physics_frame
 
+	UITheme.set_wheels(vehicle.wheels)
 	_dashboard = VehiclePanel.new(vehicle, telemetry, weight_transfer)
 
 	_tabs = [

@@ -39,7 +39,7 @@ func _init(vehicle: Vehicle, assists_config: AssistsConfig, wheelbase_m: float) 
 	config = assists_config
 
 	_wheelbase_m = wheelbase_m
-	_wheels = [vehicle.wheel_fl, vehicle.wheel_fr, vehicle.wheel_rl, vehicle.wheel_rr]
+	_wheels = vehicle.wheels.duplicate()
 
 	for w in _wheels:
 		_abs_timer[w] = 0.0
@@ -99,8 +99,8 @@ func _update_traction_control(delta: float, throttle: float) -> void:
 		var room: float = clampf(1.0 - worst, 0.0, 1.0)
 		_tcs_throttle = minf(_tcs_throttle + cfg.tcs_restore_rate * room * delta, 1.0)
 
-	_tcs_axle_brakes(_wheels[0], _wheels[1], delta)
-	_tcs_axle_brakes(_wheels[2], _wheels[3], delta)
+	for pair in _vehicle.wheel_pairs:
+		_tcs_axle_brakes(pair.left, pair.right, delta)
 
 	_tcs_timer = maxf(_tcs_timer - delta, 0.0)
 	tcs_active = _tcs_timer > 0.0
@@ -182,7 +182,7 @@ func _update_stability_control(delta: float, forward_speed: float) -> void:
 	var brake_right: bool = yaw_rate_error > 0.0
 
 	if excess > deadband:
-		var wheel: Wheel = _vehicle.wheel_fr if brake_right else _vehicle.wheel_fl
+		var wheel: Wheel = _vehicle.corner_wheel(true, brake_right)
 		target_brakes[wheel] = clampf(
 			(excess - deadband) * cfg.esc_oversteer_gain,
 			0.0,
@@ -191,7 +191,7 @@ func _update_stability_control(delta: float, forward_speed: float) -> void:
 
 		intervention = excess - deadband
 	elif excess < -deadband:
-		var wheel: Wheel = _vehicle.wheel_rr if brake_right else _vehicle.wheel_rl
+		var wheel: Wheel = _vehicle.corner_wheel(false, brake_right)
 		target_brakes[wheel] = clampf(
 			(-excess - deadband) * cfg.esc_understeer_gain,
 			0.0,
@@ -253,9 +253,11 @@ func _update_abs(
 		abs_pressure[w] = clampf(pressure, 0.0, 1.0)
 		abs_active = abs_active or _abs_timer[w] > 0.0
 
-	if cfg.abs_enabled:
-		_balance_axle(_wheels[0], _wheels[1], false, cfg.abs_front_pressure_split)
-		_balance_axle(_wheels[2], _wheels[3], cfg.abs_rear_select_low, 1.0)
+	for pair in _vehicle.wheel_pairs:
+		if pair.axle_index == 0:
+			_balance_axle(pair.left, pair.right, false, cfg.abs_front_pressure_split)
+		else:
+			_balance_axle(pair.left, pair.right, cfg.abs_rear_select_low, 1.0)
 
 
 func _balance_axle(left: Wheel, right: Wheel, select_low: bool, max_split: float) -> void:

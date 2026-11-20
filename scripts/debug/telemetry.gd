@@ -56,9 +56,6 @@ var _previous_velocity: Vector3 = Vector3.ZERO
 
 
 func _ready() -> void:
-	for _i in range(4):
-		wheels.append(WheelSample.new())
-
 	process_physics_priority = 100
 
 
@@ -66,8 +63,12 @@ func _physics_process(delta: float) -> void:
 	if vehicle == null:
 		return
 
-	if _wheel_nodes.is_empty():
-		_wheel_nodes = [vehicle.wheel_fl, vehicle.wheel_fr, vehicle.wheel_rl, vehicle.wheel_rr]
+	if _wheel_nodes != vehicle.wheels:
+		_wheel_nodes = vehicle.wheels.duplicate()
+
+		wheels.clear()
+		for _i in range(_wheel_nodes.size()):
+			wheels.append(WheelSample.new())
 
 	_sample_vehicle(delta)
 	_sample_powertrain()
@@ -135,7 +136,7 @@ func _sample_powertrain() -> void:
 
 
 func _sample_wheels() -> void:
-	for index in range(4):
+	for index in range(_wheel_nodes.size()):
 		var source: Wheel = _wheel_nodes[index]
 		var sample: WheelSample = wheels[index]
 

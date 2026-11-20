@@ -162,7 +162,7 @@ static func _draw_plot_overlay(
 	)
 
 	var radius: float = unit * 0.32
-	for i in range(4):
+	for i in range(active.size()):
 		if not active[i]:
 			continue
 

@@ -39,7 +39,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.8, 0.25, -1.35)
 script = ExtResource("2_2aj0h")
 suspension_config = ExtResource("5_1bgs2")
 tire_model = ExtResource("6_front")
-is_front = true
 is_driven = false
 
 [node name="WheelFR" type="Node3D" parent="Wheels" unique_id=922442114]
@@ -47,7 +46,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.8, 0.25, -1.35)
 script = ExtResource("2_2aj0h")
 suspension_config = ExtResource("5_1bgs2")
 tire_model = ExtResource("6_front")
-is_front = true
 is_driven = false
 
 [node name="WheelRL" type="Node3D" parent="Wheels" unique_id=398066511]

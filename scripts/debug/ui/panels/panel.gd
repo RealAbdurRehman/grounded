@@ -33,7 +33,7 @@ func draw() -> void:
 
 
 func wheels() -> Array[Wheel]:
-	return [vehicle.wheel_fl, vehicle.wheel_fr, vehicle.wheel_rl, vehicle.wheel_rr]
+	return vehicle.wheels
 
 
 func grip_usage(index: int) -> float:

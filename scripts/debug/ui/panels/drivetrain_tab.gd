@@ -280,8 +280,14 @@ func _assign_ratios(drivetrain: Drivetrain, ratios: Array) -> void:
 
 
 func _drive_layout() -> int:
-	var front: bool = vehicle.wheel_fl.is_driven or vehicle.wheel_fr.is_driven
-	var rear: bool = vehicle.wheel_rl.is_driven or vehicle.wheel_rr.is_driven
+	var front: bool = false
+	var rear: bool = false
+
+	for wheel in wheels():
+		if wheel.is_front:
+			front = front or wheel.is_driven
+		else:
+			rear = rear or wheel.is_driven
 
 	if front and rear:
 		return 2
@@ -293,10 +299,8 @@ func _set_drive_layout(layout: int) -> void:
 	var front: bool = layout != 0
 	var rear: bool = layout != 1
 
-	vehicle.wheel_fl.is_driven = front
-	vehicle.wheel_fr.is_driven = front
-	vehicle.wheel_rl.is_driven = rear
-	vehicle.wheel_rr.is_driven = rear
+	for wheel in wheels():
+		wheel.is_driven = front if wheel.is_front else rear
 
 
 func _drive_radius() -> float:
@@ -308,7 +312,7 @@ func _drive_radius() -> float:
 			count += 1
 
 	if count == 0:
-		return vehicle.wheel_rl.suspension_config.wheel_radius
+		return vehicle.rear_wheel().suspension_config.wheel_radius
 
 	return total / float(count)
 

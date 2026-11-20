@@ -65,8 +65,8 @@ class Row:
 var _rows: Array[Row] = []
 var _obstacles: Dictionary[RID, Obstacle] = { }
 
-var _hub_speed_change: PackedFloat32Array = PackedFloat32Array([0.0, 0.0, 0.0, 0.0])
-var _wheel_spin_change: PackedFloat32Array = PackedFloat32Array([0.0, 0.0, 0.0, 0.0])
+var _hub_speed_change: PackedFloat32Array = PackedFloat32Array()
+var _wheel_spin_change: PackedFloat32Array = PackedFloat32Array()
 
 var _inverse_mass: float = 0.0
 var _inverse_inertia: Basis = Basis()
@@ -78,6 +78,9 @@ var _spin: Vector3 = Vector3.ZERO
 func solve(chassis: RigidBody3D, wheels: Array[Wheel], delta: float) -> void:
 	_rows.clear()
 	_obstacles.clear()
+
+	_hub_speed_change.resize(wheels.size())
+	_wheel_spin_change.resize(wheels.size())
 
 	var center: Vector3 = chassis.to_global(chassis.center_of_mass)
 

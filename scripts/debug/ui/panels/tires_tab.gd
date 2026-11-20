@@ -5,26 +5,36 @@ const SMOOTHING: float = 14.0
 
 const HOT: Color = Color(1.0, 0.60, 0.20, 0.18)
 
-var _kappa := PackedFloat32Array([0.0, 0.0, 0.0, 0.0])
-var _alpha := PackedFloat32Array([0.0, 0.0, 0.0, 0.0])
+var _kappa := PackedFloat32Array()
+var _alpha := PackedFloat32Array()
 
-var _mu_x := PackedFloat32Array([0.0, 0.0, 0.0, 0.0])
-var _mu_y := PackedFloat32Array([0.0, 0.0, 0.0, 0.0])
+var _mu_x := PackedFloat32Array()
+var _mu_y := PackedFloat32Array()
 
-var _fx_norm := PackedFloat32Array([0.0, 0.0, 0.0, 0.0])
-var _fy_norm := PackedFloat32Array([0.0, 0.0, 0.0, 0.0])
+var _fx_norm := PackedFloat32Array()
+var _fy_norm := PackedFloat32Array()
 
 var _tire: Tuner
 var _surface: Tuner
 
 
 func _build() -> void:
+	var count: int = wheels().size()
+	_kappa.resize(count)
+	_alpha.resize(count)
+
+	_mu_x.resize(count)
+	_mu_y.resize(count)
+
+	_fx_norm.resize(count)
+	_fy_norm.resize(count)
+
 	_tire = Tuner.new(
 		"Tire model",
 		func() -> Object:
-			return vehicle.wheel_fl.tire_model,
+			return vehicle.front_wheel().tire_model,
 		func() -> Object:
-			return vehicle.wheel_rl.tire_model,
+			return vehicle.rear_wheel().tire_model,
 	)
 
 	_tire.group(
@@ -178,7 +188,7 @@ func _build() -> void:
 	)
 
 	var rows: Array = []
-	for i in range(4):
+	for i in range(wheels().size()):
 		var wheel: Wheel = wheels()[i]
 		rows.append(
 			Tuner.custom(
@@ -238,12 +248,12 @@ func draw() -> void:
 
 func _curves() -> void:
 	var unit: float = ImGui.GetFontSize()
-	var front: Tire = wheels()[0].tire_model
-	var rear: Tire = wheels()[2].tire_model
+	var front: Tire = vehicle.front_wheel().tire_model
+	var rear: Tire = vehicle.rear_wheel().tire_model
 	var split: bool = front != rear
 
 	var grounded: Array[bool] = []
-	for i in range(4):
+	for i in range(wheels().size()):
 		grounded.append(telemetry.wheels[i].grounded)
 
 	Widgets.wheel_legend()
@@ -363,8 +373,8 @@ func _friction_circles() -> void:
 		ImGui.GetFontSize() * 8.0,
 	)
 
-	for i in range(4):
-		if i > 0:
+	for i in range(wheels().size()):
+		if i % 4 > 0:
 			ImGui.SameLine()
 
 		Plots.friction_circle(

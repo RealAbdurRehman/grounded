@@ -135,7 +135,7 @@ static func parking_icon(active: bool) -> void:
 
 
 static func wheel_legend() -> void:
-	for i in range(4):
+	for i in range(UITheme.WHEEL_NAMES.size()):
 		if i > 0:
 			ImGui.SameLine()
 
@@ -171,7 +171,7 @@ static func wheel_table(id: String, headers: Array, row_fn: Callable) -> void:
 
 	ImGui.TableHeadersRow()
 
-	for i in range(4):
+	for i in range(UITheme.WHEEL_NAMES.size()):
 		ImGui.TableNextRow()
 		_cell(UITheme.WHEEL_NAMES[i], UITheme.WHEEL_COLORS[i], Color(0.0, 0.0, 0.0, 0.0), false)
 

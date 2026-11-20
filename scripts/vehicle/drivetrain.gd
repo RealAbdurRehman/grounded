@@ -21,6 +21,7 @@ var _shift_cooldown: float = 0.0
 var _forward_speed: float = 0.0
 
 var _root: DriveNode
+var _driveline_key: Array = []
 
 var _wheel_share: Dictionary[Wheel, float] = { }
 var _prev_wheel_speed: Dictionary[Wheel, float] = { }
@@ -81,28 +82,56 @@ func calculate_wheel_drive_torque(engine_torque: float) -> float:
 
 
 func setup_driveline(driven_wheels: Array[Wheel]) -> void:
-	var front: Array[Wheel] = []
-	var rear: Array[Wheel] = []
+	var key: Array = [
+		driven_wheels.duplicate(),
+		config.center_front_torque_share,
+		config.front_differential,
+		config.rear_differential,
+		config.center_differential,
+	]
+
+	if key == _driveline_key:
+		return
+
+	_driveline_key = key
+
+	var axles: Array[DriveNode] = []
+
+	var group: Array[Wheel] = []
+	var group_axle: int = -1
 	for w in driven_wheels:
-		if w.is_front:
-			front.append(w)
-		else:
-			rear.append(w)
+		if not group.is_empty() and w.axle_index != group_axle:
+			axles.append(_make_axle_node(group, _axle_differential(group_axle)))
+			group = []
 
-	var front_node: DriveNode = _make_axle_node(front, config.front_differential)
-	var rear_node: DriveNode = _make_axle_node(rear, config.rear_differential)
+		group.append(w)
+		group_axle = w.axle_index
 
-	if front_node == null:
-		_root = rear_node
-	elif rear_node == null:
-		_root = front_node
-	else:
-		_root = _make_branch(front_node, rear_node, config.center_front_torque_share)
+	if not group.is_empty():
+		axles.append(_make_axle_node(group, _axle_differential(group_axle)))
+
+	_root = null
+	if not axles.is_empty():
+		_root = axles[0]
+
+	for i in range(1, axles.size()):
+		var share_first: float = float(_root.leaves.size()) / float(
+			_root.leaves.size() + axles[i].leaves.size()
+		)
+
+		if axles.size() == 2 and driven_wheels[0].is_front:
+			share_first = config.center_front_torque_share
+
+		_root = _make_branch(_root, axles[i], share_first)
 		_root.diff = config.center_differential
 
 	_wheel_share.clear()
 	if _root != null:
 		_assign_shares(_root, 1.0)
+
+
+func _axle_differential(axle_index: int) -> DifferentialConfig:
+	return config.front_differential if axle_index == 0 else config.rear_differential
 
 
 func get_wheel_share(wheel: Wheel) -> float:

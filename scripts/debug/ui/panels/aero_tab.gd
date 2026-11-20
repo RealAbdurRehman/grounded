@@ -282,13 +282,19 @@ func _grip_gain() -> float:
 	var with_air: float = 0.0
 	var without_air: float = 0.0
 
-	var list: Array[Wheel] = wheels()
-	for i in range(4):
-		var wheel: Wheel = list[i]
+	var rear_axle: Array[Wheel] = vehicle.rear_axle()
+	var front_axle: Array[Wheel] = vehicle.front_axle()
+
+	for wheel in wheels():
 		if not wheel.is_grounded:
 			continue
 
-		var from_air: float = (aero.downforce_front_n if i < 2 else aero.downforce_rear_n) * 0.5
+		var from_air: float = 0.0
+		if wheel.is_front:
+			from_air = aero.downforce_front_n / float(front_axle.size())
+		elif wheel in rear_axle:
+			from_air = aero.downforce_rear_n / float(rear_axle.size())
+
 		var load_n: float = wheel.normal_load_n
 
 		with_air += wheel.tire_model.peak_lateral_force_n(load_n, wheel.friction_coef)

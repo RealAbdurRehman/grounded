@@ -196,7 +196,7 @@ func draw() -> void:
 	if Widgets.section(_abs.title, true):
 		_header(&"abs_enabled", config.abs_enabled, assists.abs_active)
 
-		for i in range(4):
+		for i in range(wheels().size()):
 			var pressure: float = assists.abs_pressure[wheels()[i]]
 			Widgets.labeled_bar(
 				UITheme.WHEEL_NAMES[i],

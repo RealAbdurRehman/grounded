@@ -45,13 +45,8 @@ func _init(vehicle: Vehicle) -> void:
 	_vehicle = vehicle
 	Atmosphere.watch(vehicle)
 
-	var fl: Vector3 = vehicle.to_local(vehicle.wheel_fl.global_position)
-	var fr: Vector3 = vehicle.to_local(vehicle.wheel_fr.global_position)
-	var rl: Vector3 = vehicle.to_local(vehicle.wheel_rl.global_position)
-	var rr: Vector3 = vehicle.to_local(vehicle.wheel_rr.global_position)
-
-	_front_local = (fl + fr) * 0.5
-	_rear_local = (rl + rr) * 0.5
+	_front_local = _middle_of(vehicle.front_axle())
+	_rear_local = _middle_of(vehicle.rear_axle())
 
 
 func total_downforce_n() -> float:
@@ -108,11 +103,14 @@ func apply() -> void:
 		config.downforce_coefficient * config.frontal_area
 	)
 
-	ground_effect_front = _ground_effect(_vehicle.wheel_fl, _vehicle.wheel_fr, config)
-	ground_effect_rear = _ground_effect(_vehicle.wheel_rl, _vehicle.wheel_rr, config)
+	var front: Array[Wheel] = _vehicle.front_axle()
+	var rear: Array[Wheel] = _vehicle.rear_axle()
 
-	travel_front = _travel_fraction(_vehicle.wheel_fl, _vehicle.wheel_fr)
-	travel_rear = _travel_fraction(_vehicle.wheel_rl, _vehicle.wheel_rr)
+	ground_effect_front = _ground_effect(front, config)
+	ground_effect_rear = _ground_effect(rear, config)
+
+	travel_front = _travel_fraction(front)
+	travel_rear = _travel_fraction(rear)
 
 	downforce_front_n = base_force * config.front_share * ground_effect_front
 	downforce_rear_n = base_force * (1.0 - config.front_share) * ground_effect_rear
@@ -163,9 +161,25 @@ func apply() -> void:
 	)
 
 
-func _ground_effect(left: Wheel, right: Wheel, config: AeroConfig) -> float:
-	var travel: float = (left.spring_displacement + right.spring_displacement) * 0.5
-	var normal_travel: float = left.suspension_config.alignment_compression
+func _middle_of(axle: Array[Wheel]) -> Vector3:
+	var total: Vector3 = Vector3.ZERO
+	for w in axle:
+		total += _vehicle.to_local(w.global_position)
+
+	return total / float(axle.size())
+
+
+func _average_travel(axle: Array[Wheel]) -> float:
+	var total: float = 0.0
+	for w in axle:
+		total += w.spring_displacement
+
+	return total / float(axle.size())
+
+
+func _ground_effect(axle: Array[Wheel], config: AeroConfig) -> float:
+	var travel: float = _average_travel(axle)
+	var normal_travel: float = axle[0].suspension_config.alignment_compression
 
 	return clampf(
 		1.0 + config.ground_effect_per_m * (travel - normal_travel),
@@ -174,9 +188,9 @@ func _ground_effect(left: Wheel, right: Wheel, config: AeroConfig) -> float:
 	)
 
 
-func _travel_fraction(left: Wheel, right: Wheel) -> float:
-	var travel: float = (left.spring_displacement + right.spring_displacement) * 0.5
-	return clampf(travel / maxf(left.suspension_config.suspension_rest_length, 0.001), 0.0, 1.0)
+func _travel_fraction(axle: Array[Wheel]) -> float:
+	var travel: float = _average_travel(axle)
+	return clampf(travel / maxf(axle[0].suspension_config.suspension_rest_length, 0.001), 0.0, 1.0)
 
 
 func _draw_vectors(

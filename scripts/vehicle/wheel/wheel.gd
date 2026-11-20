@@ -3,6 +3,8 @@ extends Node3D
 
 const RIM_PUSH_OUT_MPS: float = 1.5
 
+const CENTER_WHEEL_M: float = 0.05
+
 @export var suspension_config: SuspensionConfig
 
 @export var tire_model: Tire
@@ -12,7 +14,6 @@ const RIM_PUSH_OUT_MPS: float = 1.5
 @export_flags_3d_physics var collision_mask: int = 1
 
 @export_group("Wheel")
-@export var is_front: bool = false
 @export var is_driven: bool = true
 @export var can_steer: bool = false
 
@@ -75,7 +76,14 @@ var _hub_started: bool = false
 
 var _spin_angle: float = 0.0
 
+var is_front: bool = false
+
+var axle_index: int = 0
+var label: String = ""
+var mass_fraction: float = 0.25
+
 var _side: float = 0.0
+var _side_known: bool = false
 var _mesh_rest: Basis = Basis.IDENTITY
 
 var _ground: GroundProbe = GroundProbe.new()
@@ -234,8 +242,11 @@ func update_wheel(
 	brake_torque_nm: float,
 	reflected_inertia: float = 0.0,
 ) -> void:
-	if _side == 0.0:
-		_side = 1.0 if chassis.to_local(global_position).x >= 0.0 else -1.0
+	if not _side_known:
+		_side_known = true
+
+		var x: float = chassis.to_local(global_position).x
+		_side = 0.0 if absf(x) < CENTER_WHEEL_M else signf(x)
 
 	is_grounded = _ground.find(
 		self,
@@ -299,7 +310,7 @@ func update_wheel(
 	var fz: float = normal_load_n
 	grip_limit_n = tire_model.peak_force_n(fz) * friction_coef
 
-	var mass_share: float = chassis.mass * 0.25
+	var mass_share: float = chassis.mass * mass_fraction
 	var hold_fy: float = _lateral_hold(delta, v_lat, v_long, fz, lean, mass_share)
 
 	var alpha: float = atan2(-v_lat, maxf(speed_long, tire_model.slip_speed_floor))
@@ -483,7 +494,7 @@ func _step_hub(chassis: RigidBody3D, delta: float) -> void:
 		displacement = minf(needed, travel)
 		speed = maxf(speed, 0.0)
 
-		var share: float = chassis.mass * 0.25
+		var share: float = chassis.mass * mass_fraction
 		var leftover: float = needed - travel
 		if leftover > 0.0:
 			var up: Vector3 = global_transform.basis.orthonormalized().y

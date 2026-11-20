@@ -37,10 +37,24 @@ func start_logging() -> void:
 	_timer = 0.0
 	_elapsed_time = 0.0
 
-	_file.store_line(
-		"time,speed_kmh,rpm,gear,fl_sr,fl_sa,fl_fx,fl_fy,fl_fz,fr_sr,fr_sa,fr_fx,fr_fy,fr_fz,rl_sr,rl_sa,rl_fx,rl_fy,rl_fz,rr_sr,rr_sa,rr_fx,rr_fy,rr_fz,steer_deg,fl_steer_deg,fr_steer_deg"
-	)
+	_file.store_line(_header_line(telemetry.vehicle))
 	print("[TelemetryLogger] Started: ", ProjectSettings.globalize_path(path))
+
+
+func _header_line(v: Vehicle) -> String:
+	var columns: PackedStringArray = PackedStringArray(["time", "speed_kmh", "rpm", "gear"])
+
+	for w in v.wheels:
+		var wheel_name: String = w.label.to_lower()
+		for field in ["sr", "sa", "fx", "fy", "fz"]:
+			columns.append("%s_%s" % [wheel_name, field])
+
+	columns.append("steer_deg")
+	for w in v.wheels:
+		if w.can_steer:
+			columns.append("%s_steer_deg" % w.label.to_lower())
+
+	return ",".join(columns)
 
 
 func stop_logging() -> void:
@@ -71,7 +85,7 @@ func _record_sample() -> void:
 	var rpm: float = v.engine_node.current_rpm if v.engine_node else 0.0
 	var gear: String = v.drivetrain_node.get_gear_name() if v.drivetrain_node else "?"
 
-	var wheels: Array[Wheel] = [v.wheel_fl, v.wheel_fr, v.wheel_rl, v.wheel_rr]
+	var wheels: Array[Wheel] = v.wheels
 	var parts: PackedStringArray = PackedStringArray()
 	parts.append("%8.3f,%6.2f,%5.0f,%s" % [_elapsed_time, speed_kmh, rpm, gear])
 
@@ -87,13 +101,9 @@ func _record_sample() -> void:
 			]
 		)
 
-	parts.append(
-		",%+6.2f,%+6.2f,%+6.2f"
-		% [
-			rad_to_deg(v.steer_angle_rad),
-			rad_to_deg(v.wheel_fl.steer_angle_rad),
-			rad_to_deg(v.wheel_fr.steer_angle_rad),
-		]
-	)
+	parts.append(",%+6.2f" % rad_to_deg(v.steer_angle_rad))
+	for w in wheels:
+		if w.can_steer:
+			parts.append(",%+6.2f" % rad_to_deg(w.steer_angle_rad))
 
 	_file.store_line("".join(parts))

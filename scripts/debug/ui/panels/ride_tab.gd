@@ -10,16 +10,19 @@ var _steering: Tuner
 var _arb: Tuner
 
 var _sample_timer: float = 0.0
-var _travel: Array = [[], [], [], []]
+var _travel: Array = []
 
 
 func _build() -> void:
+	for _i in range(wheels().size()):
+		_travel.append([])
+
 	_susp = Tuner.new(
 		"Suspension",
 		func() -> Object:
-			return vehicle.wheel_fl.suspension_config,
+			return vehicle.front_wheel().suspension_config,
 		func() -> Object:
-			return vehicle.wheel_rl.suspension_config,
+			return vehicle.rear_wheel().suspension_config,
 	)
 
 	_susp.group(
@@ -141,9 +144,9 @@ func _build() -> void:
 	_alignment = Tuner.new(
 		"Alignment",
 		func() -> Object:
-			return vehicle.wheel_fl.suspension_config,
+			return vehicle.front_wheel().suspension_config,
 		func() -> Object:
-			return vehicle.wheel_rl.suspension_config,
+			return vehicle.rear_wheel().suspension_config,
 	)
 
 	_alignment.group(
@@ -201,7 +204,7 @@ func _build() -> void:
 	_steering = Tuner.new(
 		"Steering axis",
 		func() -> Object:
-			return vehicle.wheel_fl.suspension_config,
+			return vehicle.front_wheel().suspension_config,
 	)
 
 	_steering.group(
@@ -246,7 +249,7 @@ func update(delta: float) -> void:
 		return
 
 	_sample_timer = 0.0
-	for i in range(4):
+	for i in range(_travel.size()):
 		_travel[i].append(telemetry.wheels[i].compression)
 		if _travel[i].size() > HISTORY_LENGTH:
 			_travel[i].pop_front()
@@ -284,8 +287,8 @@ func draw() -> void:
 func _readouts() -> void:
 	var gravity: float = float(ProjectSettings.get_setting("physics/3d/default_gravity")) * vehicle.gravity_scale
 
-	var front: SuspensionConfig = vehicle.wheel_fl.suspension_config
-	var rear: SuspensionConfig = vehicle.wheel_rl.suspension_config
+	var front: SuspensionConfig = vehicle.front_wheel().suspension_config
+	var rear: SuspensionConfig = vehicle.rear_wheel().suspension_config
 
 	var front_mass: float = _corner_mass(true)
 	var rear_mass: float = _corner_mass(false)
@@ -366,13 +369,8 @@ func _camber_color(camber_deg: float) -> Color:
 
 
 func _corner_mass(front: bool) -> float:
-	var front_z: float = (vehicle.to_local(vehicle.wheel_fl.global_position).z + vehicle
-		.to_local(vehicle.wheel_fr.global_position)
-		.z) * 0.5
-
-	var rear_z: float = (vehicle.to_local(vehicle.wheel_rl.global_position).z + vehicle
-		.to_local(vehicle.wheel_rr.global_position)
-		.z) * 0.5
+	var front_z: float = _axle_z(vehicle.front_axle())
+	var rear_z: float = _axle_z(vehicle.rear_axle())
 
 	var share: float = clampf(
 		(rear_z - vehicle.center_of_mass.z) / maxf(rear_z - front_z, 0.1),
@@ -383,7 +381,16 @@ func _corner_mass(front: bool) -> float:
 	if not front:
 		share = 1.0 - share
 
-	return vehicle.mass * share * 0.5
+	var axle: Array[Wheel] = vehicle.front_axle() if front else vehicle.rear_axle()
+	return vehicle.mass * share / float(axle.size())
+
+
+func _axle_z(axle: Array[Wheel]) -> float:
+	var total: float = 0.0
+	for w in axle:
+		total += vehicle.to_local(w.global_position).z
+
+	return total / float(axle.size())
 
 
 func _frequency(config: SuspensionConfig, corner_mass: float) -> float:

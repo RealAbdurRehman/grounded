@@ -4,14 +4,25 @@ extends RigidBody3D
 const GEAR_HOLD_FREE: float = 0.02
 const GEAR_HOLD_FADE: float = 0.02
 
+## Wheels this far apart are on different axles.
+const AXLE_GAP_M: float = 0.3
+
+const PLAYER_WHEEL_LIMIT: int = 8
+
+
+class WheelPair extends RefCounted:
+	var left: Wheel
+	var right: Wheel
+
+	var axle_index: int = 0
+
+
 @export var config: ChassisConfig
 
-@export_group("References")
-@export var wheel_fl: Wheel
-@export var wheel_fr: Wheel
-@export var wheel_rl: Wheel
-@export var wheel_rr: Wheel
+@export_group("Wheels")
+@export var is_player_built: bool = false
 
+@export_group("References")
 @export var engine_node: VehicleEngine
 @export var drivetrain_node: Drivetrain
 
@@ -44,9 +55,18 @@ var aero: Aero
 
 var obstacles: ObstacleSolver = ObstacleSolver.new()
 
+var wheels: Array[Wheel] = []
+var axles: Array[Array] = []
+var wheel_pairs: Array[WheelPair] = []
+
 var _com_applied: Vector3 = Vector3.INF
 
 var _wheelbase_m: float = 2.7
+
+var _steer_lever_m: Dictionary[Wheel, float] = { }
+var _steer_reference_lever_m: float = 2.7
+var _steer_reference: Wheel
+
 var _steer_x_offset: Dictionary[Wheel, float] = { }
 
 
@@ -63,6 +83,14 @@ func _ready() -> void:
 
 	linear_damp = 0.0
 	angular_damp = 0.0
+
+	_find_wheels()
+	if wheels.is_empty():
+		set_physics_process(false)
+		return
+
+	_build_axles()
+	_name_wheels()
 
 	_cache_steering_geometry()
 	steer_cap_rad = deg_to_rad(config.max_steer_angle_deg)
@@ -130,17 +158,179 @@ func _handle_inputs(delta: float) -> void:
 	_update_steering(delta)
 
 
+func _find_wheels() -> void:
+	wheels.clear()
+	_collect_wheels(self)
+
+	if is_player_built and wheels.size() > PLAYER_WHEEL_LIMIT:
+		while wheels.size() > PLAYER_WHEEL_LIMIT:
+			wheels.pop_back().queue_free()
+
+	for w in wheels:
+		w.mass_fraction = 1.0 / float(wheels.size())
+
+
+func _collect_wheels(node: Node) -> void:
+	for child in node.get_children():
+		if child is Wheel:
+			wheels.append(child)
+
+		_collect_wheels(child)
+
+
+func _build_axles() -> void:
+	axles.clear()
+	wheel_pairs.clear()
+
+	var ordered: Array[Wheel] = wheels.duplicate()
+	ordered.sort_custom(
+		func(a: Wheel, b: Wheel) -> bool:
+			return to_local(a.global_position).z < to_local(b.global_position).z,
+	)
+
+	var axle_z: float = INF
+	for w in ordered:
+		var z: float = to_local(w.global_position).z
+
+		if axles.is_empty() or absf(z - axle_z) > AXLE_GAP_M:
+			var fresh: Array[Wheel] = []
+			axles.append(fresh)
+
+			axle_z = z
+
+		axles[-1].append(w)
+
+	for index in range(axles.size()):
+		var axle: Array = axles[index]
+		axle.sort_custom(
+			func(a: Wheel, b: Wheel) -> bool:
+				return to_local(a.global_position).x < to_local(b.global_position).x,
+		)
+
+		for w: Wheel in axle:
+			w.axle_index = index
+			w.is_front = index == 0
+
+		for i in range(int(axle.size() / 2.0)):
+			var pair := WheelPair.new()
+			pair.left = axle[i]
+			pair.right = axle[axle.size() - 1 - i]
+			pair.axle_index = index
+
+			wheel_pairs.append(pair)
+
+
+func _name_wheels() -> void:
+	for index in range(axles.size()):
+		var axle: Array = axles[index]
+
+		var prefix: String = ""
+		if axles.size() > 1:
+			if index == 0:
+				prefix = "F"
+			elif index == axles.size() - 1:
+				prefix = "R"
+			else:
+				prefix = "M" if axles.size() == 3 else "M%d" % index
+
+		var left_seen: int = 0
+		for i in range(axle.size()):
+			var w: Wheel = axle[i]
+			var x: float = to_local(w.global_position).x
+
+			var side: String = "C"
+			if x < -Wheel.CENTER_WHEEL_M:
+				left_seen += 1
+				side = "L" if left_seen == 1 else "L%d" % left_seen
+
+			w.label = prefix + side
+
+		var seen: int = 0
+		for i in range(axle.size() - 1, -1, -1):
+			var w: Wheel = axle[i]
+			if to_local(w.global_position).x > Wheel.CENTER_WHEEL_M:
+				seen += 1
+				w.label = prefix + ("R" if seen == 1 else "R%d" % seen)
+
+
+func front_axle() -> Array[Wheel]:
+	var result: Array[Wheel] = []
+	result.assign(axles[0])
+
+	return result
+
+
+func rear_axle() -> Array[Wheel]:
+	var result: Array[Wheel] = []
+	result.assign(axles[-1])
+
+	return result
+
+
+func corner_wheel(front: bool, right: bool) -> Wheel:
+	var axle: Array = axles[0] if front else axles[-1]
+	return axle[-1] if right else axle[0]
+
+
+func front_wheel() -> Wheel:
+	return axles[0][0]
+
+
+func rear_wheel() -> Wheel:
+	return axles[-1][0]
+
+
 func _cache_steering_geometry() -> void:
-	var fl: Vector3 = to_local(wheel_fl.global_position)
-	var fr: Vector3 = to_local(wheel_fr.global_position)
-	var rl: Vector3 = to_local(wheel_rl.global_position)
-	var rr: Vector3 = to_local(wheel_rr.global_position)
+	var steered: Array[Wheel] = []
+	var fixed: Array[Wheel] = []
+	for w in wheels:
+		if w.can_steer:
+			steered.append(w)
+		else:
+			fixed.append(w)
 
-	_wheelbase_m = maxf(((rl.z + rr.z) - (fl.z + fr.z)) * 0.5, 0.5)
+	var pivot_from: Array[Wheel] = fixed if not fixed.is_empty() else wheels
 
-	var axle_mid_x: float = (fl.x + fr.x) * 0.5
-	_steer_x_offset[wheel_fl] = fl.x - axle_mid_x
-	_steer_x_offset[wheel_fr] = fr.x - axle_mid_x
+	var pivot_z: float = 0.0
+	for w in pivot_from:
+		pivot_z += to_local(w.global_position).z
+	pivot_z /= float(pivot_from.size())
+
+	_steer_lever_m.clear()
+	_steer_x_offset.clear()
+
+	_steer_reference = wheels[0]
+	_steer_reference_lever_m = 0.0
+
+	var wheelbase: float = 0.0
+	for w in steered:
+		var lever: float = pivot_z - to_local(w.global_position).z
+		_steer_lever_m[w] = lever
+
+		if absf(lever) > absf(_steer_reference_lever_m):
+			_steer_reference_lever_m = lever
+			_steer_reference = w
+
+		wheelbase = maxf(wheelbase, lever)
+
+		var mid_x: float = 0.0
+		var axle: Array = axles[w.axle_index]
+		for other: Wheel in axle:
+			mid_x += to_local(other.global_position).x
+		mid_x /= float(axle.size())
+
+		_steer_x_offset[w] = to_local(w.global_position).x - mid_x
+
+		if steered.is_empty():
+			wheelbase = to_local(rear_wheel().global_position).z - to_local(
+				front_wheel().global_position
+			).z
+
+	if _steer_reference_lever_m == 0.0:
+		_steer_reference_lever_m = 1.0
+	_steer_reference_lever_m = absf(_steer_reference_lever_m)
+
+	_wheelbase_m = maxf(wheelbase, 0.5)
 
 
 func _update_steering(delta: float) -> void:
@@ -166,14 +356,14 @@ func _update_steering(delta: float) -> void:
 		linear_velocity.length(),
 	)
 
-	for w in [wheel_fl, wheel_fr, wheel_rl, wheel_rr]:
+	for w in wheels:
 		if w.can_steer:
-			w.steer_angle_rad = _ackermann_angle_rad(steer_angle_rad, _steer_x_offset.get(w, 0.0))
+			w.steer_angle_rad = _ackermann_angle_rad(steer_angle_rad, w)
 
 
 func _tire_steering_torque_nm() -> float:
 	var total: float = 0.0
-	for w in [wheel_fl, wheel_fr, wheel_rl, wheel_rr]:
+	for w in wheels:
 		total += w.steering_torque_nm
 
 	return total
@@ -184,9 +374,9 @@ func _speed_steer_cap_rad(speed: float, lock_rad: float) -> float:
 	if sensitivity <= 0.0:
 		return lock_rad
 
-	var tire: Tire = wheel_fl.tire_model
+	var tire: Tire = _steer_reference.tire_model
 	var ref_load: float = tire.reference_load_n
-	var mu: float = tire.peak_lateral_force_n(ref_load, wheel_fl.friction_coef) / ref_load
+	var mu: float = tire.peak_lateral_force_n(ref_load, _steer_reference.friction_coef) / ref_load
 
 	var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 	var corner_accel: float = mu * gravity * gravity_scale
@@ -198,16 +388,29 @@ func _speed_steer_cap_rad(speed: float, lock_rad: float) -> float:
 	return lerpf(lock_rad, grip_cap_rad, sensitivity)
 
 
-func _ackermann_angle_rad(centre_rad: float, x_offset: float) -> float:
-	var t: float = tan(centre_rad)
-	var ideal_rad: float = atan2(_wheelbase_m * t, maxf(_wheelbase_m + x_offset * t, 0.01))
+func _ackermann_angle_rad(centre_rad: float, wheel: Wheel) -> float:
+	var lever: float = _steer_lever_m.get(wheel, _steer_reference_lever_m)
+	var x_offset: float = _steer_x_offset.get(wheel, 0.0)
 
-	return lerpf(centre_rad, ideal_rad, config.ackermann_factor)
+	var t: float = tan(centre_rad)
+	var reference: float = _steer_reference_lever_m
+
+	var straight_rad: float = atan(lever * t / reference)
+	var ideal_rad: float = atan2(lever * t, maxf(reference + x_offset * t, 0.01))
+
+	return lerpf(straight_rad, ideal_rad, config.ackermann_factor)
 
 
 func _compute_anti_roll_bars() -> void:
-	_set_axle_arb(wheel_fl, wheel_fr, config.front_arb_stiffness)
-	_set_axle_arb(wheel_rl, wheel_rr, config.rear_arb_stiffness)
+	for w in wheels:
+		w.arb_force_n = 0.0
+
+		for pair in wheel_pairs:
+			var stiffness: float = config.front_arb_stiffness
+			if pair.axle_index > 0:
+				stiffness = config.rear_arb_stiffness
+
+			_set_axle_arb(pair.left, pair.right, stiffness)
 
 
 func _set_axle_arb(left: Wheel, right: Wheel, stiffness: float) -> void:
@@ -216,22 +419,20 @@ func _set_axle_arb(left: Wheel, right: Wheel, stiffness: float) -> void:
 		var force: float = diff * stiffness
 		left.arb_force_n = force
 		right.arb_force_n = -force
-	else:
-		left.arb_force_n = 0.0
-		right.arb_force_n = 0.0
 
 
 func _update_drivetrain_and_wheels(delta: float) -> void:
 	var driver_brake_nm: Dictionary[Wheel, float] = { }
-	for w in [wheel_fl, wheel_fr, wheel_rl, wheel_rr]:
+	for w in wheels:
 		driver_brake_nm[w] = brake_input * brakes_for(w).max_torque_nm
 
 	assists.update(delta, throttle_input, driver_brake_nm, handbrake_input)
 
 	var driven_wheels: Array[Wheel] = []
-	for w in [wheel_fl, wheel_fr, wheel_rl, wheel_rr]:
-		if w.is_driven:
-			driven_wheels.append(w)
+	for axle in axles:
+		for w: Wheel in axle:
+			if w.is_driven:
+				driven_wheels.append(w)
 
 	drivetrain_node.setup_driveline(driven_wheels)
 	var driveline_speed: float = drivetrain_node.get_input_speed_rad_s()
@@ -268,8 +469,6 @@ func _update_drivetrain_and_wheels(delta: float) -> void:
 		engine_inertia,
 		delta,
 	)
-
-	var wheels: Array[Wheel] = [wheel_fl, wheel_fr, wheel_rl, wheel_rr]
 
 	for w in wheels:
 		var w_drive_torque: float = drive_torques.get(w, 0.0)

@@ -4,6 +4,8 @@ extends Node
 @export var vehicle: Vehicle
 @export_range(0.02, 0.5, 0.01) var accel_smoothing_time: float = 0.15
 
+var is_supported: bool = false
+
 var wheelbase: float = 1.0
 
 var cg_to_front: float = 0.5
@@ -48,13 +50,25 @@ func _ready() -> void:
 
 
 func _measure_geometry() -> void:
-	_wheels = [vehicle.wheel_fl, vehicle.wheel_fr, vehicle.wheel_rl, vehicle.wheel_rr]
+	is_supported = (
+		vehicle.axles.size() == 2 and vehicle.axles[0].size() == 2 and vehicle.axles[1].size() == 2
+	)
+
+	if not is_supported:
+		return
+
+	var front_left: Wheel = vehicle.axles[0][0]
+	var front_right: Wheel = vehicle.axles[0][1]
+	var rear_left: Wheel = vehicle.axles[1][0]
+	var rear_right: Wheel = vehicle.axles[1][1]
+
+	_wheels = [front_left, front_right, rear_left, rear_right]
 
 	var com: Vector3 = vehicle.center_of_mass
-	var fl: Vector3 = vehicle.to_local(vehicle.wheel_fl.global_position)
-	var fr: Vector3 = vehicle.to_local(vehicle.wheel_fr.global_position)
-	var rl: Vector3 = vehicle.to_local(vehicle.wheel_rl.global_position)
-	var rr: Vector3 = vehicle.to_local(vehicle.wheel_rr.global_position)
+	var fl: Vector3 = vehicle.to_local(front_left.global_position)
+	var fr: Vector3 = vehicle.to_local(front_right.global_position)
+	var rl: Vector3 = vehicle.to_local(rear_left.global_position)
+	var rr: Vector3 = vehicle.to_local(rear_right.global_position)
 
 	var front_z: float = (fl.z + fr.z) * 0.5
 	var rear_z: float = (rl.z + rr.z) * 0.5
@@ -68,12 +82,12 @@ func _measure_geometry() -> void:
 	track_rear = absf(rl.x - rr.x)
 
 	roll_stiffness_front = _axle_roll_stiffness(
-		vehicle.wheel_fl,
+		front_left,
 		track_front,
 		vehicle.config.front_arb_stiffness,
 	)
 	roll_stiffness_rear = _axle_roll_stiffness(
-		vehicle.wheel_rl,
+		rear_left,
 		track_rear,
 		vehicle.config.rear_arb_stiffness,
 	)
@@ -90,6 +104,9 @@ func _physics_process(delta: float) -> void:
 		return
 
 	_measure_geometry()
+	if not is_supported:
+		return
+
 	_update_acceleration(delta)
 
 	_update_cg_height()

@@ -3,6 +3,13 @@ extends DebugPanel
 
 
 func draw() -> void:
+	if not weight_transfer.is_supported:
+		ImGui.TextWrapped(
+			"Balance prediction is only supported for a car with two axles and two wheels on each."
+		)
+
+		return
+
 	fit_begin()
 
 	_diagram()

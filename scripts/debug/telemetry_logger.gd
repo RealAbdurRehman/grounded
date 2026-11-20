@@ -46,7 +46,7 @@ func _header_line(v: Vehicle) -> String:
 
 	for w in v.wheels:
 		var wheel_name: String = w.label.to_lower()
-		for field in ["sr", "sa", "fx", "fy", "fz"]:
+		for field in ["sr", "sa", "fx", "fy", "fz", "tread_c", "core_c", "grip"]:
 			columns.append("%s_%s" % [wheel_name, field])
 
 	columns.append("steer_deg")
@@ -91,13 +91,16 @@ func _record_sample() -> void:
 
 	for w in wheels:
 		parts.append(
-			",%+6.2f,%+6.2f,%+8.1f,%+8.1f,%+8.1f"
+			",%+6.2f,%+6.2f,%+8.1f,%+8.1f,%+8.1f,%6.1f,%6.1f,%6.3f"
 			% [
 				w.slip_ratio,
 				rad_to_deg(w.slip_angle_rad),
 				w.longitudinal_force_n,
 				w.lateral_force_n,
 				w.normal_load_n,
+				w.thermal.tread_c,
+				w.thermal.core_c,
+				w.thermal.grip_factor,
 			]
 		)
 

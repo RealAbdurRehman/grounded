@@ -225,6 +225,33 @@ func _build() -> void:
 		],
 	)
 
+	_tire.group(
+		"Pressure",
+		[
+			Tuner.toggle(
+				&"pressure_enabled",
+				"Pressure",
+				"Turn off for a tire that does not change with air pressure.",
+			),
+			Tuner.slider(
+				&"cold_pressure_kpa",
+				"Fill pressure",
+				50.0,
+				450.0,
+				"%.0f kPa",
+				"How much air is in the tire when cold.",
+			),
+			Tuner.slider(
+				&"design_pressure_kpa",
+				"Design pressure",
+				50.0,
+				450.0,
+				"%.0f kPa",
+				"Pressure the tire is designed for.",
+			),
+		],
+	)
+
 	_surface = Tuner.new(
 		"Surface grip",
 		func() -> Object:
@@ -370,7 +397,7 @@ func _table() -> void:
 		["Slip", "Angle", "Fx", "Fy", "Fz", "Grip"],
 		func(i: int) -> Array:
 			var sample = telemetry.wheels[i]
-			var tire: Tire = wheels()[i].tire_model
+			var wheel: Wheel = wheels()[i]
 
 			var force: Vector2 = Vector2(sample.longitudinal_force_n, sample.lateral_force_n)
 			var grip: float = force.length() / maxf(sample.grip_limit_n, 1.0)
@@ -381,8 +408,8 @@ func _table() -> void:
 			elif grip > 0.85:
 				grip_color = UITheme.WARN
 
-			var ratio_hot: bool = absf(sample.slip_ratio) > tire.kappa_peak()
-			var angle_hot: bool = absf(sample.slip_angle_rad) > tire.alpha_peak()
+			var ratio_hot: bool = absf(sample.slip_ratio) > wheel.kappa_peak()
+			var angle_hot: bool = absf(sample.slip_angle_rad) > wheel.alpha_peak()
 
 			return [
 				["%+.2f" % sample.slip_ratio, UITheme.TEXT, HOT if ratio_hot else Color(0, 0, 0, 0)],
@@ -402,7 +429,7 @@ func _table() -> void:
 func _temperature_table() -> void:
 	Widgets.wheel_table(
 		"temperature_table",
-		["Tread", "Core", "Available"],
+		["Tread", "Core", "Pressure", "Available"],
 		func(i: int) -> Array:
 			var sample = telemetry.wheels[i]
 			var tire: Tire = wheels()[i].tire_model
@@ -415,9 +442,22 @@ func _temperature_table() -> void:
 				elif off > tire.grip_window_c * 0.5:
 					tread_tint = HOT
 
+			var pressure_tint: Color = Color(0, 0, 0, 0)
+			if tire.pressure_enabled:
+				var pressure_ratio: float = sample.pressure_kpa / maxf(
+					tire.design_pressure_kpa,
+					1.0,
+				)
+
+				if pressure_ratio < 0.85:
+					pressure_tint = COLD
+				elif pressure_ratio > 1.15:
+					pressure_tint = HOT
+
 			return [
 				["%.0f C" % sample.tread_temp_c, UITheme.TEXT, tread_tint],
 				"%.0f C" % sample.core_temp_c,
+				["%.0f kPa" % sample.pressure_kpa, UITheme.TEXT, pressure_tint],
 				"%.0f%%" % (sample.grip_factor * 100.0),
 			],
 	)

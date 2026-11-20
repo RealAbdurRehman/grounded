@@ -195,7 +195,7 @@ func _keep_out(row: Row, delta: float) -> void:
 		wanted = -row.gap / delta
 	elif -row.gap > SLOP_M:
 		var depth: float = -row.gap - SLOP_M
-		var spring: float = row.wheel.suspension_config.tire_stiffness * minf(depth, SPRING_DEPTH_M)
+		var spring: float = row.wheel.tire_stiffness_n_m() * minf(depth, SPRING_DEPTH_M)
 		var beyond: float = PUSH_RATE * maxf(depth - SPRING_DEPTH_M, 0.0) / delta
 
 		wanted = minf(spring * delta / row.mass_normal + beyond, MAX_PUSH_SPEED)

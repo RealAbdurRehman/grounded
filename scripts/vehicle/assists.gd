@@ -89,7 +89,7 @@ func _update_traction_control(delta: float, throttle: float) -> void:
 	var worst: float = 0.0
 	for w in _wheels:
 		if w.is_driven and w.is_grounded:
-			var target: float = w.tire_model.kappa_peak() * cfg.tcs_slip_target
+			var target: float = w.kappa_peak() * cfg.tcs_slip_target
 			worst = maxf(worst, w.slip_ratio / target)
 
 	if worst > 1.0:
@@ -115,7 +115,7 @@ func _tcs_axle_brakes(left: Wheel, right: Wheel, delta: float) -> void:
 	if left.is_driven and right.is_driven and left.is_grounded and right.is_grounded:
 		var difference: float = left.slip_ratio - right.slip_ratio
 
-		var spin_floor: float = left.tire_model.kappa_peak() * config.tcs_slip_target * 0.5
+		var spin_floor: float = left.kappa_peak() * config.tcs_slip_target * 0.5
 		if maxf(left.slip_ratio, right.slip_ratio) < spin_floor:
 			difference = 0.0
 
@@ -240,7 +240,7 @@ func _update_abs(
 			continue
 
 		var slip: float = -w.slip_ratio * signf(forward_speed)
-		var peak: float = w.tire_model.kappa_peak()
+		var peak: float = w.kappa_peak()
 
 		if slip > peak * cfg.abs_release_slip:
 			pressure -= cfg.abs_release_rate * delta

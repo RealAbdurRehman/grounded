@@ -309,7 +309,7 @@ func _status() -> void:
 
 			var peak: float = wheel.tire_model.peak_longitudinal_force_n(
 				wheel.normal_load_n,
-				wheel.friction_coef,
+				wheel.grip_scale(),
 			)
 
 			var used: float = absf(wheel.longitudinal_force_n) / maxf(peak, 1.0)
@@ -349,7 +349,7 @@ func _slope_hold() -> void:
 			wheel.friction_coef,
 		)
 
-		capacity_n += minf(grip_n, brake_nm / wheel.suspension_config.wheel_radius)
+		capacity_n += minf(grip_n, brake_nm / wheel.rolling_radius_m())
 
 	var slope: float = 0.0
 	if normal_sum.length() > 0.001:

@@ -21,6 +21,8 @@ class WheelSample extends RefCounted:
 	var core_temp_c: float = 0.0
 	var grip_factor: float = 1.0
 
+	var pressure_kpa: float = 0.0
+
 
 @export var vehicle: Vehicle
 @export_range(0.02, 0.5, 0.01) var acceleration_filter_time: float = 0.1
@@ -160,4 +162,6 @@ func _sample_wheels() -> void:
 
 		sample.tread_temp_c = source.thermal.tread_c
 		sample.core_temp_c = source.thermal.core_c
-		sample.grip_factor = source.thermal.grip_factor
+		sample.grip_factor = source.thermal.grip_factor * source.inflation.grip_factor
+
+		sample.pressure_kpa = source.inflation.gauge_kpa

@@ -11,7 +11,7 @@ extends Resource
 @export_range(0.3, 1.5, 0.05) var abs_apply_slip: float = 1.0
 
 ## How fast ABS lets go of the brakes.
-@export var abs_release_rate: float = 60.0
+@export var abs_release_rate: float = 30.0
 
 ## How fast ABS presses the brakes.
 @export var abs_apply_rate: float = 15.0

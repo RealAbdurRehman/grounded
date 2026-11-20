@@ -309,10 +309,10 @@ func _grip_gain() -> float:
 
 		var load_n: float = wheel.normal_load_n
 
-		with_air += wheel.tire_model.peak_lateral_force_n(load_n, wheel.friction_coef)
+		with_air += wheel.tire_model.peak_lateral_force_n(load_n, wheel.grip_scale())
 		without_air += wheel.tire_model.peak_lateral_force_n(
 			maxf(load_n - from_air, 0.0),
-			wheel.friction_coef,
+			wheel.grip_scale(),
 		)
 
 	if without_air < 1.0:

@@ -382,7 +382,7 @@ func _speed_steer_cap_rad(speed: float, lock_rad: float) -> float:
 	var corner_accel: float = mu * gravity * gravity_scale
 
 	var geometric_rad: float = atan(_wheelbase_m * corner_accel / maxf(speed * speed, 0.01))
-	var slip_rad: float = config.steer_slip_allowance * tire.alpha_peak()
+	var slip_rad: float = config.steer_slip_allowance * _steer_reference.alpha_peak()
 	var grip_cap_rad: float = minf(geometric_rad + slip_rad, lock_rad)
 
 	return lerpf(lock_rad, grip_cap_rad, sensitivity)

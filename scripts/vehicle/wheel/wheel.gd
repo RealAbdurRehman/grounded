@@ -94,6 +94,8 @@ var collider: TireCollider = TireCollider.new()
 
 var thermal: TireThermal = TireThermal.new()
 
+var inflation: TirePressure = TirePressure.new()
+
 var spin_inertia: float = 1.2
 var obstacle_impulse_n_s: Vector3 = Vector3.ZERO
 
@@ -152,7 +154,7 @@ func _update_visual(delta: float) -> void:
 
 
 func grip_scale() -> float:
-	return friction_coef * thermal.grip_factor
+	return friction_coef * thermal.grip_factor * inflation.grip_factor
 
 
 func tire_area_scale() -> float:
@@ -160,22 +162,31 @@ func tire_area_scale() -> float:
 	return maxf(config.wheel_radius * config.width_m() / TireThermal.REFERENCE_TIRE_AREA_M2, 0.05)
 
 
-func _step_temperature(delta: float, rolling_w: float, sliding_w: float, speed: float) -> void:
+func tire_stiffness_n_m() -> float:
+	return suspension_config.tire_stiffness * inflation.stiffness_factor
+
+
+func kappa_peak() -> float:
+	return tire_model.kappa_peak() / inflation.cornering_factor
+
+
+func alpha_peak() -> float:
+	return tire_model.alpha_peak() / inflation.cornering_factor
+
+
+func _step_tire_state(delta: float, rolling_w: float, sliding_w: float, speed: float) -> void:
+	var ambient_c: float = Atmosphere.config.air_temperature_c
+
 	if not tire_model.temperature_enabled:
 		thermal.grip_factor = 1.0
 		thermal.rolling_factor = 1.0
 
+		inflation.update(tire_model, ambient_c, normal_load_n)
+
 		return
 
-	thermal.step(
-		tire_model,
-		tire_area_scale(),
-		Atmosphere.config.air_temperature_c,
-		rolling_w,
-		sliding_w,
-		speed,
-		delta,
-	)
+	thermal.step(tire_model, tire_area_scale(), ambient_c, rolling_w, sliding_w, speed, delta)
+	inflation.update(tire_model, thermal.cavity_c, normal_load_n)
 
 
 func rolling_radius_m() -> float:
@@ -301,7 +312,7 @@ func update_wheel(
 
 	if not is_grounded:
 		_handle_airborne(delta, drive_torque_nm, brake_torque_nm, inertia)
-		_step_temperature(delta, 0.0, 0.0, maxf(air_speed, absf(angular_velocity_rad_s) * radius))
+		_step_tire_state(delta, 0.0, 0.0, maxf(air_speed, absf(angular_velocity_rad_s) * radius))
 
 		return
 
@@ -317,7 +328,7 @@ func update_wheel(
 	var f_damper: float = suspension_config.damper_force(_hub_speed)
 	suspension_force_n = maxf(0.0, f_spring + f_damper + arb_force_n)
 
-	normal_load_n = suspension_config.tire_stiffness * _tire_squash
+	normal_load_n = tire_stiffness_n_m() * _tire_squash
 
 	var wheel_basis: Basis = chassis.global_transform.basis * _alignment_basis()
 
@@ -360,6 +371,7 @@ func update_wheel(
 		fz,
 		friction,
 		lean,
+		inflation.cornering_factor,
 	)
 
 	var kappa_step: float = 0.02
@@ -371,6 +383,7 @@ func update_wheel(
 		fz,
 		friction,
 		lean,
+		inflation.cornering_factor,
 	)
 
 	var force_slope: float = maxf((f_step.x - f_now.x) / kappa_step, 0.0)
@@ -411,6 +424,7 @@ func update_wheel(
 		fz,
 		friction,
 		lean,
+		inflation.cornering_factor,
 	)
 
 	var fx: float = f_final.x
@@ -432,7 +446,10 @@ func update_wheel(
 		fx = fx * mass_share * speed_long / (mass_share * speed_long + delta * absf(fx))
 
 	var rolling_fade_in: float = clampf(v_long / 0.5, -1.0, 1.0)
-	var rolling_coef: float = rolling_resistance_coef * thermal.rolling_factor
+	var rolling_coef: float = (
+		rolling_resistance_coef * thermal.rolling_factor * inflation.rolling_factor
+	)
+
 	fx += -rolling_coef * fz * rolling_fade_in
 
 	var combined_force: Vector2 = tire_model.project_to_friction_ellipse(
@@ -440,6 +457,7 @@ func update_wheel(
 		tire_model.peak_longitudinal_force_n(fz, friction),
 		tire_model.peak_lateral_force_n(fz, friction, lean),
 	)
+
 	fx = combined_force.x
 	fy = combined_force.y
 
@@ -447,7 +465,13 @@ func update_wheel(
 	lateral_force_n = fy
 
 	var rolling_fade: float = smoothstep(0.5, 4.0, speed_long) * smoothstep(0.0, 1.5, v_long)
-	pneumatic_trail_m = tire_model.pneumatic_trail(alpha, fz)
+	pneumatic_trail_m = tire_model.pneumatic_trail(
+		alpha,
+		fz,
+		inflation.trail_factor,
+		inflation.cornering_factor,
+	)
+
 	aligning_torque_nm = fy * pneumatic_trail_m * rolling_fade
 
 	steering_torque_nm = 0.0
@@ -463,7 +487,7 @@ func update_wheel(
 		absf(fx) * absf(angular_velocity_rad_s * radius - v_long) + absf(fy) * absf(v_lat)
 	)
 
-	_step_temperature(delta, rolling_w, sliding_w, maxf(air_speed, wheel_surface_speed))
+	_step_tire_state(delta, rolling_w, sliding_w, maxf(air_speed, wheel_surface_speed))
 
 	var strut_up: Vector3 = global_transform.basis.orthonormalized().y
 	var strut_extra_n: float = suspension_force_n - normal_load_n + _stop_force_n
@@ -512,7 +536,7 @@ func _step_hub(chassis: RigidBody3D, delta: float) -> void:
 	if is_grounded:
 		squash = maxf(_ground.displacement - spring_displacement, 0.0)
 
-	var tire_force: float = config.tire_stiffness * squash
+	var tire_force: float = tire_stiffness_n_m() * squash
 	var spring_force: float = (
 		config.wheel_rate() * spring_displacement
 		+ config.bump_stop_force(spring_displacement) + arb_force_n

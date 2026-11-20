@@ -114,20 +114,51 @@ extends Resource
 @export_range(100.0, 100000.0, 100.0) var tread_heat_capacity_j_k: float = 3000.0
 
 ## How fast the tire body cools down when driving.
-@export_range(0.0, 500.0, 0.5) var core_to_air_w_k: float = 24.0
+@export_range(0.0, 500.0, 0.5) var core_to_air_w_k: float = 15.0
 
 ## How fast the tread cools down when parked.
-@export_range(0.0, 500.0, 0.5) var tread_to_air_w_k: float = 8.0
+@export_range(0.0, 500.0, 0.5) var tread_to_air_w_k: float = 21.0
 
 ## How much faster the tread cools down at high speed.
-@export_range(0.0, 50.0, 0.1) var tread_to_air_speed_w_k: float = 1.2
+@export_range(0.0, 50.0, 0.1) var tread_to_air_speed_w_k: float = 0.8
 
 ## How fast heat moves between the tread and the tire body.
-@export_range(0.0, 1000.0, 1.0) var tread_core_w_k: float = 60.0
+@export_range(0.0, 1000.0, 1.0) var tread_core_w_k: float = 50.0
 
 @export_group("Air in tire")
 ## How much the air inside the tire warms up from the tire body.
 @export_range(0.0, 1.0, 0.01) var cavity_temp_share: float = 0.6
+
+@export_group("Tire Pressure")
+@export var pressure_enabled: bool = true
+
+## How much air is in the tire when cold.
+@export_range(50.0, 450.0, 1.0) var cold_pressure_kpa: float = 220.0
+
+## Pressure the tire is designed for.
+@export_range(50.0, 450.0, 1.0) var design_pressure_kpa: float = 220.0
+
+## Temperature the tire was filled at.
+@export_range(-20.0, 50.0, 1.0) var inflation_temp_c: float = 20.0
+
+## How much stiffness comes from the rubber itself.
+@export_range(0.0, 0.5, 0.01) var structural_stiffness_share: float = 0.15
+
+@export_subgroup("Effects")
+## How strongly pressure changes rolling resistance.
+@export_range(0.0, 1.5, 0.05) var rolling_pressure_power: float = 0.55
+
+## How strongly pressure changes cornering grip.
+@export_range(0.0, 1.0, 0.05) var cornering_pressure_power: float = 0.5
+
+## How much low pressure makes the steering want to self center more.
+@export_range(0.0, 3.0, 0.05) var trail_pressure_power: float = 1.5
+
+## How much the load the tire is made for changes with pressure.
+@export_range(0.0, 2.0, 0.05) var load_capacity_pressure_power: float = 1.0
+
+## How much grip is lost when the tire is overinflated.
+@export_range(0.0, 4.0, 0.1) var grip_loss_overinflated: float = 0.7
 
 var _cache_long: Vector3 = Vector3.INF
 var _cache_lat: Vector3 = Vector3.INF
@@ -190,11 +221,26 @@ func _get_peak_mu(fz: float) -> float:
 	return clampf(1.0 - load_sensitivity * (load_ratio - 1.0), 0.5, 1.5)
 
 
+func capacity_grip_factor(fz: float, capacity_scale: float) -> float:
+	if not (fz > 0.0):
+		return 1.0
+
+	var load_ratio: float = fz / (reference_load_n * maxf(capacity_scale, 0.01))
+	var scaled: float = clampf(1.0 - load_sensitivity * (load_ratio - 1.0), 0.5, 1.5)
+
+	return scaled / _get_peak_mu(fz)
+
+
 func camber_grip_factor(lean_rad: float) -> float:
 	return clampf(1.0 - camber_grip_loss * lean_rad * lean_rad, 0.5, 1.0)
 
 
-func pneumatic_trail(slip_angle_rad: float, fz: float) -> float:
+func pneumatic_trail(
+	slip_angle_rad: float,
+	fz: float,
+	trail_scale: float = 1.0,
+	stiffness_scale: float = 1.0,
+) -> float:
 	if fz <= 1.0:
 		return 0.0
 
@@ -203,13 +249,13 @@ func pneumatic_trail(slip_angle_rad: float, fz: float) -> float:
 	var load_scale: float = clampf(sqrt(fz / reference_load_n), 0.5, 1.5)
 
 	var sliding: float = clampf(
-		absf(slip_angle_rad) / (trail_zero_slip_ratio * _alpha_peak),
+		absf(slip_angle_rad) * stiffness_scale / (trail_zero_slip_ratio * _alpha_peak),
 		0.0,
 		1.0,
 	)
 	var shape: float = pow(1.0 - sliding, 3.0) / (1.0 - sliding + sliding * sliding / 3.0)
 
-	return pneumatic_trail_m * load_scale * shape
+	return pneumatic_trail_m * load_scale * shape * trail_scale
 
 
 func peak_longitudinal_force_n(fz: float, grip_scale: float = 1.0) -> float:
@@ -281,6 +327,7 @@ func compute_forces(
 	fz: float,
 	grip_scale: float = 1.0,
 	lean_rad: float = 0.0,
+	stiffness_scale: float = 1.0,
 ) -> Vector2:
 	if fz <= 1.0:
 		return Vector2.ZERO
@@ -293,16 +340,28 @@ func compute_forces(
 	if peak_x <= 0.0 or peak_y <= 0.0:
 		return Vector2.ZERO
 
-	var kappa_norm: float = absf(slip_ratio) / _kappa_peak
-	var alpha_norm: float = absf(slip_angle_rad) / _alpha_peak
+	var kappa_norm: float = absf(slip_ratio) * stiffness_scale / _kappa_peak
+	var alpha_norm: float = absf(slip_angle_rad) * stiffness_scale / _alpha_peak
 
 	var long_scale: float = 1.0 / sqrt(1.0 + pow(combined_long_strength * alpha_norm, 2.0))
 	var lat_scale: float = 1.0 / sqrt(1.0 + pow(combined_lat_strength * kappa_norm, 2.0))
 
-	var fx: float = _pacejka(slip_ratio, long_B, long_C, peak_x * long_scale, long_E)
+	var fx: float = _pacejka(
+		slip_ratio,
+		long_B * stiffness_scale,
+		long_C,
+		peak_x * long_scale,
+		long_E,
+	)
 
 	var shifted_angle: float = slip_angle_rad + camber_stiffness_ratio * lean_rad
-	var fy_curve: float = _pacejka(shifted_angle, lat_B, lat_C, peak_y * lat_scale, lat_E)
+	var fy_curve: float = _pacejka(
+		shifted_angle,
+		lat_B * stiffness_scale,
+		lat_C,
+		peak_y * lat_scale,
+		lat_E,
+	)
 
 	var fy: float = lerpf(hold_fy, fy_curve, curve_weight(speed_long))
 

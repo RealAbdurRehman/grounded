@@ -46,7 +46,18 @@ func _header_line(v: Vehicle) -> String:
 
 	for w in v.wheels:
 		var wheel_name: String = w.label.to_lower()
-		for field in ["sr", "sa", "fx", "fy", "fz", "tread_c", "core_c", "grip", "pressure_kpa"]:
+		for field in [
+			"sr",
+			"sa",
+			"fx",
+			"fy",
+			"fz",
+			"tread_c",
+			"core_c",
+			"grip",
+			"pressure_kpa",
+			"tread_mm",
+		]:
 			columns.append("%s_%s" % [wheel_name, field])
 
 	columns.append("steer_deg")
@@ -91,7 +102,7 @@ func _record_sample() -> void:
 
 	for w in wheels:
 		parts.append(
-			",%+6.2f,%+6.2f,%+8.1f,%+8.1f,%+8.1f,%6.1f,%6.1f,%6.3f,%6.1f"
+			",%+6.2f,%+6.2f,%+8.1f,%+8.1f,%+8.1f,%6.1f,%6.1f,%6.3f,%6.1f,%6.2f"
 			% [
 				w.slip_ratio,
 				rad_to_deg(w.slip_angle_rad),
@@ -100,8 +111,9 @@ func _record_sample() -> void:
 				w.normal_load_n,
 				w.thermal.tread_c,
 				w.thermal.core_c,
-				w.thermal.grip_factor * w.inflation.grip_factor,
+				w.thermal.grip_factor * w.inflation.grip_factor * w.wear.grip_factor,
 				w.inflation.gauge_kpa,
+				w.wear.tread_mm,
 			]
 		)
 

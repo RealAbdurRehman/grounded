@@ -6,6 +6,8 @@ const SMOOTHING: float = 14.0
 const HOT: Color = Color(1.0, 0.60, 0.20, 0.18)
 const COLD: Color = Color(0.30, 0.60, 1.0, 0.18)
 
+const LOW_TREAD_MM: float = 2.0
+
 var _kappa := PackedFloat32Array()
 var _alpha := PackedFloat32Array()
 
@@ -252,6 +254,21 @@ func _build() -> void:
 		],
 	)
 
+	_tire.group(
+		"Wear",
+		[
+			Tuner.toggle(&"wear_enabled", "Wear", "Turn off for a tire that never wears out."),
+			Tuner.slider(
+				&"wear_rate_scale",
+				"Wear speed",
+				0.0,
+				1000.0,
+				"%.0fx",
+				" Multiplier for how fast tires wear out. 1 is realistic.",
+			),
+		],
+	)
+
 	_surface = Tuner.new(
 		"Surface grip",
 		func() -> Object:
@@ -306,6 +323,10 @@ func draw() -> void:
 	Widgets.gap(0.4)
 
 	_temperature_table()
+	if ImGui.SmallButton("New tires"):
+		for wheel in wheels():
+			wheel.wear.start(wheel.tire_model)
+
 	Widgets.gap(0.4)
 
 	_friction_circles()
@@ -429,7 +450,7 @@ func _table() -> void:
 func _temperature_table() -> void:
 	Widgets.wheel_table(
 		"temperature_table",
-		["Tread", "Core", "Pressure", "Available"],
+		["Tread", "Core", "Pressure", "Depth", "Available"],
 		func(i: int) -> Array:
 			var sample = telemetry.wheels[i]
 			var tire: Tire = wheels()[i].tire_model
@@ -454,10 +475,15 @@ func _temperature_table() -> void:
 				elif pressure_ratio > 1.15:
 					pressure_tint = HOT
 
+			var depth_tint: Color = Color(0, 0, 0, 0)
+			if tire.wear_enabled and sample.tread_mm < LOW_TREAD_MM:
+				depth_tint = HOT
+
 			return [
 				["%.0f C" % sample.tread_temp_c, UITheme.TEXT, tread_tint],
 				"%.0f C" % sample.core_temp_c,
 				["%.0f kPa" % sample.pressure_kpa, UITheme.TEXT, pressure_tint],
+				["%.2f mm" % sample.tread_mm, UITheme.TEXT, depth_tint],
 				"%.0f%%" % (sample.grip_factor * 100.0),
 			],
 	)

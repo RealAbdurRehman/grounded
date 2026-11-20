@@ -346,7 +346,7 @@ func _slope_hold() -> void:
 
 		var grip_n: float = wheel.tire_model.peak_longitudinal_force_n(
 			wheel.normal_load_n,
-			wheel.friction_coef,
+			wheel.grip_scale(),
 		)
 
 		capacity_n += minf(grip_n, brake_nm / wheel.rolling_radius_m())

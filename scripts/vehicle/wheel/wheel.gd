@@ -96,6 +96,8 @@ var thermal: TireThermal = TireThermal.new()
 
 var inflation: TirePressure = TirePressure.new()
 
+var wear: TireWear = TireWear.new()
+
 var spin_inertia: float = 1.2
 var obstacle_impulse_n_s: Vector3 = Vector3.ZERO
 
@@ -154,7 +156,7 @@ func _update_visual(delta: float) -> void:
 
 
 func grip_scale() -> float:
-	return friction_coef * thermal.grip_factor * inflation.grip_factor
+	return friction_coef * thermal.grip_factor * inflation.grip_factor * wear.grip_factor
 
 
 func tire_area_scale() -> float:
@@ -166,16 +168,22 @@ func tire_stiffness_n_m() -> float:
 	return suspension_config.tire_stiffness * inflation.stiffness_factor
 
 
+func stiffness_scale() -> float:
+	return inflation.cornering_factor * wear.stiffness_factor
+
+
 func kappa_peak() -> float:
-	return tire_model.kappa_peak() / inflation.cornering_factor
+	return tire_model.kappa_peak() / stiffness_scale()
 
 
 func alpha_peak() -> float:
-	return tire_model.alpha_peak() / inflation.cornering_factor
+	return tire_model.alpha_peak() / stiffness_scale()
 
 
 func _step_tire_state(delta: float, rolling_w: float, sliding_w: float, speed: float) -> void:
 	var ambient_c: float = Atmosphere.config.air_temperature_c
+
+	wear.step(tire_model, tire_area_scale(), sliding_w, delta)
 
 	if not tire_model.temperature_enabled:
 		thermal.grip_factor = 1.0
@@ -371,7 +379,7 @@ func update_wheel(
 		fz,
 		friction,
 		lean,
-		inflation.cornering_factor,
+		stiffness_scale(),
 	)
 
 	var kappa_step: float = 0.02
@@ -383,7 +391,7 @@ func update_wheel(
 		fz,
 		friction,
 		lean,
-		inflation.cornering_factor,
+		stiffness_scale(),
 	)
 
 	var force_slope: float = maxf((f_step.x - f_now.x) / kappa_step, 0.0)
@@ -424,7 +432,7 @@ func update_wheel(
 		fz,
 		friction,
 		lean,
-		inflation.cornering_factor,
+		stiffness_scale(),
 	)
 
 	var fx: float = f_final.x
@@ -447,7 +455,8 @@ func update_wheel(
 
 	var rolling_fade_in: float = clampf(v_long / 0.5, -1.0, 1.0)
 	var rolling_coef: float = (
-		rolling_resistance_coef * thermal.rolling_factor * inflation.rolling_factor
+		rolling_resistance_coef * thermal.rolling_factor
+		* inflation.rolling_factor * wear.rolling_factor
 	)
 
 	fx += -rolling_coef * fz * rolling_fade_in
@@ -469,7 +478,7 @@ func update_wheel(
 		alpha,
 		fz,
 		inflation.trail_factor,
-		inflation.cornering_factor,
+		stiffness_scale(),
 	)
 
 	aligning_torque_nm = fy * pneumatic_trail_m * rolling_fade

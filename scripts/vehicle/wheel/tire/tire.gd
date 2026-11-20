@@ -160,6 +160,31 @@ extends Resource
 ## How much grip is lost when the tire is overinflated.
 @export_range(0.0, 4.0, 0.1) var grip_loss_overinflated: float = 0.7
 
+@export_group("Tire Wear")
+@export var wear_enabled: bool = true
+
+## Tread depth of a new tire.
+@export_range(3.0, 14.0, 0.5) var new_tread_mm: float = 8.0
+
+## How much tread is lost from sliding on the road.
+@export_range(0.0, 1.0, 0.0001) var wear_mm_per_mj: float = 0.01
+
+## Multiplier for how fast tires wear out. 1 is realistic.
+@export_range(0.0, 10000.0, 1.0) var wear_rate_scale: float = 1.0
+
+@export_subgroup("Effects")
+## Tread depth where the effects max out.
+@export_range(1.0, 6.0, 0.5) var measured_tread_mm: float = 3.0
+
+## How much stiffer the tire gets as it wears down.
+@export_range(0.0, 1.0, 0.01) var worn_stiffness_gain: float = 0.33
+
+## How much extra grip the tire gets as it wears down.
+@export_range(0.0, 0.3, 0.01) var worn_grip_gain: float = 0.09
+
+## How much rolling resistance drops as the tread disappears.
+@export_range(0.0, 0.8, 0.01) var worn_rolling_loss: float = 0.38
+
 var _cache_long: Vector3 = Vector3.INF
 var _cache_lat: Vector3 = Vector3.INF
 

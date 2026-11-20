@@ -2,6 +2,7 @@ class_name AirConfig
 extends Resource
 
 @export_range(0.5, 1.5, 0.005) var air_density: float = 1.225
+@export_range(-30.0, 50.0, 0.5) var air_temperature_c: float = 20.0
 
 @export_group("Wind")
 @export_range(0.0, 60.0, 0.5) var wind_speed_mps: float = 6.0

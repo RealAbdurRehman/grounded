@@ -321,10 +321,10 @@ func _cache_steering_geometry() -> void:
 
 		_steer_x_offset[w] = to_local(w.global_position).x - mid_x
 
-		if steered.is_empty():
-			wheelbase = to_local(rear_wheel().global_position).z - to_local(
-				front_wheel().global_position
-			).z
+	if steered.is_empty():
+		wheelbase = to_local(rear_wheel().global_position).z - to_local(
+			front_wheel().global_position
+		).z
 
 	if _steer_reference_lever_m == 0.0:
 		_steer_reference_lever_m = 1.0
@@ -376,7 +376,7 @@ func _speed_steer_cap_rad(speed: float, lock_rad: float) -> float:
 
 	var tire: Tire = _steer_reference.tire_model
 	var ref_load: float = tire.reference_load_n
-	var mu: float = tire.peak_lateral_force_n(ref_load, _steer_reference.friction_coef) / ref_load
+	var mu: float = tire.peak_lateral_force_n(ref_load, _steer_reference.grip_scale()) / ref_load
 
 	var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 	var corner_accel: float = mu * gravity * gravity_scale
@@ -405,12 +405,12 @@ func _compute_anti_roll_bars() -> void:
 	for w in wheels:
 		w.arb_force_n = 0.0
 
-		for pair in wheel_pairs:
-			var stiffness: float = config.front_arb_stiffness
-			if pair.axle_index > 0:
-				stiffness = config.rear_arb_stiffness
+	for pair in wheel_pairs:
+		var stiffness: float = config.front_arb_stiffness
+		if pair.axle_index > 0:
+			stiffness = config.rear_arb_stiffness
 
-			_set_axle_arb(pair.left, pair.right, stiffness)
+		_set_axle_arb(pair.left, pair.right, stiffness)
 
 
 func _set_axle_arb(left: Wheel, right: Wheel, stiffness: float) -> void:

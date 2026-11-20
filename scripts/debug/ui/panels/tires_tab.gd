@@ -4,6 +4,7 @@ extends DebugPanel
 const SMOOTHING: float = 14.0
 
 const HOT: Color = Color(1.0, 0.60, 0.20, 0.18)
+const COLD: Color = Color(0.30, 0.60, 1.0, 0.18)
 
 var _kappa := PackedFloat32Array()
 var _alpha := PackedFloat32Array()
@@ -181,6 +182,49 @@ func _build() -> void:
 		],
 	)
 
+	_tire.group(
+		"Temperature",
+		[
+			Tuner.toggle(
+				&"temperature_enabled",
+				"Temperature",
+				"Turn off for a tire with fixed grip.",
+			),
+			Tuner.slider(
+				&"optimal_temp_c",
+				"Best grip at",
+				20.0,
+				150.0,
+				"%.0f C",
+				"Temperature where the tire has the most grip.",
+			),
+			Tuner.slider(
+				&"grip_window_c",
+				"Window",
+				10.0,
+				150.0,
+				"%.0f C",
+				"How far the tire can get from optimal temperature before losing grip.",
+			),
+			Tuner.slider(
+				&"grip_loss_at_window",
+				"Grip loss",
+				0.0,
+				0.6,
+				"%.2f",
+				"Grip lost when the tire is completely cold or overheated.",
+			),
+			Tuner.slider(
+				&"sliding_heat_share",
+				"Sliding heat",
+				0.0,
+				1.0,
+				"%.2f",
+				"How much sliding heat goes into the tire instead of the road.",
+			),
+		],
+	)
+
 	_surface = Tuner.new(
 		"Surface grip",
 		func() -> Object:
@@ -210,7 +254,7 @@ func _build() -> void:
 
 func update(delta: float) -> void:
 	var blend: float = 1.0 - exp(-SMOOTHING * delta)
-	for i in range(4):
+	for i in range(wheels().size()):
 		var sample = telemetry.wheels[i]
 		var load_n: float = maxf(sample.normal_load_n, 1.0)
 		var grip: float = maxf(sample.grip_limit_n, 1.0)
@@ -232,6 +276,9 @@ func draw() -> void:
 	Widgets.gap(0.4)
 
 	_table()
+	Widgets.gap(0.4)
+
+	_temperature_table()
 	Widgets.gap(0.4)
 
 	_friction_circles()
@@ -348,6 +395,30 @@ func _table() -> void:
 				"%+.0f" % sample.lateral_force_n,
 				"%.0f" % sample.normal_load_n,
 				["%.0f%%" % (grip * 100.0), grip_color],
+			],
+	)
+
+
+func _temperature_table() -> void:
+	Widgets.wheel_table(
+		"temperature_table",
+		["Tread", "Core", "Available"],
+		func(i: int) -> Array:
+			var sample = telemetry.wheels[i]
+			var tire: Tire = wheels()[i].tire_model
+
+			var tread_tint: Color = Color(0, 0, 0, 0)
+			if tire.temperature_enabled:
+				var off: float = sample.tread_temp_c - tire.optimal_temp_c
+				if off < -tire.grip_window_c * 0.5:
+					tread_tint = COLD
+				elif off > tire.grip_window_c * 0.5:
+					tread_tint = HOT
+
+			return [
+				["%.0f C" % sample.tread_temp_c, UITheme.TEXT, tread_tint],
+				"%.0f C" % sample.core_temp_c,
+				"%.0f%%" % (sample.grip_factor * 100.0),
 			],
 	)
 

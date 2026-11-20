@@ -92,6 +92,8 @@ var _visual: TireVisual = TireVisual.new()
 
 var collider: TireCollider = TireCollider.new()
 
+var thermal: TireThermal = TireThermal.new()
+
 var spin_inertia: float = 1.2
 var obstacle_impulse_n_s: Vector3 = Vector3.ZERO
 
@@ -147,6 +149,33 @@ func _update_visual(delta: float) -> void:
 
 	_spin_angle = fposmod(_spin_angle + angular_velocity_rad_s * delta, TAU)
 	visual_mesh.basis = _alignment_basis() * Basis(Vector3.RIGHT, -_spin_angle) * _mesh_rest
+
+
+func grip_scale() -> float:
+	return friction_coef * thermal.grip_factor
+
+
+func tire_area_scale() -> float:
+	var config: SuspensionConfig = suspension_config
+	return maxf(config.wheel_radius * config.width_m() / TireThermal.REFERENCE_TIRE_AREA_M2, 0.05)
+
+
+func _step_temperature(delta: float, rolling_w: float, sliding_w: float, speed: float) -> void:
+	if not tire_model.temperature_enabled:
+		thermal.grip_factor = 1.0
+		thermal.rolling_factor = 1.0
+
+		return
+
+	thermal.step(
+		tire_model,
+		tire_area_scale(),
+		Atmosphere.config.air_temperature_c,
+		rolling_w,
+		sliding_w,
+		speed,
+		delta,
+	)
 
 
 func rolling_radius_m() -> float:
@@ -248,6 +277,8 @@ func update_wheel(
 		var x: float = chassis.to_local(global_position).x
 		_side = 0.0 if absf(x) < CENTER_WHEEL_M else signf(x)
 
+	var air_speed: float = chassis.linear_velocity.length()
+
 	is_grounded = _ground.find(
 		self,
 		chassis,
@@ -270,6 +301,8 @@ func update_wheel(
 
 	if not is_grounded:
 		_handle_airborne(delta, drive_torque_nm, brake_torque_nm, inertia)
+		_step_temperature(delta, 0.0, 0.0, maxf(air_speed, absf(angular_velocity_rad_s) * radius))
+
 		return
 
 	contact_point = _ground.contact_point
@@ -308,7 +341,8 @@ func update_wheel(
 	var speed_long: float = absf(v_long)
 
 	var fz: float = normal_load_n
-	grip_limit_n = tire_model.peak_force_n(fz) * friction_coef
+	var friction: float = grip_scale()
+	grip_limit_n = tire_model.peak_force_n(fz) * friction
 
 	var mass_share: float = chassis.mass * mass_fraction
 	var hold_fy: float = _lateral_hold(delta, v_lat, v_long, fz, lean, mass_share)
@@ -324,7 +358,7 @@ func update_wheel(
 		hold_fy,
 		speed_long,
 		fz,
-		friction_coef,
+		friction,
 		lean,
 	)
 
@@ -335,7 +369,7 @@ func update_wheel(
 		hold_fy,
 		speed_long,
 		fz,
-		friction_coef,
+		friction,
 		lean,
 	)
 
@@ -375,7 +409,7 @@ func update_wheel(
 		hold_fy,
 		speed_long,
 		fz,
-		friction_coef,
+		friction,
 		lean,
 	)
 
@@ -397,12 +431,14 @@ func update_wheel(
 	):
 		fx = fx * mass_share * speed_long / (mass_share * speed_long + delta * absf(fx))
 
-	fx += -rolling_resistance_coef * fz * clampf(v_long / 0.5, -1.0, 1.0)
+	var rolling_fade_in: float = clampf(v_long / 0.5, -1.0, 1.0)
+	var rolling_coef: float = rolling_resistance_coef * thermal.rolling_factor
+	fx += -rolling_coef * fz * rolling_fade_in
 
 	var combined_force: Vector2 = tire_model.project_to_friction_ellipse(
 		Vector2(fx, fy),
-		tire_model.peak_longitudinal_force_n(fz, friction_coef),
-		tire_model.peak_lateral_force_n(fz, friction_coef, lean),
+		tire_model.peak_longitudinal_force_n(fz, friction),
+		tire_model.peak_lateral_force_n(fz, friction, lean),
 	)
 	fx = combined_force.x
 	fy = combined_force.y
@@ -421,6 +457,13 @@ func update_wheel(
 
 	slip_ratio = kappa_new
 	slip_angle_rad = alpha
+
+	var rolling_w: float = rolling_coef * fz * absf(rolling_fade_in) * speed_long
+	var sliding_w: float = (
+		absf(fx) * absf(angular_velocity_rad_s * radius - v_long) + absf(fy) * absf(v_lat)
+	)
+
+	_step_temperature(delta, rolling_w, sliding_w, maxf(air_speed, wheel_surface_speed))
 
 	var strut_up: Vector3 = global_transform.basis.orthonormalized().y
 	var strut_extra_n: float = suspension_force_n - normal_load_n + _stop_force_n
@@ -546,7 +589,7 @@ func _lateral_hold(
 	lean: float,
 	mass_share: float,
 ) -> float:
-	var peak: float = tire_model.peak_lateral_force_n(fz, friction_coef, lean)
+	var peak: float = tire_model.peak_lateral_force_n(fz, grip_scale(), lean)
 	if peak <= 1.0:
 		_stick_y = 0.0
 		return 0.0
@@ -577,7 +620,7 @@ func _update_stick(
 	if brake_torque_nm <= 0.0 or absf(v_long) > limit or surface_speed > limit:
 		return false
 
-	var peak: float = tire_model.peak_longitudinal_force_n(fz, friction_coef)
+	var peak: float = tire_model.peak_longitudinal_force_n(fz, grip_scale())
 	if peak <= 1.0:
 		return false
 

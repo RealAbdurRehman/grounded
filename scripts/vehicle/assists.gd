@@ -253,11 +253,12 @@ func _update_abs(
 		abs_pressure[w] = clampf(pressure, 0.0, 1.0)
 		abs_active = abs_active or _abs_timer[w] > 0.0
 
-	for pair in _vehicle.wheel_pairs:
-		if pair.axle_index == 0:
-			_balance_axle(pair.left, pair.right, false, cfg.abs_front_pressure_split)
-		else:
-			_balance_axle(pair.left, pair.right, cfg.abs_rear_select_low, 1.0)
+	if cfg.abs_enabled:
+		for pair in _vehicle.wheel_pairs:
+			if pair.axle_index == 0:
+				_balance_axle(pair.left, pair.right, false, cfg.abs_front_pressure_split)
+			else:
+				_balance_axle(pair.left, pair.right, cfg.abs_rear_select_low, 1.0)
 
 
 func _balance_axle(left: Wheel, right: Wheel, select_low: bool, max_split: float) -> void:

@@ -77,6 +77,54 @@ extends Resource
 ## How smooth the sticking effect is.
 @export_range(0.1, 2.0, 0.05) var stick_damping_ratio: float = 0.8
 
+@export_group("Tire Temperature")
+@export var temperature_enabled: bool = true
+
+## Start at temperature of the air.
+@export var starts_at_ambient: bool = true
+
+## Temperature where the tire has the most grip.
+@export_range(20.0, 150.0, 1.0) var optimal_temp_c: float = 65.0
+
+## How far the tire can get from optimal temperature before losing grip.
+@export_range(10.0, 150.0, 1.0) var grip_window_c: float = 50.0
+
+## Grip lost when the tire is completely cold or overheated.
+@export_range(0.0, 0.6, 0.01) var grip_loss_at_window: float = 0.10
+
+@export_subgroup("Rolling Resistance")
+## How much colder temperatures increase rolling resistance.
+@export_range(0.0, 0.02, 0.0005) var rolling_resistance_per_c: float = 0.006
+
+## The temperature where rolling resistance is normal.
+@export_range(0.0, 120.0, 1.0) var reference_temp_c: float = 40.0
+
+@export_subgroup("Heat")
+## How much tire flexing heat goes into the tread instead of the tires body.
+@export_range(0.0, 1.0, 0.01) var hysteresis_tread_share: float = 0.59
+
+## How much sliding heat goes into the tire instead of the road.
+@export_range(0.0, 1.0, 0.05) var sliding_heat_share: float = 0.5
+
+@export_subgroup("Heat Capacity and Cooling")
+## How much heat the tire body absorbs.
+@export var core_heat_capacity_j_k: float = 14000.0
+
+## How much heat the tread absorbs.
+@export var tread_heat_capacity_j_k: float = 3000.0
+
+## How fast the tire body cools down when driving.
+@export var core_to_air_w_k: float = 24.0
+
+## How fast the tread cools down when parked.
+@export var tread_to_air_w_k: float = 8.0
+
+## How much faster the tread cools down at high speed.
+@export var tread_to_air_speed_w_k: float = 1.2
+
+## How fast heat moves between the tread and the tire body.
+@export var tread_core_w_k: float = 60.0
+
 var _cache_long: Vector3 = Vector3.INF
 var _cache_lat: Vector3 = Vector3.INF
 

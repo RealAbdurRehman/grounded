@@ -121,13 +121,13 @@ func _update_shear(wheel: Wheel, delta: float) -> void:
 
 	var peak_lateral: float = _tire_model.peak_lateral_force_n(
 		wheel.normal_load_n,
-		wheel.friction_coef,
+		wheel.grip_scale(),
 		wheel.camber_rad,
 	)
 
 	var peak_longitudinal: float = _tire_model.peak_longitudinal_force_n(
 		wheel.normal_load_n,
-		wheel.friction_coef,
+		wheel.grip_scale(),
 	)
 
 	var shear_target: float = 0.0

@@ -131,6 +131,18 @@ func _build() -> void:
 				"%.3f",
 				"Controls drag and downforce caused by air. The same for every car.",
 			),
+			Tuner.custom(
+				&"air_temperature",
+				"Air temperature",
+				func() -> float:
+					return Atmosphere.config.air_temperature_c,
+				func(value: float) -> void:
+					Atmosphere.config.air_temperature_c = value,
+				-30.0,
+				50.0,
+				"%.0f C",
+				"The temperature tires start at and cool toward.",
+			),
 		],
 	)
 

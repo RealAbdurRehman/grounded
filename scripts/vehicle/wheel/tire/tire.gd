@@ -108,22 +108,26 @@ extends Resource
 
 @export_subgroup("Heat Capacity and Cooling")
 ## How much heat the tire body absorbs.
-@export var core_heat_capacity_j_k: float = 14000.0
+@export_range(100.0, 200000.0, 100.0) var core_heat_capacity_j_k: float = 14000.0
 
 ## How much heat the tread absorbs.
-@export var tread_heat_capacity_j_k: float = 3000.0
+@export_range(100.0, 100000.0, 100.0) var tread_heat_capacity_j_k: float = 3000.0
 
 ## How fast the tire body cools down when driving.
-@export var core_to_air_w_k: float = 24.0
+@export_range(0.0, 500.0, 0.5) var core_to_air_w_k: float = 24.0
 
 ## How fast the tread cools down when parked.
-@export var tread_to_air_w_k: float = 8.0
+@export_range(0.0, 500.0, 0.5) var tread_to_air_w_k: float = 8.0
 
 ## How much faster the tread cools down at high speed.
-@export var tread_to_air_speed_w_k: float = 1.2
+@export_range(0.0, 50.0, 0.1) var tread_to_air_speed_w_k: float = 1.2
 
 ## How fast heat moves between the tread and the tire body.
-@export var tread_core_w_k: float = 60.0
+@export_range(0.0, 1000.0, 1.0) var tread_core_w_k: float = 60.0
+
+@export_group("Air in tire")
+## How much the air inside the tire warms up from the tire body.
+@export_range(0.0, 1.0, 0.01) var cavity_temp_share: float = 0.6
 
 var _cache_long: Vector3 = Vector3.INF
 var _cache_lat: Vector3 = Vector3.INF

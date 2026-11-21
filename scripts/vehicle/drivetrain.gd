@@ -6,6 +6,15 @@ enum TransmissionType {
 	AUTOMATIC,
 }
 
+## Prevents the gearbox rapidly shifting back and forth.
+const AUTO_HYSTERESIS: float = 1.08
+
+## Throttle below this counts as having the foot off the pedal.
+const AUTO_LIFT_THROTTLE: float = 0.05
+
+## Picks the lowest gear that keeps the engine under this share of the upshift speed.
+const AUTO_KICKDOWN_LIMIT: float = 0.9
+
 @export var config: DrivetrainConfig
 
 @export var transmission_type: TransmissionType = TransmissionType.MANUAL_SEQUENTIAL
@@ -323,6 +332,7 @@ func handle_transmission(
 	forward_speed: float,
 	wheel_rad_s: float,
 	at_rev_limiter: bool = false,
+	throttle: float = 1.0,
 ) -> void:
 	_forward_speed = forward_speed
 
@@ -341,7 +351,7 @@ func handle_transmission(
 		if _handle_selector(wheel_rad_s):
 			return
 
-		_handle_automatic_shifting(engine_rpm, at_rev_limiter)
+		_handle_automatic_shifting(engine_rpm, at_rev_limiter, throttle)
 
 
 func _gear_allowed(target_index: int) -> bool:
@@ -390,15 +400,48 @@ func _pick_drive_gear(wheel_rad_s: float) -> int:
 	return config.gear_ratios.size() - 1
 
 
-func _handle_automatic_shifting(engine_rpm: float, at_rev_limiter: bool) -> void:
+func auto_upshift_rpm_at(throttle: float) -> float:
+	if throttle < AUTO_LIFT_THROTTLE:
+		return config.auto_upshift_rpm
+
+	var pedal: float = clampf(throttle, 0.0, 1.0)
+	return lerpf(config.auto_light_upshift_rpm, config.auto_upshift_rpm, pedal)
+
+
+func auto_downshift_rpm_at(throttle: float) -> float:
+	var pedal: float = clampf(throttle, 0.0, 1.0)
+	return lerpf(config.auto_downshift_rpm, config.auto_kickdown_rpm, pedal)
+
+
+func _handle_automatic_shifting(engine_rpm: float, at_rev_limiter: bool, throttle: float) -> void:
+	var up_rpm: float = auto_upshift_rpm_at(throttle)
+	var down_rpm: float = auto_downshift_rpm_at(throttle)
+
+	var ratio: float = config.gear_ratios[current_gear_index]
+
 	if current_gear_index >= 2 and current_gear_index < config.gear_ratios.size() - 1:
-		if engine_rpm >= config.auto_upshift_rpm or at_rev_limiter:
+		var after_up_rpm: float = engine_rpm * config.gear_ratios[current_gear_index + 1] / ratio
+
+		var holds: bool = after_up_rpm > down_rpm * AUTO_HYSTERESIS
+		if at_rev_limiter or (engine_rpm >= up_rpm and holds):
 			shift_up()
 			return
 
-	if current_gear_index > 2:
-		if engine_rpm <= config.auto_downshift_rpm:
-			shift_down()
+	if current_gear_index > 2 and engine_rpm <= down_rpm:
+		var target: int = current_gear_index - 1
+
+		if throttle >= config.auto_kickdown_throttle:
+			for i in range(2, current_gear_index):
+				var after_rpm: float = engine_rpm * config.gear_ratios[i] / ratio
+
+				if after_rpm <= up_rpm * AUTO_KICKDOWN_LIMIT:
+					target = i
+					break
+
+		var after_down_rpm: float = engine_rpm * config.gear_ratios[target] / ratio
+		if after_down_rpm < up_rpm / AUTO_HYSTERESIS and _gear_allowed(target):
+			current_gear_index = target
+			_start_shift()
 
 
 func _start_shift() -> void:

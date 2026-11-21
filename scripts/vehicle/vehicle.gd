@@ -9,6 +9,8 @@ const AXLE_GAP_M: float = 0.3
 
 const PLAYER_WHEEL_LIMIT: int = 8
 
+const OBSTACLE_STEER_FILTER_S: float = 0.05
+
 
 class WheelPair extends RefCounted:
 	var left: Wheel
@@ -36,6 +38,8 @@ class WheelPair extends RefCounted:
 @export var aero_config: AeroConfig = AeroConfig.new()
 
 var throttle_input: float = 0.0
+var throttle_demand: float = 0.0
+
 var brake_input: float = 0.0
 var handbrake_input: float = 0.0
 var steer_input: float = 0.0
@@ -68,6 +72,8 @@ var _steer_reference_lever_m: float = 2.7
 var _steer_reference: Wheel
 
 var _steer_x_offset: Dictionary[Wheel, float] = { }
+
+var _obstacle_steer_nm: float = 0.0
 
 
 func _ready() -> void:
@@ -148,6 +154,7 @@ func _handle_inputs(delta: float) -> void:
 		override = clampf((brake_input - 0.1) / 0.3, 0.0, 1.0)
 
 	var final_throttle_target: float = throttle_target * (1.0 - override)
+	throttle_demand = final_throttle_target
 
 	var throttle_rate: float = config.throttle_ramp_speed
 	if final_throttle_target < throttle_input:
@@ -352,7 +359,7 @@ func _update_steering(delta: float) -> void:
 		target_rad,
 		rate_rad_s,
 		lock_rad,
-		_tire_steering_torque_nm(),
+		_tire_steering_torque_nm(delta),
 		linear_velocity.length(),
 	)
 
@@ -361,12 +368,17 @@ func _update_steering(delta: float) -> void:
 			w.steer_angle_rad = _ackermann_angle_rad(steer_angle_rad, w)
 
 
-func _tire_steering_torque_nm() -> float:
+func _tire_steering_torque_nm(delta: float) -> float:
 	var total: float = 0.0
+	var obstacles_nm: float = 0.0
 	for w in wheels:
 		total += w.steering_torque_nm
+		obstacles_nm += w.obstacle_steer_torque_nm
 
-	return total
+	var blend: float = 1.0 - exp(-delta / OBSTACLE_STEER_FILTER_S)
+	_obstacle_steer_nm = lerpf(_obstacle_steer_nm, obstacles_nm, blend)
+
+	return total + _obstacle_steer_nm
 
 
 func _speed_steer_cap_rad(speed: float, lock_rad: float) -> float:
@@ -443,6 +455,7 @@ func _update_drivetrain_and_wheels(delta: float) -> void:
 		forward_speed,
 		driveline_speed,
 		engine_node.is_rev_limiter_active,
+		throttle_demand,
 	)
 
 	var target_engine_rpm: float = drivetrain_node.calculate_target_engine_rpm(driveline_speed)

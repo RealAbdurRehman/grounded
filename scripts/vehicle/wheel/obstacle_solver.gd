@@ -10,9 +10,12 @@ const FRICTION: float = 0.7
 ## How far the tire can sink into a wall before being pushed out.
 const SLOP_M: float = 0.004
 
-const SPRING_DEPTH_M: float = 0.025
+const SOFT_DEPTH_M: float = 0.04
 
-const PUSH_RATE: float = 0.2
+const RIM_STIFFNESS_RATIO: float = 30.0
+
+const DAMPING_RATIO: float = 0.8
+
 const MAX_PUSH_SPEED: float = 1.5
 
 const DEBUG_SCALE: float = 1.0 / 3500.0
@@ -87,6 +90,7 @@ func solve(chassis: RigidBody3D, wheels: Array[Wheel], delta: float) -> void:
 	for slot in range(wheels.size()):
 		var wheel: Wheel = wheels[slot]
 		wheel.obstacle_impulse_n_s = Vector3.ZERO
+		wheel.obstacle_steer_torque_nm = 0.0
 
 		_hub_speed_change[slot] = 0.0
 		_wheel_spin_change[slot] = 0.0
@@ -190,20 +194,35 @@ func _prepare(row: Row) -> void:
 func _keep_out(row: Row, delta: float) -> void:
 	var approach: float = row.normal.dot(_relative_velocity(row))
 
-	var wanted: float = 0.0
-	if row.gap > 0.0:
-		wanted = -row.gap / delta
-	elif -row.gap > SLOP_M:
-		var depth: float = -row.gap - SLOP_M
-		var spring: float = row.wheel.tire_stiffness_n_m() * minf(depth, SPRING_DEPTH_M)
-		var beyond: float = PUSH_RATE * maxf(depth - SPRING_DEPTH_M, 0.0) / delta
-
-		wanted = minf(spring * delta / row.mass_normal + beyond, MAX_PUSH_SPEED)
-
-	var total: float = maxf(row.push_normal + (wanted - approach) * row.mass_normal, 0.0)
+	var total: float = row.push_normal
+	if row.gap > TireCollider.TOUCH_MARGIN_M:
+		var fastest: float = -(row.gap + SOFT_DEPTH_M) / delta
+		if approach < fastest:
+			total = maxf(total + (fastest - approach) * row.mass_normal, 0.0)
+	else:
+		total = _cushion(row, approach, delta)
 
 	_push(row, row.normal, total - row.push_normal)
 	row.push_normal = total
+
+
+func _cushion(row: Row, approach: float, delta: float) -> float:
+	var depth: float = maxf(-row.gap - SLOP_M, 0.0)
+
+	var stiffness: float = row.wheel.tire_stiffness_n_m()
+	if depth > SOFT_DEPTH_M:
+		stiffness *= 1.0 + (RIM_STIFFNESS_RATIO - 1.0) * (depth - SOFT_DEPTH_M) / depth
+
+	var omega: float = sqrt(stiffness / row.mass_normal)
+
+	var a1: float = 2.0 * DAMPING_RATIO + delta * omega
+	var a2: float = delta * omega * a1
+	var a3: float = 1.0 / (1.0 + a2)
+
+	var out_speed: float = minf(omega / a1 * depth, MAX_PUSH_SPEED)
+	var impulse: float = row.mass_normal * a2 * a3 * (out_speed - approach) - a3 * row.push_normal
+
+	return maxf(row.push_normal + impulse, 0.0)
 
 
 func _rub(row: Row) -> void:
@@ -302,6 +321,12 @@ func _hand_back(chassis: RigidBody3D, delta: float) -> void:
 		if row.obstacle != null and not total.is_zero_approx():
 			var state: PhysicsDirectBodyState3D = row.obstacle.state
 			state.apply_impulse(-total, row.point - state.transform.origin)
+
+		if row.wheel.can_steer:
+			var arm: Vector3 = row.point - row.wheel.hub_world_position()
+			var about_axis: float = arm.cross(total).dot(row.wheel.steering_axis_world())
+
+			row.wheel.obstacle_steer_torque_nm += about_axis / delta
 
 		if not handed.has(row.wheel):
 			handed[row.wheel] = true

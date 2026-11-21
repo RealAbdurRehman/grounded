@@ -18,7 +18,7 @@ var idle_time_s: float = 999.0
 
 var velocity_rad_s: float = 0.0
 
-## Torque tires put on steering.
+## Torque tires and obstacles put on steering.
 var load_torque_nm: float = 0.0
 
 ## Torque driver puts on steering.

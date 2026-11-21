@@ -9,9 +9,9 @@ const LIFT_M: float = 0.03
 
 const TOUCH_MARGIN_M: float = 0.01
 
-const MAX_CONTACTS: int = 4
-
 const MAX_PAIRS: int = 24
+const MAX_CONTACTS: int = 4
+const MAX_DEPTH_M: float = 0.4
 
 ## Contacts with normals this alike are the same contact.
 const SAME_NORMAL_COS: float = 0.98
@@ -76,7 +76,7 @@ func scan(
 	for i in range(0, pairs.size() - 1, 2):
 		var push: Vector3 = pairs[i + 1] - pairs[i]
 		var depth: float = push.length()
-		if depth < 0.00001:
+		if depth < 0.00001 or depth > MAX_DEPTH_M:
 			continue
 
 		var normal: Vector3 = push / depth

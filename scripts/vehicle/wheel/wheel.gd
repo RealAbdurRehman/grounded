@@ -5,6 +5,9 @@ const RIM_PUSH_OUT_MPS: float = 1.5
 
 const CENTER_WHEEL_M: float = 0.05
 
+const SIDE_WALL_COS: float = 0.8
+const SIDE_WALL_MARGIN_M: float = 0.003
+
 @export var suspension_config: SuspensionConfig
 
 @export var tire_model: Tire
@@ -62,6 +65,7 @@ var grip_limit_n: float = 0.0
 var pneumatic_trail_m: float = 0.0
 var aligning_torque_nm: float = 0.0
 var steering_torque_nm: float = 0.0
+var obstacle_steer_torque_nm: float = 0.0
 
 var _stick_x: float = 0.0
 var _stick_fx: float = 0.0
@@ -137,11 +141,16 @@ func _alignment_basis_at(steer: float, with_camber: bool = true) -> Basis:
 		camber = Basis(Vector3.FORWARD, _side * _design_camber_rad())
 
 	var toe := Basis(Vector3.UP, _side * _design_toe_rad())
+	return Basis(_steering_axis(), steer) * toe * camber
 
+
+func _steering_axis() -> Vector3:
 	var caster: float = deg_to_rad(suspension_config.caster_deg)
-	var steering_axis := Vector3(0.0, cos(caster), sin(caster))
+	return Vector3(0.0, cos(caster), sin(caster))
 
-	return Basis(steering_axis, steer) * toe * camber
+
+func steering_axis_world() -> Vector3:
+	return global_transform.basis.orthonormalized() * _steering_axis()
 
 
 func _update_visual(delta: float) -> void:
@@ -243,6 +252,23 @@ func _tire_basis(chassis: RigidBody3D, steer: float, with_camber: bool = true) -
 	return wheel_basis * Basis(Vector3.BACK, PI * 0.5)
 
 
+func _side_wall_shift(chassis: RigidBody3D) -> Vector3:
+	var axle: Vector3 = spin_axis(chassis)
+
+	var deepest: float = 0.0
+	var shift: Vector3 = Vector3.ZERO
+
+	for i in range(collider.count):
+		var depth: float = -collider.gaps[i]
+		if depth <= deepest or absf(collider.normals[i].dot(axle)) < SIDE_WALL_COS:
+			continue
+
+		deepest = depth
+		shift = collider.normals[i] * (depth + SIDE_WALL_MARGIN_M)
+
+	return shift
+
+
 func find_obstacles(chassis: RigidBody3D, delta: float) -> void:
 	var config: SuspensionConfig = suspension_config
 
@@ -305,6 +331,7 @@ func update_wheel(
 		collision_mask,
 		_tire_basis(chassis, steer_angle_rad, false),
 		_tick_path(chassis, delta),
+		_side_wall_shift(chassis),
 	)
 
 	_step_hub(chassis, delta)

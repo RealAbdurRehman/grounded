@@ -265,7 +265,7 @@ func _steering_status() -> void:
 		pull_color,
 	)
 
-	Widgets.key_value("Tire torque on steering", "%+.0f Nm" % steering.load_torque_nm)
+	Widgets.key_value("Load torque on steering", "%+.0f Nm" % steering.load_torque_nm)
 
 	var driver_state: String = "hands off"
 	if steering.idle_time_s < DRIVER_LABEL_HOLD_S:

@@ -52,6 +52,8 @@ var _down: Vector3 = Vector3.DOWN
 var _excluded: Array[RID] = []
 var _wheel_basis: Basis = Basis.IDENTITY
 
+var _shift: Vector3 = Vector3.ZERO
+
 var _found_along: float = 0.0
 var _found_normal: Vector3 = Vector3.UP
 var _found_reach: float = 0.0
@@ -102,6 +104,7 @@ func find(
 	mask: int,
 	tire_basis: Basis,
 	path: Vector3,
+	shift: Vector3 = Vector3.ZERO,
 ) -> bool:
 	_space = wheel.get_world_3d().direct_space_state
 	_config = config
@@ -111,6 +114,9 @@ func find(
 	_down = -up
 	_excluded = [chassis.get_rid()]
 	_wheel_basis = tire_basis
+	_shift = shift
+
+	var mount: Vector3 = wheel.global_position + shift
 
 	var width: float = config.width_m()
 	_fit_shapes(config.wheel_radius, width)
@@ -124,17 +130,17 @@ func find(
 
 	var count: int = _plan_places(length)
 
-	if not _look_at(1, wheel.global_position, heading, travel, 0):
+	if not _look_at(1, mount, heading, travel, 0):
 		return false
 
 	var last: int = 1
 	for k in range(2, count):
-		if not _look_at(k, wheel.global_position, heading, travel, last):
+		if not _look_at(k, mount, heading, travel, last):
 			break
 
 		last = k
 
-	_look_at(0, wheel.global_position, heading, travel, 1)
+	_look_at(0, mount, heading, travel, 1)
 
 	return _combine(wheel, count, travel)
 
@@ -187,7 +193,7 @@ func _look_at(k: int, mount: Vector3, heading: Vector3, travel: float, neighbor:
 
 	if is_under:
 		contact_normal = _scan_normal
-		contact_point = _scan_contact
+		contact_point = _scan_contact - _shift
 
 	return true
 

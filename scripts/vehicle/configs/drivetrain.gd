@@ -19,6 +19,15 @@ extends Resource
 @export var auto_upshift_rpm: float = 5200.0
 @export var auto_downshift_rpm: float = 1600.0
 
+## Engine speed to shift up when pressing the throttle gently.
+@export var auto_light_upshift_rpm: float = 3000.0
+
+## Engine speed to shift down when flooring the throttle.
+@export var auto_kickdown_rpm: float = 2700.0
+
+## With the throttle pressed this far, the automatic may skip several gears going down.
+@export_range(0.5, 1.0, 0.01) var auto_kickdown_throttle: float = 0.85
+
 ## Max speed you can be going to shift into reverse.
 @export var selector_max_speed: float = 1.5
 

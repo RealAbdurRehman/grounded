@@ -326,11 +326,11 @@ func handle_transmission(
 ) -> void:
 	_forward_speed = forward_speed
 
-	if is_shifting or _shift_cooldown > 0.0:
-		return
-
 	if Input.is_action_just_pressed("toggle_transmission"):
 		transmission_type = TransmissionType.MANUAL_SEQUENTIAL if transmission_type == TransmissionType.AUTOMATIC else TransmissionType.AUTOMATIC
+
+	if is_shifting or _shift_cooldown > 0.0:
+		return
 
 	if transmission_type == TransmissionType.MANUAL_SEQUENTIAL:
 		if Input.is_action_just_pressed("gear_up"):

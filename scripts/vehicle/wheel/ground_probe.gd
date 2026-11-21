@@ -30,6 +30,8 @@ var displacement: float = 0.0
 
 var first_touch_along: float = 0.0
 
+var collider_id: int = 0
+
 var _tire: CylinderShape3D = CylinderShape3D.new()
 
 var _slice: CylinderShape3D = CylinderShape3D.new()
@@ -58,6 +60,8 @@ var _found_along: float = 0.0
 var _found_normal: Vector3 = Vector3.UP
 var _found_reach: float = 0.0
 
+var _found_collider_id: int = 0
+
 var _alongs: PackedFloat32Array = PackedFloat32Array()
 var _normals: PackedVector3Array = PackedVector3Array()
 
@@ -68,6 +72,11 @@ var _scan_along: float = 0.0
 var _scan_min: float = 0.0
 
 var _scan_normal: Vector3 = Vector3.UP
+var _scan_collider_id: int = 0
+
+var _slice_ids: PackedInt64Array = PackedInt64Array()
+var _votes: Dictionary = { }
+
 var _scan_contact: Vector3 = Vector3.ZERO
 
 var _shifts: PackedFloat32Array = PackedFloat32Array()
@@ -88,6 +97,7 @@ func _init() -> void:
 	_normals.resize(SLICES)
 
 	_touching.resize(SLICES)
+	_slice_ids.resize(SLICES)
 	_offsets.resize(SLICES)
 
 	_shifts.resize(MAX_SAMPLES)
@@ -195,6 +205,8 @@ func _look_at(k: int, mount: Vector3, heading: Vector3, travel: float, neighbor:
 		contact_normal = _scan_normal
 		contact_point = _scan_contact - _shift
 
+		collider_id = _scan_collider_id
+
 	return true
 
 
@@ -276,6 +288,7 @@ func _scan_slices(origin: Vector3, travel: float, tire_buried: bool, precise: bo
 
 		_alongs[i] = _found_along
 		_normals[i] = _found_normal
+		_slice_ids[i] = _found_collider_id
 
 		touching_count += 1
 		along_sum += _found_along
@@ -300,6 +313,11 @@ func _scan_slices(origin: Vector3, travel: float, tire_buried: bool, precise: bo
 	var side_sum: float = 0.0
 	var weight_sum: float = 0.0
 
+	_votes.clear()
+	_scan_collider_id = 0
+
+	var best_share: float = 0.0
+
 	for i in range(_slice_count):
 		if _touching[i] == 0:
 			continue
@@ -308,6 +326,13 @@ func _scan_slices(origin: Vector3, travel: float, tire_buried: bool, precise: bo
 		normal_sum += _normals[i] * weight
 		side_sum += _offsets[i] * weight
 		weight_sum += weight
+
+		var share: float = _votes.get(_slice_ids[i], 0.0) + weight
+		_votes[_slice_ids[i]] = share
+
+		if share > best_share:
+			best_share = share
+			_scan_collider_id = _slice_ids[i]
 
 	var normal: Vector3 = normal_sum.normalized()
 	var hub: Vector3 = origin + _down * along
@@ -349,6 +374,7 @@ func _probe_slice(origin: Vector3, travel: float, check_buried: bool, precise: b
 
 	var touch: Vector3 = origin + _down * (travel * fractions[1])
 	var info: Dictionary = _space.get_rest_info(_query(_rest, touch))
+	_found_collider_id = info.get("collider_id", 0)
 
 	var normal: Vector3 = -_down
 	if not info.is_empty() and (info["normal"] as Vector3).length_squared() > 0.5:
@@ -377,6 +403,8 @@ func _probe_slice(origin: Vector3, travel: float, check_buried: bool, precise: b
 
 
 func _squash(buried: Dictionary, origin: Vector3) -> bool:
+	_found_collider_id = buried.get("collider_id", 0)
+
 	var normal: Vector3 = buried["normal"]
 	if normal.length_squared() < 0.5 or normal.dot(-_down) < MIN_GROUND_COS:
 		return _find_with_ray(origin)
@@ -411,6 +439,8 @@ func _find_with_ray(origin: Vector3) -> bool:
 	var hit: Dictionary = _space.intersect_ray(ray)
 	if hit.is_empty():
 		return false
+
+	_found_collider_id = hit.get("collider_id", 0)
 
 	var distance: float = origin.distance_to(hit["position"])
 

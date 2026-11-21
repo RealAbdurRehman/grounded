@@ -102,6 +102,10 @@ var inflation: TirePressure = TirePressure.new()
 
 var wear: TireWear = TireWear.new()
 
+var water: TireWater = TireWater.new()
+
+var surface: SurfaceType = SurfaceType.preset(&"asphalt")
+
 var spin_inertia: float = 1.2
 var obstacle_impulse_n_s: Vector3 = Vector3.ZERO
 
@@ -165,7 +169,10 @@ func _update_visual(delta: float) -> void:
 
 
 func grip_scale() -> float:
-	return friction_coef * thermal.grip_factor * inflation.grip_factor * wear.grip_factor
+	return (
+		friction_coef * thermal.grip_factor * inflation.grip_factor
+		* wear.grip_factor * surface.grip * water.grip_factor
+	)
 
 
 func tire_area_scale() -> float:
@@ -210,6 +217,9 @@ func _step_tire_state(delta: float, rolling_w: float, sliding_w: float, speed: f
 		speed,
 	)
 
+	road_w_k *= surface.heat_transfer_scale * (1.0 + TireWater.HEAT_GAIN * water.wet_amount)
+	var road_c: float = lerpf(surface.temperature_c(Atmosphere.config), ambient_c, water.wet_amount)
+
 	thermal.step(
 		tire_model,
 		tire_area_scale(),
@@ -218,7 +228,7 @@ func _step_tire_state(delta: float, rolling_w: float, sliding_w: float, speed: f
 		sliding_w,
 		speed,
 		delta,
-		Atmosphere.config.road_temperature_c(),
+		road_c,
 		road_w_k,
 	)
 
@@ -353,6 +363,24 @@ func update_wheel(
 		_side_wall_shift(chassis),
 	)
 
+	if is_grounded:
+		surface = SurfaceType.of_body(_ground.collider_id)
+		_ground.displacement += TerrainNoise.height(
+			surface,
+			_ground.contact_point,
+			air_speed,
+			delta,
+		)
+
+	water.update(
+		surface,
+		Atmosphere.config.water_depth_mm,
+		air_speed,
+		tire_model,
+		wear.tread_mm,
+		inflation.gauge_kpa,
+	)
+
 	_step_hub(chassis, delta)
 
 	var radius: float = rolling_radius_m()
@@ -426,6 +454,7 @@ func update_wheel(
 		friction,
 		lean,
 		stiffness_scale(),
+		surface.slide_drop_scale,
 	)
 
 	var kappa_step: float = 0.02
@@ -438,6 +467,7 @@ func update_wheel(
 		friction,
 		lean,
 		stiffness_scale(),
+		surface.slide_drop_scale,
 	)
 
 	var force_slope: float = maxf((f_step.x - f_now.x) / kappa_step, 0.0)
@@ -479,6 +509,7 @@ func update_wheel(
 		friction,
 		lean,
 		stiffness_scale(),
+		surface.slide_drop_scale,
 	)
 
 	var fx: float = f_final.x
@@ -500,11 +531,12 @@ func update_wheel(
 		fx = fx * mass_share * speed_long / (mass_share * speed_long + delta * absf(fx))
 
 	var rolling_fade_in: float = clampf(v_long / 0.5, -1.0, 1.0)
-	var rolling_coef: float = (
+	var tire_rolling_coef: float = (
 		rolling_resistance_coef * thermal.rolling_factor
 		* inflation.rolling_factor * wear.rolling_factor
 	)
 
+	var rolling_coef: float = tire_rolling_coef * surface.rolling_resistance_scale
 	fx += -rolling_coef * fz * rolling_fade_in
 
 	var combined_force: Vector2 = tire_model.project_to_friction_ellipse(
@@ -537,7 +569,7 @@ func update_wheel(
 	slip_ratio = kappa_new
 	slip_angle_rad = alpha
 
-	var rolling_w: float = rolling_coef * fz * absf(rolling_fade_in) * speed_long
+	var rolling_w: float = tire_rolling_coef * fz * absf(rolling_fade_in) * speed_long
 	var sliding_w: float = (
 		absf(fx) * absf(angular_velocity_rad_s * radius - v_long) + absf(fy) * absf(v_lat)
 	)

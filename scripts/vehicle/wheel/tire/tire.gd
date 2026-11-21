@@ -202,6 +202,14 @@ static func _pacejka(x: float, B: float, C: float, D: float, E: float) -> float:
 	return D * sin(C * atan(Bx - E * (Bx - atan(Bx))))
 
 
+static func _scale_drop(force: float, peak: float, slip_norm: float, drop_scale: float) -> float:
+	if slip_norm <= 1.0 or peak <= 0.0:
+		return force
+
+	var ratio: float = clampf(absf(force) / peak, 0.0, 1.0)
+	return signf(force) * peak * (1.0 - (1.0 - ratio) * drop_scale)
+
+
 static func _find_peak(B: float, C: float, E: float, x_max: float) -> float:
 	var best_x: float = 0.0
 	var best_y: float = 0.0
@@ -357,6 +365,7 @@ func compute_forces(
 	grip_scale: float = 1.0,
 	lean_rad: float = 0.0,
 	stiffness_scale: float = 1.0,
+	drop_scale: float = 1.0,
 ) -> Vector2:
 	if fz <= 1.0:
 		return Vector2.ZERO
@@ -391,6 +400,10 @@ func compute_forces(
 		peak_y * lat_scale,
 		lat_E,
 	)
+
+	if drop_scale != 1.0:
+		fx = _scale_drop(fx, peak_x * long_scale, kappa_norm, drop_scale)
+		fy_curve = _scale_drop(fy_curve, peak_y * lat_scale, alpha_norm, drop_scale)
 
 	var fy: float = lerpf(hold_fy, fy_curve, curve_weight(speed_long))
 

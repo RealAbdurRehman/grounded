@@ -19,6 +19,12 @@ const GRIP_FACTOR_MIN: float = 0.4
 const MIN_TEMP_C: float = -80.0
 const MAX_TEMP_C: float = 300.0
 
+## Minimum speed for the road to affect tire temperature.
+const MIN_ROAD_SPEED_MPS: float = 0.1
+
+## Maximum heat the road can pull from the tire.
+const MAX_ROAD_W_K: float = 500.0
+
 ## Max heat a tire can be given in one step.
 const MAX_HEAT_W: float = 500000.0
 
@@ -48,6 +54,9 @@ var rolling_heat_w: float = 0.0
 ## Heat from tire sliding.
 var sliding_heat_w: float = 0.0
 
+## How strongly the road pulls the tread toward its temperature.
+var road_w_k: float = 0.0
+
 var _is_started: bool = false
 
 var _ambient_c: float = 20.0
@@ -72,6 +81,8 @@ func step(
 	sliding_w: float,
 	speed_mps: float,
 	delta: float,
+	road_c: float = NAN,
+	road_pull_w_k: float = 0.0,
 ) -> void:
 	if not (delta > 0.0):
 		return
@@ -109,7 +120,13 @@ func step(
 	var a11: float = tread_mass + tread_to_air + between
 	var a22: float = core_mass + core_to_air + between
 
-	var b1: float = tread_mass * tread_c + tread_heat_w + tread_to_air * _ambient_c
+	road_w_k = 0.0
+	var road_heat_w: float = 0.0
+	if is_finite(road_c) and road_pull_w_k > 0.0:
+		road_w_k = minf(road_pull_w_k, MAX_ROAD_W_K)
+		road_heat_w = road_w_k * (road_c - _ambient_c)
+
+	var b1: float = tread_mass * tread_c + tread_heat_w + tread_to_air * _ambient_c + road_heat_w
 	var b2: float = core_mass * core_c + core_heat_w + core_to_air * _ambient_c
 
 	var det: float = a11 * a22 - between * between
@@ -118,6 +135,23 @@ func step(
 	core_c = clampf((a11 * b2 + between * b1) / det, MIN_TEMP_C, MAX_TEMP_C)
 
 	_update_factors(tire)
+
+
+static func road_conductance_w_k(
+	tire: Tire,
+	load_n: float,
+	pressure_kpa: float,
+	width_m: float,
+	speed_mps: float,
+) -> float:
+	if not (load_n > 0.0 and pressure_kpa > 0.0 and width_m > 0.0 and is_finite(speed_mps)):
+		return 0.0
+
+	var area_m2: float = load_n / (pressure_kpa * 1000.0)
+	var length_m: float = area_m2 / width_m
+
+	var contact_s: float = length_m / maxf(absf(speed_mps), MIN_ROAD_SPEED_MPS)
+	return maxf(tire.road_heat_transfer, 0.0) * area_m2 / sqrt(PI * contact_s)
 
 
 static func _safe_heat(watts: float) -> float:

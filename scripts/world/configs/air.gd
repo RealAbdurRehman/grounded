@@ -4,6 +4,9 @@ extends Resource
 @export_range(0.5, 1.5, 0.005) var air_density: float = 1.225
 @export_range(-30.0, 50.0, 0.5) var air_temperature_c: float = 20.0
 
+## How much hotter the road is than the air.
+@export_range(-15.0, 40.0, 0.5) var road_above_air_c: float = 0.0
+
 @export_group("Wind")
 @export_range(0.0, 60.0, 0.5) var wind_speed_mps: float = 6.0
 @export_range(-180.0, 180.0, 1.0) var wind_heading_deg: float = 90.0
@@ -33,3 +36,7 @@ extends Resource
 
 ## 0 means different every time.
 @export var random_seed: int = 0
+
+
+func road_temperature_c() -> float:
+	return air_temperature_c + road_above_air_c

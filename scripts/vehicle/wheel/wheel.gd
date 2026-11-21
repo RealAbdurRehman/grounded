@@ -202,7 +202,26 @@ func _step_tire_state(delta: float, rolling_w: float, sliding_w: float, speed: f
 
 		return
 
-	thermal.step(tire_model, tire_area_scale(), ambient_c, rolling_w, sliding_w, speed, delta)
+	var road_w_k: float = TireThermal.road_conductance_w_k(
+		tire_model,
+		normal_load_n,
+		inflation.gauge_kpa + TirePressure.OUTSIDE_AIR_KPA,
+		suspension_config.width_m(),
+		speed,
+	)
+
+	thermal.step(
+		tire_model,
+		tire_area_scale(),
+		ambient_c,
+		rolling_w,
+		sliding_w,
+		speed,
+		delta,
+		Atmosphere.config.road_temperature_c(),
+		road_w_k,
+	)
+
 	inflation.update(tire_model, thermal.cavity_c, normal_load_n)
 
 

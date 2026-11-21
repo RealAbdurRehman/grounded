@@ -143,6 +143,18 @@ func _build() -> void:
 				"%.0f C",
 				"The temperature tires start at and cool toward.",
 			),
+			Tuner.custom(
+				&"road_above_air",
+				"Road above air",
+				func() -> float:
+					return Atmosphere.config.road_above_air_c,
+				func(value: float) -> void:
+					Atmosphere.config.road_above_air_c = value,
+				-15.0,
+				40.0,
+				"%.0f C",
+				"How much hotter the road is than the air.",
+			),
 		],
 	)
 

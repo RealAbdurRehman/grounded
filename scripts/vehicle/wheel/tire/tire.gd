@@ -125,6 +125,10 @@ extends Resource
 ## How fast heat moves between the tread and the tire body.
 @export_range(0.0, 1000.0, 1.0) var tread_core_w_k: float = 50.0
 
+@export_group("Road")
+## How well heat moves between the tread and the road.
+@export_range(0.0, 2000.0, 10.0) var road_heat_transfer: float = 215.0
+
 @export_group("Air in tire")
 ## How much the air inside the tire warms up from the tire body.
 @export_range(0.0, 1.0, 0.01) var cavity_temp_share: float = 0.6

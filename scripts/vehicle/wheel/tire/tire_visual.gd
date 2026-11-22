@@ -9,6 +9,10 @@ const SIZE_WARNING_M: float = 0.015
 
 const CULL_MARGIN_M: float = 0.06
 
+const MIN_UPDATE_INTERVAL_S: float = 0.016
+
+static var _tires_made: int = 0
+
 var rest_basis: Basis = Basis.IDENTITY
 
 var _node: MeshInstance3D
@@ -24,11 +28,16 @@ var _materials: Array[ShaderMaterial] = []
 var _shear_m: float = 0.0
 var _twist_rad: float = 0.0
 
+var _since_update_s: float = 0.0
+
 
 func setup(node: MeshInstance3D, config: SuspensionConfig, tire_model: Tire) -> void:
 	_node = node
 	_config = config
 	_tire_model = tire_model
+
+	_since_update_s = MIN_UPDATE_INTERVAL_S * 0.5 * float(_tires_made % 2)
+	_tires_made += 1
 
 	_is_generated = node.mesh == null
 
@@ -53,6 +62,16 @@ func update(wheel: Wheel, chassis: RigidBody3D, delta: float) -> void:
 		_build()
 
 	var hub_basis: Basis = wheel.hub_basis()
+
+	_since_update_s += delta
+	if _since_update_s < MIN_UPDATE_INTERVAL_S:
+		for material in _materials:
+			material.set_shader_parameter("squash_hub_basis", hub_basis)
+
+		return
+
+	delta = _since_update_s
+	_since_update_s = 0.0
 
 	_deflection.update(
 		wheel.get_world_3d().direct_space_state,

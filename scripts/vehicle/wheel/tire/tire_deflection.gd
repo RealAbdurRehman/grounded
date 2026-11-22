@@ -147,6 +147,7 @@ func apply_to(
 	var contact_half_angle: float = sqrt(2.0 * depths[middle] / maxf(config.wheel_radius, 0.01))
 
 	material.set_shader_parameter("squash_depth", depths)
+	material.set_shader_parameter("squash_near", Vector2(_dirty_from, _dirty_to))
 	material.set_shader_parameter("squash_side", side_room)
 	material.set_shader_parameter("squash_hub_basis", hub_basis)
 	material.set_shader_parameter(

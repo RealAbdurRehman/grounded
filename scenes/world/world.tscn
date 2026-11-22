@@ -60,7 +60,7 @@ shader_parameter/orm_tex = ExtResource("13_fymcc")
 shader_parameter/use_normal = true
 shader_parameter/use_orm = true
 shader_parameter/tint = Color(1, 0.98, 0.95, 1)
-shader_parameter/tile_m = 4.0
+shader_parameter/tile_m = 24.0
 shader_parameter/normal_strength = 1.0
 shader_parameter/roughness_scale = 1.0
 shader_parameter/variation = 1.0
@@ -440,7 +440,7 @@ shader_parameter/orm_tex = ExtResource("4_j2gmx")
 shader_parameter/use_normal = true
 shader_parameter/use_orm = true
 shader_parameter/tint = Color(1, 1, 1, 1)
-shader_parameter/tile_m = 5.0
+shader_parameter/tile_m = 24.0
 shader_parameter/normal_strength = 1.0
 shader_parameter/roughness_scale = 1.0
 shader_parameter/variation = 1.0
@@ -472,7 +472,7 @@ shader_parameter/orm_tex = ExtResource("19_0wrxw")
 shader_parameter/use_normal = true
 shader_parameter/use_orm = true
 shader_parameter/tint = Color(1, 1, 1, 1)
-shader_parameter/tile_m = 4.0
+shader_parameter/tile_m = 24.0
 shader_parameter/normal_strength = 1.0
 shader_parameter/roughness_scale = 1.0
 shader_parameter/variation = 1.0
@@ -492,7 +492,7 @@ shader_parameter/orm_tex = ExtResource("22_sh7a8")
 shader_parameter/use_normal = true
 shader_parameter/use_orm = true
 shader_parameter/tint = Color(0.95, 0.95, 0.92, 1)
-shader_parameter/tile_m = 5.0
+shader_parameter/tile_m = 24.0
 shader_parameter/normal_strength = 1.0
 shader_parameter/roughness_scale = 1.0
 shader_parameter/variation = 1.0
@@ -512,7 +512,7 @@ shader_parameter/orm_tex = ExtResource("25_2m0ga")
 shader_parameter/use_normal = true
 shader_parameter/use_orm = true
 shader_parameter/tint = Color(1, 0.88, 0.72, 1)
-shader_parameter/tile_m = 5.0
+shader_parameter/tile_m = 24.0
 shader_parameter/normal_strength = 1.0
 shader_parameter/roughness_scale = 1.0
 shader_parameter/variation = 1.0
@@ -538,7 +538,7 @@ shader_parameter/orm_tex = ExtResource("28_5fxch")
 shader_parameter/use_normal = true
 shader_parameter/use_orm = true
 shader_parameter/tint = Color(1, 1, 1, 1)
-shader_parameter/tile_m = 3.5
+shader_parameter/tile_m = 24.0
 shader_parameter/normal_strength = 1.0
 shader_parameter/roughness_scale = 1.0
 shader_parameter/variation = 1.0
@@ -558,7 +558,7 @@ shader_parameter/orm_tex = ExtResource("31_jum6b")
 shader_parameter/use_normal = true
 shader_parameter/use_orm = true
 shader_parameter/tint = Color(1, 1, 1, 1)
-shader_parameter/tile_m = 4.0
+shader_parameter/tile_m = 24.0
 shader_parameter/normal_strength = 1.0
 shader_parameter/roughness_scale = 1.0
 shader_parameter/variation = 1.0
@@ -578,7 +578,7 @@ shader_parameter/orm_tex = ExtResource("31_jum6b")
 shader_parameter/use_normal = true
 shader_parameter/use_orm = true
 shader_parameter/tint = Color(0.62, 0.8, 1, 1)
-shader_parameter/tile_m = 4.0
+shader_parameter/tile_m = 24.0
 shader_parameter/normal_strength = 0.35
 shader_parameter/roughness_scale = 0.25
 shader_parameter/variation = 1.0
@@ -1432,166 +1432,166 @@ mesh = SubResource("BoxMesh_8rti0")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Ground" unique_id=878017893]
 shape = SubResource("BoxShape3D_8rti0")
 
-[node name="TerrainTests" type="Node3D" parent="." unique_id=1862448548]
+[node name="TerrainTests" type="Node3D" parent="." unique_id=303830332]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 46, 0.5, 415)
 
-[node name="Asphalt" type="StaticBody3D" parent="TerrainTests" unique_id=1038243430 groups=["surface_asphalt"]]
+[node name="Asphalt" type="StaticBody3D" parent="TerrainTests" unique_id=1305868723 groups=["surface_asphalt"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.08, -40)
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="TerrainTests/Asphalt" unique_id=1781277912]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TerrainTests/Asphalt" unique_id=1862311842]
 shape = SubResource("BoxShape3D_d0ajt")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="TerrainTests/Asphalt" unique_id=1761840739]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="TerrainTests/Asphalt" unique_id=994785255]
 material_override = SubResource("ShaderMaterial_jyr8v")
 mesh = SubResource("BoxMesh_fymcc")
 
-[node name="Concrete" type="StaticBody3D" parent="TerrainTests" unique_id=784849973 groups=["surface_concrete"]]
+[node name="Concrete" type="StaticBody3D" parent="TerrainTests" unique_id=76771971 groups=["surface_concrete"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, -0.08, -40)
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="TerrainTests/Concrete" unique_id=1591750127]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TerrainTests/Concrete" unique_id=1235851145]
 shape = SubResource("BoxShape3D_lbnhc")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="TerrainTests/Concrete" unique_id=592868472]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="TerrainTests/Concrete" unique_id=1418236746]
 material_override = SubResource("ShaderMaterial_sygq6")
 mesh = SubResource("BoxMesh_nqe8x")
 
-[node name="Gravel" type="StaticBody3D" parent="TerrainTests" unique_id=1303644563 groups=["surface_gravel"]]
+[node name="Gravel" type="StaticBody3D" parent="TerrainTests" unique_id=1195264354 groups=["surface_gravel"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, -0.08, -40)
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="TerrainTests/Gravel" unique_id=1733763921]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TerrainTests/Gravel" unique_id=335822463]
 shape = SubResource("BoxShape3D_sh7a8")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="TerrainTests/Gravel" unique_id=273348841]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="TerrainTests/Gravel" unique_id=203645965]
 material_override = SubResource("ShaderMaterial_7mx70")
 mesh = SubResource("BoxMesh_ovomx")
 
-[node name="Dirt" type="StaticBody3D" parent="TerrainTests" unique_id=224324044 groups=["surface_dirt"]]
+[node name="Dirt" type="StaticBody3D" parent="TerrainTests" unique_id=2098538718 groups=["surface_dirt"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, -0.08, -40)
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="TerrainTests/Dirt" unique_id=359358562]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TerrainTests/Dirt" unique_id=1812728769]
 shape = SubResource("BoxShape3D_kx0xk")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="TerrainTests/Dirt" unique_id=460103419]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="TerrainTests/Dirt" unique_id=961003889]
 material_override = SubResource("ShaderMaterial_5fxch")
 mesh = SubResource("BoxMesh_jum6b")
 
-[node name="Grass" type="StaticBody3D" parent="TerrainTests" unique_id=1317686000 groups=["surface_grass"]]
+[node name="Grass" type="StaticBody3D" parent="TerrainTests" unique_id=851970036 groups=["surface_grass"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, -0.08, -40)
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="TerrainTests/Grass" unique_id=2138203162]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TerrainTests/Grass" unique_id=939385935]
 shape = SubResource("BoxShape3D_l4ul6")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="TerrainTests/Grass" unique_id=278258039]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="TerrainTests/Grass" unique_id=1000094505]
 material_override = SubResource("ShaderMaterial_5o5dd")
 mesh = SubResource("BoxMesh_q3hpu")
 
-[node name="Sand" type="StaticBody3D" parent="TerrainTests" unique_id=385778984 groups=["surface_sand"]]
+[node name="Sand" type="StaticBody3D" parent="TerrainTests" unique_id=359771949 groups=["surface_sand"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, -0.08, -40)
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="TerrainTests/Sand" unique_id=2042091188]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TerrainTests/Sand" unique_id=314218681]
 shape = SubResource("BoxShape3D_j0rhc")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="TerrainTests/Sand" unique_id=420515801]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="TerrainTests/Sand" unique_id=1696132728]
 material_override = SubResource("ShaderMaterial_4jq4u")
 mesh = SubResource("BoxMesh_sar2w")
 
-[node name="Snow" type="StaticBody3D" parent="TerrainTests" unique_id=2100706505 groups=["surface_snow"]]
+[node name="Snow" type="StaticBody3D" parent="TerrainTests" unique_id=1642188020 groups=["surface_snow"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24, -0.08, -40)
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="TerrainTests/Snow" unique_id=584940912]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TerrainTests/Snow" unique_id=1374037650]
 shape = SubResource("BoxShape3D_goy61")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="TerrainTests/Snow" unique_id=1809697085]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="TerrainTests/Snow" unique_id=862795910]
 material_override = SubResource("ShaderMaterial_7rtjl")
 mesh = SubResource("BoxMesh_hph6x")
 
-[node name="Ice" type="StaticBody3D" parent="TerrainTests" unique_id=1330855018 groups=["surface_ice"]]
+[node name="Ice" type="StaticBody3D" parent="TerrainTests" unique_id=750449829 groups=["surface_ice"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28, -0.08, -40)
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="TerrainTests/Ice" unique_id=912246477]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TerrainTests/Ice" unique_id=1115622377]
 shape = SubResource("BoxShape3D_5aamg")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="TerrainTests/Ice" unique_id=519084396]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="TerrainTests/Ice" unique_id=1877974358]
 material_override = SubResource("ShaderMaterial_kngxi")
 mesh = SubResource("BoxMesh_dhssw")
 
-[node name="MixedAsphalt" type="StaticBody3D" parent="TerrainTests" unique_id=700225833 groups=["surface_asphalt"]]
+[node name="MixedAsphalt" type="StaticBody3D" parent="TerrainTests" unique_id=1733805640 groups=["surface_asphalt"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32, -0.08, -5)
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="TerrainTests/MixedAsphalt" unique_id=373068686]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TerrainTests/MixedAsphalt" unique_id=1085226725]
 shape = SubResource("BoxShape3D_cf0uk")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="TerrainTests/MixedAsphalt" unique_id=934455377]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="TerrainTests/MixedAsphalt" unique_id=1656965784]
 material_override = SubResource("ShaderMaterial_jyr8v")
 mesh = SubResource("BoxMesh_hpffo")
 
-[node name="MixedConcrete" type="StaticBody3D" parent="TerrainTests" unique_id=39444458 groups=["surface_concrete"]]
+[node name="MixedConcrete" type="StaticBody3D" parent="TerrainTests" unique_id=408132202 groups=["surface_concrete"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32, -0.08, -15)
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="TerrainTests/MixedConcrete" unique_id=196602517]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TerrainTests/MixedConcrete" unique_id=522408044]
 shape = SubResource("BoxShape3D_hnqnj")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="TerrainTests/MixedConcrete" unique_id=1885095446]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="TerrainTests/MixedConcrete" unique_id=1697046199]
 material_override = SubResource("ShaderMaterial_sygq6")
 mesh = SubResource("BoxMesh_7lp0r")
 
-[node name="MixedGravel" type="StaticBody3D" parent="TerrainTests" unique_id=1549559052 groups=["surface_gravel"]]
+[node name="MixedGravel" type="StaticBody3D" parent="TerrainTests" unique_id=1997471447 groups=["surface_gravel"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32, -0.08, -25)
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="TerrainTests/MixedGravel" unique_id=220126263]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TerrainTests/MixedGravel" unique_id=1156544852]
 shape = SubResource("BoxShape3D_tj3jo")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="TerrainTests/MixedGravel" unique_id=1890346255]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="TerrainTests/MixedGravel" unique_id=583436985]
 material_override = SubResource("ShaderMaterial_7mx70")
 mesh = SubResource("BoxMesh_l72hy")
 
-[node name="MixedDirt" type="StaticBody3D" parent="TerrainTests" unique_id=882149175 groups=["surface_dirt"]]
+[node name="MixedDirt" type="StaticBody3D" parent="TerrainTests" unique_id=2137458053 groups=["surface_dirt"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32, -0.08, -35)
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="TerrainTests/MixedDirt" unique_id=1839836100]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TerrainTests/MixedDirt" unique_id=17892928]
 shape = SubResource("BoxShape3D_6eles")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="TerrainTests/MixedDirt" unique_id=1577184784]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="TerrainTests/MixedDirt" unique_id=678818551]
 material_override = SubResource("ShaderMaterial_5fxch")
 mesh = SubResource("BoxMesh_124cm")
 
-[node name="MixedGrass" type="StaticBody3D" parent="TerrainTests" unique_id=2114793993 groups=["surface_grass"]]
+[node name="MixedGrass" type="StaticBody3D" parent="TerrainTests" unique_id=178782125 groups=["surface_grass"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32, -0.08, -45)
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="TerrainTests/MixedGrass" unique_id=1692328136]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TerrainTests/MixedGrass" unique_id=1321589833]
 shape = SubResource("BoxShape3D_6ebim")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="TerrainTests/MixedGrass" unique_id=1287178101]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="TerrainTests/MixedGrass" unique_id=1355437721]
 material_override = SubResource("ShaderMaterial_5o5dd")
 mesh = SubResource("BoxMesh_vl1dq")
 
-[node name="MixedSand" type="StaticBody3D" parent="TerrainTests" unique_id=38574103 groups=["surface_sand"]]
+[node name="MixedSand" type="StaticBody3D" parent="TerrainTests" unique_id=1984491423 groups=["surface_sand"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32, -0.08, -55)
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="TerrainTests/MixedSand" unique_id=1711868316]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TerrainTests/MixedSand" unique_id=1568977141]
 shape = SubResource("BoxShape3D_hx1je")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="TerrainTests/MixedSand" unique_id=1279431150]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="TerrainTests/MixedSand" unique_id=1123460355]
 material_override = SubResource("ShaderMaterial_4jq4u")
 mesh = SubResource("BoxMesh_ij5nj")
 
-[node name="MixedSnow" type="StaticBody3D" parent="TerrainTests" unique_id=538057401 groups=["surface_snow"]]
+[node name="MixedSnow" type="StaticBody3D" parent="TerrainTests" unique_id=1701330456 groups=["surface_snow"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32, -0.08, -65)
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="TerrainTests/MixedSnow" unique_id=1510092958]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TerrainTests/MixedSnow" unique_id=276927572]
 shape = SubResource("BoxShape3D_n78lu")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="TerrainTests/MixedSnow" unique_id=1807829280]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="TerrainTests/MixedSnow" unique_id=232848941]
 material_override = SubResource("ShaderMaterial_7rtjl")
 mesh = SubResource("BoxMesh_1o6i5")
 
-[node name="MixedIce" type="StaticBody3D" parent="TerrainTests" unique_id=87335390 groups=["surface_ice"]]
+[node name="MixedIce" type="StaticBody3D" parent="TerrainTests" unique_id=1485094501 groups=["surface_ice"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32, -0.08, -75)
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="TerrainTests/MixedIce" unique_id=1131985283]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TerrainTests/MixedIce" unique_id=949150186]
 shape = SubResource("BoxShape3D_7o8ut")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="TerrainTests/MixedIce" unique_id=783464001]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="TerrainTests/MixedIce" unique_id=1407334740]
 material_override = SubResource("ShaderMaterial_kngxi")
 mesh = SubResource("BoxMesh_a5636")
 

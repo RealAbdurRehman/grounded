@@ -100,7 +100,7 @@ func _build() -> void:
 			Tuner.slider(
 				&"damper_knee_ratio",
 				"Left above that",
-				0.0,
+				0.05,
 				1.0,
 				"%.2f",
 				"Damper strength remaining after softening.",
@@ -136,7 +136,7 @@ func _build() -> void:
 				60000.0,
 				400000.0,
 				"%.0f",
-				"## How stiff the tire is when squashed.",
+				"How stiff the tire is when squashed.",
 			),
 		],
 	)

@@ -5,13 +5,16 @@ const TREAD_FRACTION: float = 0.8
 const SHOULDER_FRACTION: float = 0.22
 const BEAD_FRACTION: float = 0.93
 
-const SHOULDER_STEPS: int = 3
-const SIDEWALL_STEPS: int = 5
+const TREAD_STEPS: int = 4
+const SHOULDER_STEPS: int = 4
+const SIDEWALL_STEPS: int = 6
+
+const SEGMENTS: int = 144
 
 const BOX_MARGIN_M: float = 0.06
 
 
-static func build(config: SuspensionConfig, segments: int = 96) -> ArrayMesh:
+static func build(config: SuspensionConfig, segments: int = SEGMENTS) -> ArrayMesh:
 	var radius: float = config.wheel_radius
 	var width: float = config.width_m()
 
@@ -80,9 +83,8 @@ static func _right_side(radius: float, half_width: float, rim_radius: float) -> 
 	var bead: float = half_width * BEAD_FRACTION
 
 	var points: Array[Vector2] = []
-	points.append(Vector2(0.0, radius))
-	points.append(Vector2(tread * 0.5, radius))
-	points.append(Vector2(tread, radius))
+	for i in range(TREAD_STEPS + 1):
+		points.append(Vector2(tread * float(i) / float(TREAD_STEPS), radius))
 
 	for i in range(1, SHOULDER_STEPS + 1):
 		var angle: float = (PI * 0.5) * float(i) / float(SHOULDER_STEPS)

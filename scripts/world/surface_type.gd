@@ -35,20 +35,6 @@ static var _by_body: Dictionary = { }
 ## How hot the surface can get.
 @export_range(-30.0, 200.0, 1.0) var max_temperature_c: float = 200.0
 
-@export_group("Water")
-## How much of the water on the surface drains away.
-@export_range(0.0, 1.0, 0.05) var drainage: float = 0.0
-
-## Grip when wet compared to dry.
-@export_range(0.05, 1.5, 0.01) var wet_grip_slow: float = 0.85
-@export_range(0.05, 1.5, 0.01) var wet_grip_fast: float = 0.5
-
-@export_range(0.05, 1.5, 0.01) var wet_smooth_slow: float = 0.7
-@export_range(0.05, 1.5, 0.01) var wet_smooth_fast: float = 0.15
-
-## How easily a tire hydroplanes.
-@export_range(0.3, 2.0, 0.05) var hydroplane_scale: float = 1.0
-
 
 func temperature_c(air: AirConfig) -> float:
 	return minf(air.air_temperature_c + air.road_above_air_c * sun_heating_scale, max_temperature_c)
@@ -86,31 +72,14 @@ static func of_body(id: int) -> SurfaceType:
 
 
 static func _build_presets() -> void:
-	_add(&"asphalt", "Asphalt", 1.0, 1.0, 0.0, 2.0, 1.0, 1.0, 200.0, 0.0, 0.85, 0.5, 0.7, 0.15, 1.0)
-	_add(
-		&"concrete",
-		"Concrete",
-		0.95,
-		0.9,
-		0.0,
-		2.0,
-		1.1,
-		0.7,
-		200.0,
-		0.0,
-		0.7,
-		0.35,
-		0.35,
-		0.08,
-		0.8,
-	)
-
-	_add(&"gravel", "Gravel", 0.85, 2.0, 0.02, 1.2, 0.5, 0.7, 200.0, 0.8, 0.9, 0.85, 0.6, 0.5, 1.2)
-	_add(&"dirt", "Dirt", 0.9, 2.5, 0.04, 2.0, 0.5, 0.6, 200.0, 0.5, 0.6, 0.45, 0.5, 0.35, 0.6)
-	_add(&"grass", "Grass", 0.8, 2.5, 0.03, 1.5, 0.3, 0.2, 200.0, 0.6, 0.6, 0.5, 0.5, 0.4, 0.7)
-	_add(&"sand", "Sand", 0.75, 5.0, 0.03, 2.5, 0.4, 0.8, 200.0, 0.95, 1.05, 1.05, 1.0, 1.0, 1.0)
-	_add(&"snow", "Snow", 0.25, 2.0, 0.02, 3.0, 0.3, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0)
-	_add(&"ice", "Ice", 0.11, 1.0, 0.0, 2.0, 1.2, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0)
+	_add(&"asphalt", "Asphalt", 1.0, 1.0, 0.0, 2.0, 1.0, 1.0, 200.0)
+	_add(&"concrete", "Concrete", 0.95, 0.9, 0.0, 2.0, 1.1, 0.7, 200.0)
+	_add(&"gravel", "Gravel", 0.85, 2.0, 0.02, 1.2, 0.5, 0.7, 200.0)
+	_add(&"dirt", "Dirt", 0.9, 2.5, 0.04, 2.0, 0.5, 0.6, 200.0)
+	_add(&"grass", "Grass", 0.8, 2.5, 0.03, 1.5, 0.3, 0.2, 200.0)
+	_add(&"sand", "Sand", 0.75, 5.0, 0.03, 2.5, 0.4, 0.8, 200.0)
+	_add(&"snow", "Snow", 0.25, 2.0, 0.02, 3.0, 0.3, 0.0, 0.0)
+	_add(&"ice", "Ice", 0.11, 1.0, 0.0, 2.0, 1.2, 0.0, 0.0)
 
 	_presets[&"gravel"].slide_drop_scale = 0.35
 	_presets[&"dirt"].slide_drop_scale = 0.2
@@ -130,12 +99,6 @@ static func _add(
 	heat: float,
 	sun: float,
 	hottest: float,
-	drain: float,
-	wet_slow: float,
-	wet_fast: float,
-	smooth_slow: float,
-	smooth_fast: float,
-	hydroplane: float,
 ) -> void:
 	var surface := SurfaceType.new()
 	surface.label = label_text
@@ -149,15 +112,5 @@ static func _add(
 	surface.heat_transfer_scale = heat
 	surface.sun_heating_scale = sun
 	surface.max_temperature_c = hottest
-
-	surface.drainage = drain
-
-	surface.wet_grip_slow = wet_slow
-	surface.wet_grip_fast = wet_fast
-
-	surface.wet_smooth_slow = smooth_slow
-	surface.wet_smooth_fast = smooth_fast
-
-	surface.hydroplane_scale = hydroplane
 
 	_presets[key] = surface

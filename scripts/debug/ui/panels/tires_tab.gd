@@ -495,20 +495,10 @@ func _temperature_table() -> void:
 func _surface_table() -> void:
 	Widgets.wheel_table(
 		"surface_table",
-		["Surface", "Grip", "Water", "Floats at"],
+		["Surface", "Grip"],
 		func(i: int) -> Array:
 			var wheel: Wheel = wheels()[i]
-
-			var floats_at: String = "-"
-			if wheel.water.wet_amount > 0.0:
-				floats_at = "%.0f km/h" % (wheel.water.hydroplane_speed_mps * 3.6)
-
-			return [
-				wheel.surface.label,
-				"%.0f%%" % (wheel.surface.grip * wheel.water.grip_factor * 100.0),
-				"%.1f mm" % wheel.water.depth_mm,
-				floats_at,
-			],
+			return [wheel.surface.label, "%.0f%%" % (wheel.surface.grip * 100.0)],
 	)
 
 

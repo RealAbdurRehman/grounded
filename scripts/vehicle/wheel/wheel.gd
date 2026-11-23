@@ -102,8 +102,6 @@ var inflation: TirePressure = TirePressure.new()
 
 var wear: TireWear = TireWear.new()
 
-var water: TireWater = TireWater.new()
-
 var surface: SurfaceType = SurfaceType.preset(&"asphalt")
 
 var spin_inertia: float = 1.2
@@ -171,7 +169,7 @@ func _update_visual(delta: float) -> void:
 func grip_scale() -> float:
 	return (
 		friction_coef * thermal.grip_factor * inflation.grip_factor
-		* wear.grip_factor * surface.grip * water.grip_factor
+		* wear.grip_factor * surface.grip
 	)
 
 
@@ -217,8 +215,8 @@ func _step_tire_state(delta: float, rolling_w: float, sliding_w: float, speed: f
 		speed,
 	)
 
-	road_w_k *= surface.heat_transfer_scale * (1.0 + TireWater.HEAT_GAIN * water.wet_amount)
-	var road_c: float = lerpf(surface.temperature_c(Atmosphere.config), ambient_c, water.wet_amount)
+	road_w_k *= surface.heat_transfer_scale
+	var road_c: float = surface.temperature_c(Atmosphere.config)
 
 	thermal.step(
 		tire_model,
@@ -371,15 +369,6 @@ func update_wheel(
 			air_speed,
 			delta,
 		)
-
-	water.update(
-		surface,
-		Atmosphere.config.water_depth_mm,
-		air_speed,
-		tire_model,
-		wear.tread_mm,
-		inflation.gauge_kpa,
-	)
 
 	_step_hub(chassis, delta)
 

@@ -7,9 +7,6 @@ extends Resource
 ## How much hotter the road is than the air.
 @export_range(-15.0, 40.0, 0.5) var road_above_air_c: float = 0.0
 
-## How deep the water on the road is.
-@export_range(0.0, 15.0, 0.1) var water_depth_mm: float = 0.0
-
 @export_group("Wind")
 @export_range(0.0, 60.0, 0.5) var wind_speed_mps: float = 6.0
 @export_range(-180.0, 180.0, 1.0) var wind_heading_deg: float = 90.0

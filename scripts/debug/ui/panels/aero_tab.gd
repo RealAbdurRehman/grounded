@@ -155,18 +155,6 @@ func _build() -> void:
 				"%.0f C",
 				"How much hotter the road is than the air.",
 			),
-			Tuner.custom(
-				&"water_depth",
-				"Water on road",
-				func() -> float:
-					return Atmosphere.config.water_depth_mm,
-				func(value: float) -> void:
-					Atmosphere.config.water_depth_mm = value,
-				0.0,
-				15.0,
-				"%.1f mm",
-				"How deep the water is.",
-			),
 		],
 	)
 

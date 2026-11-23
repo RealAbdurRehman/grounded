@@ -1,0 +1,136 @@
+class_name CarDamage
+extends RefCounted
+
+const MIN_DELTA_V_MPS: float = 1.0
+const FULL_DELTA_V_MPS: float = 15.6
+
+const MAX_CONTACTS: int = 64
+
+const PIECE_PREFIX: String = "Collision"
+
+
+class Part extends RefCounted:
+	var damage: float = 0.0
+
+	var last_delta_v: float = 0.0
+	var peak_delta_v: float = 0.0
+
+	var hits: int = 0
+	var was_hit: bool = false
+
+
+var parts: Dictionary[String, Part] = { }
+
+var last_delta_v: float = 0.0
+var peak_delta_v: float = 0.0
+
+var last_part: String = ""
+
+var _car: RigidBody3D
+var _child_count: int = -1
+
+
+func _init(car: RigidBody3D) -> void:
+	_car = car
+
+	_car.contact_monitor = true
+	_car.max_contacts_reported = MAX_CONTACTS
+
+
+func step() -> void:
+	_find_parts()
+
+	var state: PhysicsDirectBodyState3D = PhysicsServer3D.body_get_direct_state(_car.get_rid())
+	if state == null:
+		return
+
+	var impulses: Dictionary[String, Vector3] = { }
+	var total: Vector3 = Vector3.ZERO
+
+	for i in range(state.get_contact_count()):
+		var impulse: Vector3 = state.get_contact_impulse(i)
+		var part_name: String = _part_at(state.get_contact_local_shape(i))
+
+		impulses[part_name] = impulses.get(part_name, Vector3.ZERO) + impulse
+		total += impulse
+
+	var car_delta_v: float = total.length() / _car.mass
+	if car_delta_v > MIN_DELTA_V_MPS:
+		last_delta_v = car_delta_v
+		peak_delta_v = maxf(peak_delta_v, car_delta_v)
+
+	for part_name in parts:
+		_hit(
+			part_name,
+			parts[part_name],
+			impulses.get(part_name, Vector3.ZERO).length() / _car.mass,
+		)
+
+
+func reset() -> void:
+	last_delta_v = 0.0
+	peak_delta_v = 0.0
+
+	last_part = ""
+
+	for part_name in parts:
+		var part: Part = parts[part_name]
+
+		part.damage = 0.0
+
+		part.last_delta_v = 0.0
+		part.peak_delta_v = 0.0
+
+		part.hits = 0
+
+
+func _hit(part_name: String, part: Part, delta_v: float) -> void:
+	var hit: bool = delta_v > MIN_DELTA_V_MPS
+
+	if hit:
+		var energy: float = delta_v * delta_v - MIN_DELTA_V_MPS * MIN_DELTA_V_MPS
+		part.damage = minf(part.damage + energy / (FULL_DELTA_V_MPS * FULL_DELTA_V_MPS), 1.0)
+
+		part.last_delta_v = delta_v
+		part.peak_delta_v = maxf(part.peak_delta_v, delta_v)
+
+		if not part.was_hit:
+			part.hits += 1
+
+		last_part = part_name
+
+	part.was_hit = hit
+
+
+func _find_parts() -> void:
+	if _car.get_child_count() == _child_count:
+		return
+
+	_child_count = _car.get_child_count()
+
+	for child in _car.get_children():
+		if child is CollisionShape3D:
+			_part(_part_name(child.name))
+
+
+func _part_at(shape_index: int) -> String:
+	var owner: Object = _car.shape_owner_get_owner(_car.shape_find_owner(shape_index))
+	if owner == null:
+		return "Body"
+
+	var part_name: String = _part_name((owner as Node).name)
+	_part(part_name)
+
+	return part_name
+
+
+func _part(part_name: String) -> Part:
+	if not parts.has(part_name):
+		parts[part_name] = Part.new()
+
+	return parts[part_name]
+
+
+func _part_name(piece_name: String) -> String:
+	var part_name: String = piece_name.trim_prefix(PIECE_PREFIX).rstrip("0123456789")
+	return part_name if part_name != "" else "Body"

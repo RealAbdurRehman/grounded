@@ -57,6 +57,8 @@ var steering: Steering = Steering.new()
 
 var aero: Aero
 
+var damage: CarDamage
+
 var obstacles: ObstacleSolver = ObstacleSolver.new()
 
 var wheels: Array[Wheel] = []
@@ -104,6 +106,7 @@ func _ready() -> void:
 	assists = Assists.new(self, assists_config, _wheelbase_m)
 
 	aero = Aero.new(self)
+	damage = CarDamage.new(self)
 
 
 func _sync_center_of_mass() -> void:
@@ -128,6 +131,7 @@ func _physics_process(delta: float) -> void:
 	_update_drivetrain_and_wheels(delta)
 
 	aero.apply()
+	damage.step()
 
 
 func _handle_inputs(delta: float) -> void:

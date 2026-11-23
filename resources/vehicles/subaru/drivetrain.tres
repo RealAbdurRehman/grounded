@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="DrivetrainConfig" format=3 uid="uid://bdv8li85nb6x1"]
+
+[ext_resource type="Resource" uid="uid://c7pcj88t00t53" path="res://resources/vehicles/subaru/differential_center.tres" id="1_o1ghy"]
+[ext_resource type="Resource" uid="uid://jir144mpbfxy" path="res://resources/vehicles/subaru/differential_front.tres" id="2_17s3i"]
+[ext_resource type="Resource" uid="uid://bvthk3tm7vpj7" path="res://resources/vehicles/subaru/differential_rear.tres" id="3_yi48l"]
+[ext_resource type="Script" uid="uid://l2tns4vcug28" path="res://scripts/vehicle/configs/drivetrain.gd" id="4_tua6b"]
+
+[resource]
+script = ExtResource("4_tua6b")
+drivetrain_efficiency = 0.85
+gear_ratios = Array[float]([-3.416, 0.0, 3.083, 2.062, 1.545, 1.151, 0.825])
+final_drive_ratio = 4.444
+auto_upshift_rpm = 6200.0
+front_differential = ExtResource("2_17s3i")
+rear_differential = ExtResource("3_yi48l")
+center_differential = ExtResource("1_o1ghy")
+center_front_torque_share = 0.35
+metadata/_custom_type_script = "uid://l2tns4vcug28"

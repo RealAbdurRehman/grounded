@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="AeroConfig" format=3 uid="uid://h3t2cv0ej6f0"]
+
+[ext_resource type="Script" uid="uid://dqsu7hocuy05b" path="res://scripts/vehicle/configs/aero.gd" id="1_s7eps"]
+
+[resource]
+script = ExtResource("1_s7eps")
+frontal_area = 1.97
+drag_coefficient = 0.35

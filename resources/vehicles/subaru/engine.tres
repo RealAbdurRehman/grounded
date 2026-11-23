@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="EngineConfig" format=3 uid="uid://82nnveecwr5n"]
+
+[ext_resource type="Script" uid="uid://bkel8e4frgv51" path="res://scripts/vehicle/configs/engine.gd" id="1_013s8"]
+
+[resource]
+script = ExtResource("1_013s8")
+displacement = 60.0
+boost = 370.0
+cam_peak_rpm = 4400.0
+bandwidth = 4100.0
+max_rpm = 7000.0
+idle_rpm = 800.0
+rev_limiter_rpm = 6800.0
+metadata/_custom_type_script = "uid://bkel8e4frgv51"

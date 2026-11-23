@@ -4,13 +4,8 @@
 [ext_resource type="Texture2D" uid="uid://cbv4iwr77qvoy" path="res://assets/textures/surfaces/grass/diff.jpg" id="1_v5dby"]
 [ext_resource type="Texture2D" uid="uid://c4iuxf2c8214a" path="res://assets/textures/surfaces/grass/nor.jpg" id="3_bq33v"]
 [ext_resource type="PackedScene" uid="uid://dr8e42tbw6xk2" path="res://scenes/vehicle/vehicle.tscn" id="3_j2gmx"]
-[ext_resource type="Script" uid="uid://bwprdmk5kupc6" path="res://scripts/vehicle/configs/chassis.gd" id="4_gb53w"]
 [ext_resource type="Texture2D" uid="uid://c7ma8ggfipg" path="res://assets/textures/surfaces/grass/arm.jpg" id="4_j2gmx"]
-[ext_resource type="Resource" uid="uid://b1vn3giseqaq4" path="res://resources/brakes/front.tres" id="4_srmg5"]
 [ext_resource type="Resource" uid="uid://k66f2m40gcqr" path="res://resources/assists/default.tres" id="5_dlabj"]
-[ext_resource type="Script" uid="uid://bkel8e4frgv51" path="res://scripts/vehicle/configs/engine.gd" id="5_gb53w"]
-[ext_resource type="Resource" uid="uid://dqlxpvqyg0yev" path="res://resources/brakes/rear.tres" id="5_umvgx"]
-[ext_resource type="Resource" uid="uid://cc3cenk2w6t53" path="res://resources/drivetrains/default.tres" id="6_dlabj"]
 [ext_resource type="Script" uid="uid://dvp5aua86h7p4" path="res://scripts/camera/camera.gd" id="6_t5ptc"]
 [ext_resource type="Shader" uid="uid://c1yjkv4u8c2k2" path="res://shaders/world/ground.gdshader" id="10_jyr8v"]
 [ext_resource type="Texture2D" uid="uid://cbp36dfkn5lf0" path="res://assets/textures/surfaces/asphalt/diff.jpg" id="11_5o5dd"]
@@ -40,16 +35,6 @@ sky_material = SubResource("ProceduralSkyMaterial_j2gmx")
 [sub_resource type="Environment" id="Environment_t5ptc"]
 background_mode = 2
 sky = SubResource("Sky_t5ptc")
-
-[sub_resource type="Resource" id="Resource_j2gmx"]
-script = ExtResource("4_gb53w")
-front_brakes = ExtResource("4_srmg5")
-rear_brakes = ExtResource("5_umvgx")
-metadata/_custom_type_script = "uid://bwprdmk5kupc6"
-
-[sub_resource type="Resource" id="Resource_vu11u"]
-script = ExtResource("5_gb53w")
-metadata/_custom_type_script = "uid://bkel8e4frgv51"
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_jyr8v"]
 render_priority = 0
@@ -669,17 +654,10 @@ environment = SubResource("Environment_t5ptc")
 
 [node name="Vehicle" parent="." unique_id=429220544 node_paths=PackedStringArray("engine_node", "drivetrain_node", "center_of_mass_node") instance=ExtResource("3_j2gmx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 525)
-config = SubResource("Resource_j2gmx")
 engine_node = NodePath("Engine")
 drivetrain_node = NodePath("Drivetrain")
 center_of_mass_node = NodePath("Markers/CenterOfMass")
 assists_config = ExtResource("5_dlabj")
-
-[node name="Engine" parent="Vehicle" index="2" unique_id=1472005107]
-config = SubResource("Resource_vu11u")
-
-[node name="Drivetrain" parent="Vehicle" index="3" unique_id=1236505186]
-config = ExtResource("6_dlabj")
 
 [node name="WheelFL" parent="Vehicle/Wheels" parent_id_path=PackedInt32Array(429220544, 2027221242) index="0" unique_id=796668443]
 can_steer = true

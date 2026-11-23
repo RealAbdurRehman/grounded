@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="SuspensionConfig" format=3 uid="uid://eavh1joxup8d"]
+
+[ext_resource type="Script" uid="uid://mnsyudn5vsag" path="res://scripts/vehicle/configs/suspension.gd" id="1_n3erk"]
+
+[resource]
+script = ExtResource("1_n3erk")
+wheel_width = 0.235
+rim_radius = 0.2159
+spring_stiffness = 23400.0
+alignment_compression = 0.112
+static_camber_deg = -1.2000000000000002
+static_toe_deg = 0.1499999999999999
+bump_steer_deg_per_m = 3.0
+damper_bump = 1160.0
+damper_rebound = 2100.0
+metadata/_custom_type_script = "uid://mnsyudn5vsag"

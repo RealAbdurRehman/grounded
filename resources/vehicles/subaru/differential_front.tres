@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="DifferentialConfig" format=3 uid="uid://jir144mpbfxy"]
+
+[ext_resource type="Script" uid="uid://dkb6lwy0h1ehu" path="res://scripts/vehicle/configs/differential.gd" id="1_bbod6"]
+
+[resource]
+script = ExtResource("1_bbod6")
+metadata/_custom_type_script = "uid://dkb6lwy0h1ehu"

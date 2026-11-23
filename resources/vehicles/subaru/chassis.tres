@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ChassisConfig" format=3 uid="uid://djjbsgtdyt0q1"]
+
+[ext_resource type="Resource" uid="uid://b1vn3giseqaq4" path="res://resources/brakes/front.tres" id="1_dqt6c"]
+[ext_resource type="Resource" uid="uid://dqlxpvqyg0yev" path="res://resources/brakes/rear.tres" id="2_eokgq"]
+[ext_resource type="Script" uid="uid://bwprdmk5kupc6" path="res://scripts/vehicle/configs/chassis.gd" id="3_21rem"]
+
+[resource]
+script = ExtResource("3_21rem")
+vehicle_mass = 1270.0
+front_brakes = ExtResource("1_dqt6c")
+rear_brakes = ExtResource("2_eokgq")
+metadata/_custom_type_script = "uid://bwprdmk5kupc6"

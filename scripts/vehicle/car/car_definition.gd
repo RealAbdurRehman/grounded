@@ -38,7 +38,10 @@ extends Resource
 
 @export var not_body_words: Array[String] = []
 
-@export var collision_clearance_m: float = 0.3
+@export var collision_clearance_m: float = 0.14
+
+@export_range(5.0, 60.0, 0.5) var approach_angle_deg: float = 25.0
+@export_range(5.0, 60.0, 0.5) var departure_angle_deg: float = 25.0
 
 @export var collision: CarCollision
 

@@ -306,17 +306,30 @@ func _lift(shape: Shape3D) -> bool:
 	if convex == null:
 		return true
 
-	var floor_y: float = _ground + _definition.collision_clearance_m
 	var points: PackedVector3Array = convex.points
-	var top: float = -INF
+	var room: float = 0.0
 
 	for i in range(points.size()):
-		top = maxf(top, points[i].y)
+		var floor_y: float = _floor_at(points[i].z)
+
+		room = maxf(room, points[i].y - floor_y)
 		points[i].y = maxf(points[i].y, floor_y)
 
 	convex.points = points
 
-	return top > floor_y + 0.02
+	return room > 0.02
+
+
+func _floor_at(z: float) -> float:
+	var half_base: float = _definition.wheelbase_m * 0.5
+	var floor_y: float = _ground + _definition.collision_clearance_m
+
+	if z < -half_base:
+		floor_y += (-half_base - z) * tan(deg_to_rad(_definition.approach_angle_deg))
+	elif z > half_base:
+		floor_y += (z - half_base) * tan(deg_to_rad(_definition.departure_angle_deg))
+
+	return floor_y
 
 
 func _joined(meshes: Array[MeshInstance3D]) -> ArrayMesh:

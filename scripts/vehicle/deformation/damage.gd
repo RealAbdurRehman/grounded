@@ -5,10 +5,15 @@ signal part_hit(part_name: String, points: PackedVector3Array, direction: Vector
 
 signal repaired
 
-const MIN_DELTA_V_MPS: float = 1.0
+const MIN_DELTA_V_MPS: float = 2.5
 const FULL_DELTA_V_MPS: float = 15.6
 
 const MAX_CONTACTS: int = 64
+
+const SPAWN_PROTECTION_MS: int = 3000
+
+const FLOOR_NORMAL_Y: float = 0.75
+const MIN_FLOOR_DELTA_V_MPS: float = 8.0
 
 const PIECE_PREFIX: String = "Collision"
 
@@ -33,6 +38,8 @@ var last_part: String = ""
 var _car: RigidBody3D
 var _child_count: int = -1
 
+var _spawn_ms: int = 0
+
 
 func _init(car: RigidBody3D) -> void:
 	_car = car
@@ -40,9 +47,14 @@ func _init(car: RigidBody3D) -> void:
 	_car.contact_monitor = true
 	_car.max_contacts_reported = MAX_CONTACTS
 
+	_spawn_ms = Time.get_ticks_msec()
+
 
 func step() -> void:
 	_find_parts()
+
+	if Time.get_ticks_msec() - _spawn_ms < SPAWN_PROTECTION_MS:
+		return
 
 	var state: PhysicsDirectBodyState3D = PhysicsServer3D.body_get_direct_state(_car.get_rid())
 	if state == null:
@@ -50,18 +62,38 @@ func step() -> void:
 
 	var impulses: Dictionary[String, Vector3] = { }
 	var points: Dictionary[String, PackedVector3Array] = { }
-	var total: Vector3 = Vector3.ZERO
+
+	var floor_impulses: Dictionary[String, Vector3] = { }
+	var floor_points: Dictionary[String, PackedVector3Array] = { }
 
 	for i in range(state.get_contact_count()):
 		var impulse: Vector3 = state.get_contact_impulse(i)
 		var part_name: String = _part_at(state.get_contact_local_shape(i))
 
-		impulses[part_name] = impulses.get(part_name, Vector3.ZERO) + impulse
-		total += impulse
+		var on_floor: bool = absf(state.get_contact_local_normal(i).y) > FLOOR_NORMAL_Y
 
-		var list: PackedVector3Array = points.get(part_name, PackedVector3Array())
+		var sums: Dictionary[String, Vector3] = floor_impulses if on_floor else impulses
+		var spots: Dictionary[String, PackedVector3Array] = floor_points if on_floor else points
+
+		sums[part_name] = sums.get(part_name, Vector3.ZERO) + impulse
+
+		var list: PackedVector3Array = spots.get(part_name, PackedVector3Array())
 		list.append(_car.to_local(state.get_contact_local_position(i)))
-		points[part_name] = list
+		spots[part_name] = list
+
+	for part_name in floor_impulses:
+		var landing: Vector3 = floor_impulses[part_name]
+
+		if landing.length() / _car.mass > MIN_FLOOR_DELTA_V_MPS:
+			impulses[part_name] = impulses.get(part_name, Vector3.ZERO) + landing
+
+			var list: PackedVector3Array = points.get(part_name, PackedVector3Array())
+			list.append_array(floor_points[part_name])
+			points[part_name] = list
+
+	var total: Vector3 = Vector3.ZERO
+	for part_name in impulses:
+		total += impulses[part_name]
 
 	var car_delta_v: float = total.length() / _car.mass
 	if car_delta_v > MIN_DELTA_V_MPS:

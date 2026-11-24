@@ -7,7 +7,7 @@ const CRUSH_B_N_PER_M2: float = 996000.0
 
 const RESTITUTION: float = 0.1 # 0.1 is realistic.
 
-const MIN_WIDTH_M: float = 0.25
+const MIN_WIDTH_M: float = 0.5
 const MAX_WIDTH_M: float = 1.8
 
 ## How deep the car can crush on impact.
@@ -18,7 +18,7 @@ const MAX_OFFSET_M: float = 0.6
 
 const BOW_SHARE: float = 0.3
 const FOLD_WAVE: float = 22.0
-const FOLD_SHARE: float = 0.25
+const FOLD_SHARE: float = 0.15
 const CRINKLE_SHARE: float = 0.12
 
 ## Color of the scrape marks left behind.
@@ -39,6 +39,14 @@ const PROBE_TOLERANCE_M: float = 0.15
 ## Time spent bending metal per physics tick.
 const BUDGET_USEC: int = 2000
 const MAX_JOBS: int = 8
+
+const FORGIVEN_DELTA_V_MPS: float = 3.0
+
+const CRUSH_SHARE: float = 0.5
+
+const SAME_CRASH_S: float = 0.03
+const SAME_CRASH_M: float = 1.2
+const SAME_CRASH_ALIGNMENT: float = 0.7
 
 const START_AFTER_TICKS: int = 30
 
@@ -141,6 +149,10 @@ var _queue: Array[Piece] = []
 var _jobs: Array[Job] = []
 
 var _ticks: int = 0
+var _clock: float = 0.0
+
+var _hits: Array[Dictionary] = []
+var _first_hit: float = 0.0
 
 
 func _init(car: RigidBody3D, model: Node3D) -> void:
@@ -177,6 +189,9 @@ func _init(car: RigidBody3D, model: Node3D) -> void:
 
 func step() -> void:
 	_ticks += 1
+	_clock += 1.0 / float(Engine.physics_ticks_per_second)
+
+	_start_crashes()
 
 	if not _jobs.is_empty():
 		_work()
@@ -219,7 +234,7 @@ func dent(
 	direction: Vector3,
 	delta_v: float,
 ) -> void:
-	if points.is_empty() or direction.is_zero_approx() or _jobs.size() >= MAX_JOBS:
+	if points.is_empty() or direction.is_zero_approx():
 		return
 
 	var push: Vector3 = direction.normalized()
@@ -232,6 +247,47 @@ func dent(
 
 	if push.dot(_car.center_of_mass - middle) < 0.0:
 		push = -push
+
+	if _hits.is_empty():
+		_first_hit = _clock
+
+	_hits.append({ "points": points, "push": push, "middle": middle, "delta_v": delta_v })
+
+
+func _start_crashes() -> void:
+	if _hits.is_empty() or _clock - _first_hit < SAME_CRASH_S:
+		return
+
+	var crashes: Array[Dictionary] = []
+
+	for hit in _hits:
+		var merged: bool = false
+
+		for crash in crashes:
+			if (
+				(crash["push"] as Vector3).dot(hit["push"]) > SAME_CRASH_ALIGNMENT
+				and (crash["middle"] as Vector3).distance_to(hit["middle"]) < SAME_CRASH_M
+			):
+				crash["points"] = (crash["points"] as PackedVector3Array) + (
+					hit["points"] as PackedVector3Array
+				)
+				crash["delta_v"] += hit["delta_v"]
+
+				merged = true
+				break
+
+		if not merged:
+			crashes.append(hit.duplicate())
+
+	_hits.clear()
+
+	for crash in crashes:
+		_start_job(crash["points"], crash["push"], crash["delta_v"])
+
+
+func _start_job(points: PackedVector3Array, push: Vector3, delta_v: float) -> void:
+	if _jobs.size() >= MAX_JOBS:
+		return
 
 	var touch: PackedVector3Array = _probe(points, push)
 
@@ -364,7 +420,11 @@ func _probe(points: PackedVector3Array, push: Vector3) -> PackedVector3Array:
 
 
 func _crush_m(delta_v: float, width_m: float) -> float:
-	var approach: float = delta_v / (1.0 + RESTITUTION)
+	var felt: float = delta_v - FORGIVEN_DELTA_V_MPS
+	if felt <= 0.0:
+		return 0.0
+
+	var approach: float = felt / (1.0 + RESTITUTION)
 	var energy: float = 0.5 * _car.mass * approach * approach * (1.0 - RESTITUTION * RESTITUTION)
 
 	var per_width: float = energy / width_m
@@ -375,7 +435,7 @@ func _crush_m(delta_v: float, width_m: float) -> float:
 
 	var crush: float = (sqrt(2.0 * CRUSH_B_N_PER_M2 * per_width) - CRUSH_A_N_PER_M) / CRUSH_B_N_PER_M2
 
-	return minf(crush, MAX_OFFSET_M)
+	return minf(crush * CRUSH_SHARE, MAX_OFFSET_M)
 
 
 func _work() -> void:
@@ -454,7 +514,7 @@ func _dent_slab(piece: Piece, job: Job) -> void:
 				away -= job.push * away.dot(job.push)
 
 				var bow: Vector3 = away.normalized() * clampf(away.length() / 0.3, 0.0, 1.0)
-				var fold: float = 1.0 + sin(rest.dot(job.push) * FOLD_WAVE) * FOLD_SHARE
+				var fold: float = 1.0 + sin(rest.dot(job.push) * FOLD_WAVE + _noise(rest) * 2.0) * FOLD_SHARE
 
 				offset += job.push * (give * (1.0 + _noise(rest) * CRINKLE_SHARE))
 				offset += bow * (give * BOW_SHARE * parallel * fold)

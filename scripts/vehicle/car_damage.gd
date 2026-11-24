@@ -1,6 +1,10 @@
 class_name CarDamage
 extends RefCounted
 
+signal part_hit(part_name: String, points: PackedVector3Array, direction: Vector3, delta_v: float)
+
+signal repaired
+
 const MIN_DELTA_V_MPS: float = 1.0
 const FULL_DELTA_V_MPS: float = 15.6
 
@@ -45,6 +49,7 @@ func step() -> void:
 		return
 
 	var impulses: Dictionary[String, Vector3] = { }
+	var points: Dictionary[String, PackedVector3Array] = { }
 	var total: Vector3 = Vector3.ZERO
 
 	for i in range(state.get_contact_count()):
@@ -54,17 +59,23 @@ func step() -> void:
 		impulses[part_name] = impulses.get(part_name, Vector3.ZERO) + impulse
 		total += impulse
 
+		var list: PackedVector3Array = points.get(part_name, PackedVector3Array())
+		list.append(_car.to_local(state.get_contact_local_position(i)))
+		points[part_name] = list
+
 	var car_delta_v: float = total.length() / _car.mass
 	if car_delta_v > MIN_DELTA_V_MPS:
 		last_delta_v = car_delta_v
 		peak_delta_v = maxf(peak_delta_v, car_delta_v)
 
+	var to_car: Basis = _car.global_basis.inverse()
+
 	for part_name in parts:
-		_hit(
-			part_name,
-			parts[part_name],
-			impulses.get(part_name, Vector3.ZERO).length() / _car.mass,
-		)
+		var impulse: Vector3 = impulses.get(part_name, Vector3.ZERO)
+		var delta_v: float = impulse.length() / _car.mass
+
+		if _hit(part_name, parts[part_name], delta_v):
+			part_hit.emit(part_name, points[part_name], (to_car * impulse).normalized(), delta_v)
 
 
 func reset() -> void:
@@ -83,8 +94,10 @@ func reset() -> void:
 
 		part.hits = 0
 
+	repaired.emit()
 
-func _hit(part_name: String, part: Part, delta_v: float) -> void:
+
+func _hit(part_name: String, part: Part, delta_v: float) -> bool:
 	var hit: bool = delta_v > MIN_DELTA_V_MPS
 
 	if hit:
@@ -100,6 +113,8 @@ func _hit(part_name: String, part: Part, delta_v: float) -> void:
 		last_part = part_name
 
 	part.was_hit = hit
+
+	return hit
 
 
 func _find_parts() -> void:

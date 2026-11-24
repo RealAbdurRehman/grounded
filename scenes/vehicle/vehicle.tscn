@@ -4,7 +4,7 @@
 [ext_resource type="Script" uid="uid://cnyyb4kyw2uoj" path="res://scripts/vehicle/wheel/wheel.gd" id="2_2aj0h"]
 [ext_resource type="Script" uid="uid://qdtawm0erttj" path="res://scripts/vehicle/engine.gd" id="2_cs81w"]
 [ext_resource type="Resource" uid="uid://djjbsgtdyt0q1" path="res://resources/vehicles/subaru/chassis.tres" id="2_hdsaj"]
-[ext_resource type="Script" uid="uid://b14bnnvtnyni1" path="res://scripts/vehicle/car/car_body.gd" id="2_j261a"]
+[ext_resource type="Script" uid="uid://b14bnnvtnyni1" path="res://scripts/vehicle/car/body.gd" id="2_j261a"]
 [ext_resource type="Resource" uid="uid://h3t2cv0ej6f0" path="res://resources/vehicles/subaru/aero.tres" id="3_4ks1n"]
 [ext_resource type="Resource" uid="uid://c2ab873aar8c5" path="res://resources/cars/subaru.tres" id="3_5xfht"]
 [ext_resource type="Script" uid="uid://dwugrbcr8g24y" path="res://scripts/vehicle/drivetrain.gd" id="3_cs81w"]

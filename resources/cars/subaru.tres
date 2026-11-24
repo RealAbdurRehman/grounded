@@ -3,7 +3,7 @@
 [ext_resource type="Resource" uid="uid://h3t2cv0ej6f0" path="res://resources/vehicles/subaru/aero.tres" id="1_ygjfw"]
 [ext_resource type="Resource" uid="uid://c7pcj88t00t53" path="res://resources/vehicles/subaru/differential_center.tres" id="2_wf4es"]
 [ext_resource type="Resource" uid="uid://djjbsgtdyt0q1" path="res://resources/vehicles/subaru/chassis.tres" id="3_lilum"]
-[ext_resource type="Script" uid="uid://d2p3s2ijh1a2o" path="res://scripts/vehicle/car/car_collision_part.gd" id="4_s8te6"]
+[ext_resource type="Script" uid="uid://d2p3s2ijh1a2o" path="res://scripts/vehicle/car/collision_part.gd" id="4_s8te6"]
 [ext_resource type="Resource" uid="uid://0ayn2c6c6plv" path="res://resources/cars/subaru/collision.tres" id="4_wf4es"]
 [ext_resource type="Resource" uid="uid://bdv8li85nb6x1" path="res://resources/vehicles/subaru/drivetrain.tres" id="5_rfgy2"]
 [ext_resource type="Resource" uid="uid://82nnveecwr5n" path="res://resources/vehicles/subaru/engine.tres" id="6_h1ddg"]
@@ -11,11 +11,11 @@
 [ext_resource type="Resource" uid="uid://dby70ja87rohf" path="res://resources/vehicles/subaru/suspension_front.tres" id="8_247kn"]
 [ext_resource type="Resource" uid="uid://oa7w8hj3m08i" path="res://resources/tires/front.tres" id="9_yobpe"]
 [ext_resource type="PackedScene" uid="uid://cq3ro3diex8ki" path="res://assets/models/vehicles/subaru/subaru_impreza.glb" id="10_8vkf2"]
-[ext_resource type="Script" uid="uid://ctir53ch3pb3y" path="res://scripts/vehicle/car/car_paint_fix.gd" id="11_4rjyb"]
+[ext_resource type="Script" uid="uid://ctir53ch3pb3y" path="res://scripts/vehicle/car/paint_fix.gd" id="11_4rjyb"]
 [ext_resource type="Resource" uid="uid://bvthk3tm7vpj7" path="res://resources/vehicles/subaru/differential_rear.tres" id="12_ikjid"]
 [ext_resource type="Resource" uid="uid://eavh1joxup8d" path="res://resources/vehicles/subaru/suspension_rear.tres" id="13_5yyq1"]
 [ext_resource type="Resource" uid="uid://c451ftplc6fx1" path="res://resources/tires/rear.tres" id="14_g47dk"]
-[ext_resource type="Script" uid="uid://bqluerbjlelee" path="res://scripts/vehicle/car/car_definition.gd" id="15_japf8"]
+[ext_resource type="Script" uid="uid://bqluerbjlelee" path="res://scripts/vehicle/car/definition.gd" id="15_japf8"]
 
 [sub_resource type="Resource" id="Resource_haaif"]
 script = ExtResource("4_s8te6")

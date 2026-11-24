@@ -58,6 +58,7 @@ var steering: Steering = Steering.new()
 var aero: Aero
 
 var damage: CarDamage
+var deformer: CarDeformer
 
 var obstacles: ObstacleSolver = ObstacleSolver.new()
 
@@ -108,6 +109,10 @@ func _ready() -> void:
 	aero = Aero.new(self)
 	damage = CarDamage.new(self)
 
+	deformer = CarDeformer.new(self, get_node_or_null(^"Body/Model") as Node3D)
+	damage.part_hit.connect(deformer.dent)
+	damage.repaired.connect(deformer.repair)
+
 
 func _sync_center_of_mass() -> void:
 	var local_com: Vector3 = to_local(center_of_mass_node.global_position)
@@ -131,7 +136,9 @@ func _physics_process(delta: float) -> void:
 	_update_drivetrain_and_wheels(delta)
 
 	aero.apply()
+
 	damage.step()
+	deformer.step()
 
 
 func _handle_inputs(delta: float) -> void:

@@ -17,9 +17,16 @@ const CRUMPLE_ZONE_M: float = 0.9
 const MAX_OFFSET_M: float = 0.6
 
 const BOW_SHARE: float = 0.3
-const FOLD_WAVE: float = 22.0
-const FOLD_SHARE: float = 0.15
-const CRINKLE_SHARE: float = 0.12
+const FOLD_SHARE: float = 0.1
+const CRINKLE_SHARE: float = 0.25
+
+const BROAD_LUMPS_PER_M: float = 7.0
+const FINE_LUMPS_PER_M: float = 22.0
+const CREASES_PER_M: float = 14.0
+
+const BROAD_SHARE: float = 0.1
+const FINE_SHARE: float = 0.5
+const CREASE_SHARE: float = 0.45
 
 ## Color of the scrape marks left behind.
 const SCUFF_COLOR: Color = Color(0.5, 0.48, 0.47)
@@ -43,10 +50,19 @@ const MAX_JOBS: int = 8
 const FORGIVEN_DELTA_V_MPS: float = 3.0
 
 const CRUSH_SHARE: float = 0.5
+const SOFT_MAX_CRUSH_M: float = 0.15
 
 const SAME_CRASH_S: float = 0.03
 const SAME_CRASH_M: float = 1.2
 const SAME_CRASH_ALIGNMENT: float = 0.7
+
+const ANIMATION_S: float = 0.18
+
+const SETTLE_S: float = 0.5
+
+const UPLOAD_BUDGET_USEC: int = 3000
+
+const MAX_APPLIED: int = 16
 
 const START_AFTER_TICKS: int = 30
 
@@ -73,6 +89,21 @@ class Piece extends RefCounted:
 	var dirty: bool = false
 	var deformed: bool = false
 
+	var busy: bool = false
+	var task: int = -1
+
+	var shown_pos: PackedVector3Array
+	var shown_normal: PackedVector3Array
+	var shown_tangent: PackedFloat32Array
+
+	var anim_pos: PackedVector3Array
+	var anim_normal: PackedVector3Array
+	var anim_tangent: PackedFloat32Array
+
+	var waiting: bool = false
+	var animating: bool = false
+	var progress: float = 0.0
+
 	var rest_pos: PackedVector3Array
 	var pos: PackedVector3Array
 
@@ -93,7 +124,9 @@ class Piece extends RefCounted:
 	var w_rest: PackedVector3Array
 	var w_pos: PackedVector3Array
 	var w_normal_rest: PackedVector3Array
+
 	var w_dirt: PackedFloat32Array
+	var w_rough: PackedFloat32Array
 
 	var w_vert_start: PackedInt32Array
 	var w_verts: PackedInt32Array
@@ -151,8 +184,23 @@ var _jobs: Array[Job] = []
 var _ticks: int = 0
 var _clock: float = 0.0
 
+var _threaded: bool = OS.has_feature("threads")
+var _next_prepare: int = 0
+
 var _hits: Array[Dictionary] = []
 var _first_hit: float = 0.0
+
+var _group: int = -1
+var _group_job: Job = null
+
+var _applied: Array[Job] = []
+
+var _hull_shapes: Dictionary = { }
+var _hull_queue: Array[CollisionShape3D] = []
+
+var _hull_due: bool = false
+var _hull_restore: bool = false
+var _last_change: float = 0.0
 
 
 func _init(car: RigidBody3D, model: Node3D) -> void:
@@ -176,6 +224,10 @@ func _init(car: RigidBody3D, model: Node3D) -> void:
 		piece.node = mesh_node
 		piece.material = mesh_node.mesh.surface_get_material(0)
 
+		var paint := piece.material as BaseMaterial3D
+		if paint != null and paint.transparency == BaseMaterial3D.TRANSPARENCY_DISABLED:
+			paint.vertex_color_use_as_albedo = true
+
 		piece.to_car = to_car_root * mesh_node.global_transform
 		piece.from_car = piece.to_car.affine_inverse()
 		piece.turn = Quaternion(piece.to_car.basis.orthonormalized())
@@ -191,24 +243,29 @@ func step() -> void:
 	_ticks += 1
 	_clock += 1.0 / float(Engine.physics_ticks_per_second)
 
+	_prepare_pieces()
+
 	_start_crashes()
+	_run_jobs()
+	_slide()
 
-	if not _jobs.is_empty():
-		_work()
-	elif _ticks > START_AFTER_TICKS and not _queue.is_empty():
-		var next: Piece = _queue[0]
-
-		if next.ready or next.skip or _prepare_stage(next):
-			_queue.pop_front()
-
-	for piece in pieces:
-		if piece.dirty:
-			_upload(piece)
-			break
+	_upload_pieces()
+	_follow_with_hull()
 
 
 func repair() -> void:
+	if _group >= 0:
+		WorkerThreadPool.wait_for_group_task_completion(_group)
+		_group = -1
+		_group_job = null
+
 	_jobs.clear()
+	_hits.clear()
+	_applied.clear()
+
+	_hull_due = false
+	_hull_restore = true
+	_hull_queue.clear()
 
 	for piece in pieces:
 		if not piece.ready or not piece.deformed:
@@ -435,7 +492,8 @@ func _crush_m(delta_v: float, width_m: float) -> float:
 
 	var crush: float = (sqrt(2.0 * CRUSH_B_N_PER_M2 * per_width) - CRUSH_A_N_PER_M) / CRUSH_B_N_PER_M2
 
-	return minf(crush * CRUSH_SHARE, MAX_OFFSET_M)
+	var shown: float = crush * CRUSH_SHARE
+	return SOFT_MAX_CRUSH_M * (1.0 - exp(-shown / SOFT_MAX_CRUSH_M))
 
 
 func _work() -> void:
@@ -445,7 +503,7 @@ func _work() -> void:
 		var job: Job = _jobs[0]
 
 		if job.next >= job.pieces.size():
-			_jobs.pop_front()
+			_finish_job(_jobs.pop_front())
 			continue
 
 		var piece: Piece = job.pieces[job.next]
@@ -458,7 +516,7 @@ func _work() -> void:
 			job.slab = job.low.x
 
 		if piece.ready:
-			_dent_slab(piece, job)
+			_dent_slab(piece, job, job.slab)
 
 		job.slab += 1
 
@@ -466,9 +524,11 @@ func _work() -> void:
 			job.next += 1
 			job.started = false
 
+			if piece.deformed:
+				piece.dirty = true
 
-## Bends the part of a piece that sits in one slab of the grid.
-func _dent_slab(piece: Piece, job: Job) -> void:
+
+func _dent_slab(piece: Piece, job: Job, x: int) -> void:
 	var radius_squared: float = job.radius * job.radius
 	var scuff: float = clampf(job.crush * 5.0, 0.0, 1.0)
 
@@ -476,7 +536,7 @@ func _dent_slab(piece: Piece, job: Job) -> void:
 
 	for y in range(job.low.y, job.high.y + 1):
 		for z in range(job.low.z, job.high.z + 1):
-			var list: Variant = piece.cells.get(Vector3i(job.slab, y, z))
+			var list: Variant = piece.cells.get(Vector3i(x, y, z))
 			if list == null:
 				continue
 
@@ -514,9 +574,10 @@ func _dent_slab(piece: Piece, job: Job) -> void:
 				away -= job.push * away.dot(job.push)
 
 				var bow: Vector3 = away.normalized() * clampf(away.length() / 0.3, 0.0, 1.0)
-				var fold: float = 1.0 + sin(rest.dot(job.push) * FOLD_WAVE + _noise(rest) * 2.0) * FOLD_SHARE
+				var rough: float = piece.w_rough[w * 2]
+				var fold: float = 1.0 + piece.w_rough[w * 2 + 1] * FOLD_SHARE
 
-				offset += job.push * (give * (1.0 + _noise(rest) * CRINKLE_SHARE))
+				offset += job.push * (give * (1.0 + rough * CRINKLE_SHARE))
 				offset += bow * (give * BOW_SHARE * parallel * fold)
 
 				if offset.length() > MAX_OFFSET_M:
@@ -531,9 +592,7 @@ func _dent_slab(piece: Piece, job: Job) -> void:
 		return
 
 	_refresh(piece, moved)
-
 	piece.deformed = true
-	piece.dirty = true
 
 
 func _refresh(piece: Piece, moved: PackedInt32Array) -> void:
@@ -607,10 +666,32 @@ func _refresh(piece: Piece, moved: PackedInt32Array) -> void:
 				piece.tangent[v * 4 + 2] = tangent.z
 
 
-func _noise(p: Vector3) -> float:
-	return sin(p.x * 21.0 + p.y * 9.0) * sin(p.y * 19.0 + p.z * 11.0) * 1.4 + sin(
-		p.z * 25.0 + p.x * 8.0
-	) * 0.4
+func _hash(x: int, y: int, z: int) -> float:
+	var h: int = x * 374761393 + y * 668265263 + z * 1274126177
+	h = (h ^ (h >> 13)) * 1103515245
+	h = h ^ (h >> 16)
+
+	return float(h & 0xFFFF) / 32767.5 - 1.0
+
+
+func _value_noise(point: Vector3, scale: float) -> float:
+	var scaled: Vector3 = point * scale
+	var corner: Vector3 = scaled.floor()
+
+	var t: Vector3 = scaled - corner
+	t = t * t * (Vector3.ONE * 3.0 - t * 2.0)
+
+	var x: int = int(corner.x)
+	var y: int = int(corner.y)
+	var z: int = int(corner.z)
+
+	var low_front: float = lerpf(_hash(x, y, z), _hash(x + 1, y, z), t.x)
+	var high_front: float = lerpf(_hash(x, y + 1, z), _hash(x + 1, y + 1, z), t.x)
+
+	var low_back: float = lerpf(_hash(x, y, z + 1), _hash(x + 1, y, z + 1), t.x)
+	var high_back: float = lerpf(_hash(x, y + 1, z + 1), _hash(x + 1, y + 1, z + 1), t.x)
+
+	return lerpf(lerpf(low_front, high_front, t.y), lerpf(low_back, high_back, t.y), t.z)
 
 
 func _upload(piece: Piece) -> void:
@@ -619,16 +700,27 @@ func _upload(piece: Piece) -> void:
 	if not is_instance_valid(piece.node):
 		return
 
+	piece.anim_pos = piece.pos
+	piece.anim_normal = piece.normal
+	piece.anim_tangent = piece.tangent
+
 	var arrays: Array = []
 	arrays.resize(Mesh.ARRAY_MAX)
 
-	arrays[Mesh.ARRAY_VERTEX] = piece.from_car * piece.pos
-	arrays[Mesh.ARRAY_NORMAL] = piece.normal
+	arrays[Mesh.ARRAY_VERTEX] = piece.from_car * piece.shown_pos
+	arrays[Mesh.ARRAY_NORMAL] = piece.shown_normal
 	arrays[Mesh.ARRAY_COLOR] = piece.color
 	arrays[Mesh.ARRAY_INDEX] = piece.index
 
+	var shape: Array = []
+	shape.resize(Mesh.ARRAY_MAX)
+
+	shape[Mesh.ARRAY_VERTEX] = piece.from_car * piece.anim_pos
+	shape[Mesh.ARRAY_NORMAL] = piece.anim_normal
+
 	if not piece.tangent.is_empty():
-		arrays[Mesh.ARRAY_TANGENT] = piece.tangent
+		arrays[Mesh.ARRAY_TANGENT] = piece.shown_tangent
+		shape[Mesh.ARRAY_TANGENT] = piece.anim_tangent
 
 	if not piece.uv.is_empty():
 		arrays[Mesh.ARRAY_TEX_UV] = piece.uv
@@ -640,11 +732,271 @@ func _upload(piece: Piece) -> void:
 		piece.mesh = ArrayMesh.new()
 
 	piece.mesh.clear_surfaces()
-	piece.mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	piece.mesh.clear_blend_shapes()
+
+	piece.mesh.add_blend_shape(&"bend")
+	piece.mesh.blend_shape_mode = Mesh.BLEND_SHAPE_MODE_NORMALIZED
+
+	piece.mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays, [shape])
 	piece.mesh.surface_set_material(0, piece.material)
 
 	if piece.node.mesh != piece.mesh:
 		piece.node.mesh = piece.mesh
+
+	piece.node.set_blend_shape_value(0, 0.0)
+
+	piece.waiting = true
+
+
+func _upload_pieces() -> void:
+	if _group >= 0:
+		return
+
+	var stop: int = Time.get_ticks_usec() + UPLOAD_BUDGET_USEC
+
+	for piece in pieces:
+		if piece.dirty and not piece.animating:
+			_upload(piece)
+
+			if Time.get_ticks_usec() > stop:
+				break
+
+	if _uploading():
+		return
+
+	for piece in pieces:
+		if piece.waiting:
+			piece.waiting = false
+			piece.animating = true
+			piece.progress = 0.0
+
+
+func _uploading() -> bool:
+	for piece in pieces:
+		if piece.dirty and not piece.animating:
+			return true
+
+	return false
+
+
+func _slide() -> void:
+	var phys_step: float = 1.0 / float(Engine.physics_ticks_per_second) / ANIMATION_S
+
+	for piece in pieces:
+		if not piece.animating:
+			continue
+
+		piece.progress = minf(piece.progress + phys_step, 1.0)
+
+		if is_instance_valid(piece.node):
+			piece.node.set_blend_shape_value(
+				0,
+				piece.progress * piece.progress * (3.0 - 2.0 * piece.progress),
+			)
+
+		if piece.progress >= 1.0:
+			piece.animating = false
+
+			piece.shown_pos = piece.anim_pos
+			piece.shown_normal = piece.anim_normal
+			piece.shown_tangent = piece.anim_tangent
+
+			piece.anim_pos = PackedVector3Array()
+			piece.anim_normal = PackedVector3Array()
+			piece.anim_tangent = PackedFloat32Array()
+
+
+func _prepare_pieces() -> void:
+	if _ticks <= START_AFTER_TICKS:
+		return
+
+	if not _threaded:
+		if not _queue.is_empty():
+			var next: Piece = _queue[0]
+
+			if next.ready or next.skip or _prepare_stage(next):
+				_queue.pop_front()
+
+		return
+
+	for piece in pieces:
+		if piece.task >= 0 and WorkerThreadPool.is_task_completed(piece.task):
+			WorkerThreadPool.wait_for_task_completion(piece.task)
+
+			piece.task = -1
+			piece.busy = false
+
+	while _next_prepare < pieces.size():
+		var piece: Piece = pieces[_next_prepare]
+		_next_prepare += 1
+
+		if piece.ready or piece.skip or piece.busy:
+			continue
+
+		_read(piece)
+		if piece.skip:
+			continue
+
+		piece.stage = 1
+		piece.busy = true
+		piece.task = WorkerThreadPool.add_task(_prepare_in_thread.bind(piece), false, "car piece")
+
+		break
+
+
+func _prepare_in_thread(piece: Piece) -> void:
+	while not piece.ready and not piece.skip:
+		_prepare_stage(piece)
+
+
+func _ensure_ready(piece: Piece) -> void:
+	if piece.ready or piece.skip:
+		return
+
+	if piece.task >= 0:
+		WorkerThreadPool.wait_for_task_completion(piece.task)
+
+		piece.task = -1
+		piece.busy = false
+	elif not piece.busy:
+		_prepare(piece)
+
+
+func _run_jobs() -> void:
+	if not _threaded:
+		_work()
+		return
+
+	if _group >= 0:
+		if not WorkerThreadPool.is_group_task_completed(_group):
+			return
+
+		WorkerThreadPool.wait_for_group_task_completion(_group)
+		_group = -1
+
+		_finish_job(_group_job)
+		_group_job = null
+
+		return
+
+	if _jobs.is_empty() or _uploading():
+		return
+
+	var job: Job = _jobs.pop_front()
+
+	if job.pieces.is_empty():
+		return
+
+	for piece in job.pieces:
+		_ensure_ready(piece)
+
+	_group_job = job
+	_group = WorkerThreadPool.add_group_task(
+		_dent_in_thread.bind(job),
+		job.pieces.size(),
+		-1,
+		true,
+		"car dent",
+	)
+
+
+func _dent_in_thread(index: int, job: Job) -> void:
+	var piece: Piece = job.pieces[index]
+
+	if not piece.ready:
+		return
+
+	for x in range(job.low.x, job.high.x + 1):
+		_dent_slab(piece, job, x)
+
+
+func _finish_job(job: Job) -> void:
+	for piece in job.pieces:
+		if piece.deformed:
+			piece.dirty = true
+
+	_applied.append(job)
+	if _applied.size() > MAX_APPLIED:
+		_applied.pop_front()
+
+	_hull_due = true
+	_hull_restore = false
+	_last_change = _clock
+
+
+func crushed(point: Vector3) -> Vector3:
+	var offset: Vector3 = Vector3.ZERO
+
+	for job in _applied:
+		var behind: float = maxf(point.dot(job.push) - job.plane, 0.0)
+		var spread: float = 1.0 - behind / CRUMPLE_ZONE_M
+		if spread <= 0.0:
+			continue
+
+		var across: float = maxf(absf(point.dot(job.side) - job.center_side) - job.half_side, 0.0)
+		var over: float = maxf(absf(point.dot(job.up) - job.center_up) - job.half_up, 0.0)
+
+		var gap: float = across * across + over * over + behind * behind * 0.25
+		if gap >= job.radius * job.radius:
+			continue
+
+		var fall: float = 1.0 - gap / (job.radius * job.radius)
+
+		var give: float = job.crush * spread * fall * fall
+		give *= 1.0 - 0.5 * offset.length() / MAX_OFFSET_M
+
+		offset += job.push * give
+
+		if offset.length() > MAX_OFFSET_M:
+			offset = offset.normalized() * MAX_OFFSET_M
+
+	return point + offset
+
+
+func _follow_with_hull() -> void:
+	if not _hull_due and not _hull_restore:
+		return
+
+	if _clock - _last_change < SETTLE_S or not _jobs.is_empty() or _group >= 0:
+		return
+
+	if _hull_queue.is_empty():
+		for child in _car.get_children():
+			var node := child as CollisionShape3D
+
+			if node == null or not node.shape is ConvexPolygonShape3D:
+				continue
+
+			if _hull_restore and not _hull_shapes.has(node):
+				continue
+
+			_hull_queue.append(node)
+
+		if _hull_queue.is_empty():
+			_hull_due = false
+			_hull_restore = false
+			return
+
+	var shape_node: CollisionShape3D = _hull_queue.pop_back()
+
+	if not _hull_shapes.has(shape_node):
+		var own: ConvexPolygonShape3D = (shape_node.shape as ConvexPolygonShape3D).duplicate()
+		_hull_shapes[shape_node] = own.points
+
+		shape_node.shape = own
+
+	var rest: PackedVector3Array = _hull_shapes[shape_node]
+	var points := PackedVector3Array()
+	points.resize(rest.size())
+
+	for i in range(rest.size()):
+		points[i] = rest[i] if _hull_restore else crushed(rest[i])
+
+	(shape_node.shape as ConvexPolygonShape3D).points = points
+
+	if _hull_queue.is_empty():
+		_hull_due = false
+		_hull_restore = false
 
 
 func _prepare(piece: Piece) -> void:
@@ -652,7 +1004,6 @@ func _prepare(piece: Piece) -> void:
 		_prepare_stage(piece)
 
 
-## Does one slice of the work of getting a piece ready. True once it is done.
 func _prepare_stage(piece: Piece) -> bool:
 	match piece.stage:
 		0:
@@ -716,9 +1067,9 @@ func _finish(piece: Piece) -> void:
 
 	piece.face = _rest_faces(piece)
 
-	var paint := piece.material as BaseMaterial3D
-	if paint != null and paint.transparency == BaseMaterial3D.TRANSPARENCY_DISABLED:
-		paint.vertex_color_use_as_albedo = true
+	piece.shown_pos = piece.pos
+	piece.shown_normal = piece.normal
+	piece.shown_tangent = piece.tangent
 
 	piece.ready = true
 	prepared += 1
@@ -859,6 +1210,21 @@ func _weld_table(piece: Piece) -> void:
 
 	piece.w_dirt = PackedFloat32Array()
 	piece.w_dirt.resize(rest.size())
+
+	piece.w_rough = PackedFloat32Array()
+	piece.w_rough.resize(rest.size() * 2)
+
+	for i in range(rest.size()):
+		var at: Vector3 = rest[i]
+
+		var broad: float = _value_noise(at, BROAD_LUMPS_PER_M)
+		var fine: float = _value_noise(at + Vector3(7.3, 1.9, 4.1), FINE_LUMPS_PER_M)
+		var crease: float = 1.0 - 2.0 * absf(
+			_value_noise(at + Vector3(2.1, 8.7, 3.3), CREASES_PER_M)
+		)
+
+		piece.w_rough[i * 2] = broad * BROAD_SHARE + fine * FINE_SHARE + crease * CREASE_SHARE
+		piece.w_rough[i * 2 + 1] = broad
 
 
 func _weld_links(piece: Piece) -> void:

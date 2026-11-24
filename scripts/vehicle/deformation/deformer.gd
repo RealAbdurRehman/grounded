@@ -56,6 +56,16 @@ const SAME_CRASH_S: float = 0.03
 const SAME_CRASH_M: float = 1.2
 const SAME_CRASH_ALIGNMENT: float = 0.7
 
+# Between two dents that are close, area in the middle is pulled in too to avoid creating a point.
+const BRIDGE_SHARE: float = 0.6
+
+const SPREAD_PER_DEPTH: float = 1.4
+const MAX_RADIUS_M: float = 0.7
+
+const BRIDGE_MAX_GAP_M: float = 1.4
+const BRIDGE_MIN_GAP_M: float = 0.25
+const BRIDGE_ALIGNMENT: float = 0.5
+
 const ANIMATION_S: float = 0.18
 
 const SETTLE_S: float = 0.5
@@ -171,6 +181,8 @@ class Job extends RefCounted:
 	var slab: int = 0
 	var started: bool = false
 
+	var fills: bool = false
+
 
 var pieces: Array[Piece] = []
 var prepared: int = 0
@@ -194,6 +206,7 @@ var _group: int = -1
 var _group_job: Job = null
 
 var _applied: Array[Job] = []
+var _recent: Array[Job] = []
 
 var _hull_shapes: Dictionary = { }
 var _hull_queue: Array[CollisionShape3D] = []
@@ -262,6 +275,7 @@ func repair() -> void:
 	_jobs.clear()
 	_hits.clear()
 	_applied.clear()
+	_recent.clear()
 
 	_hull_due = false
 	_hull_restore = true
@@ -386,13 +400,27 @@ func _start_job(points: PackedVector3Array, push: Vector3, delta_v: float) -> vo
 	if job.crush < 0.005:
 		return
 
-	job.radius = clampf(0.2 + 0.8 * job.crush, 0.3, 0.8)
-
 	job.center_side = (side_low + side_high) * 0.5
 	job.center_up = (up_low + up_high) * 0.5
 	job.half_side = (side_high - side_low) * 0.5
 	job.half_up = (up_high - up_low) * 0.5
 
+	var already: float = _depth_there(job)
+	job.radius = clampf(
+		maxf(0.2 + 0.8 * job.crush, SPREAD_PER_DEPTH * (job.crush + already)),
+		0.3,
+		MAX_RADIUS_M,
+	)
+
+	_queue_job(job)
+	_bridge(job)
+
+	_recent.append(job)
+	if _recent.size() > MAX_APPLIED:
+		_recent.pop_front()
+
+
+func _queue_job(job: Job) -> void:
 	var corners: Array[Vector3] = []
 	for a in [-1.0, 1.0]:
 		for b in [-1.0, 1.0]:
@@ -400,7 +428,7 @@ func _start_job(points: PackedVector3Array, push: Vector3, delta_v: float) -> vo
 				corners.append(
 					job.side * (job.center_side + a * (job.half_side + job.radius))
 					+ job.up * (job.center_up + b * (job.half_up + job.radius))
-					+ push * (job.plane + c * job.radius),
+					+ job.push * (job.plane + c * job.radius),
 				)
 
 	job.box = AABB(corners[0], Vector3.ZERO)
@@ -423,6 +451,104 @@ func _start_job(points: PackedVector3Array, push: Vector3, delta_v: float) -> vo
 	)
 
 	_jobs.append(job)
+
+
+func _depth_there(job: Job) -> float:
+	var middle: Vector3 = _rect_centre(job)
+	var along: Vector3 = job.side * job.half_side
+
+	var depth: float = 0.0
+	for point in [middle, middle - along, middle + along]:
+		depth = maxf(depth, (_crushed_by(point, _recent) - point).dot(job.push))
+
+	return depth
+
+
+func _rect_centre(job: Job) -> Vector3:
+	return job.side * job.center_side + job.up * job.center_up + job.push * job.plane
+
+
+func _rect_reach(job: Job, direction: Vector3) -> float:
+	return absf(job.side.dot(direction)) * job.half_side + absf(job.up.dot(direction)) * job.half_up
+
+
+func _bridge(job: Job) -> void:
+	if _jobs.size() >= MAX_JOBS:
+		return
+
+	var best: Job = null
+	var best_gap: float = BRIDGE_MAX_GAP_M
+
+	for other in _recent:
+		if other.push.dot(job.push) < BRIDGE_ALIGNMENT:
+			continue
+
+		var push: Vector3 = (job.push + other.push).normalized()
+
+		var side: Vector3 = push.cross(Vector3.UP)
+		if side.length_squared() < 0.01:
+			side = Vector3.RIGHT
+
+		side = side.normalized()
+		var up: Vector3 = push.cross(side).normalized()
+
+		var between: Vector3 = _rect_centre(other) - _rect_centre(job)
+
+		var gap: float = absf(between.dot(side)) - _rect_reach(job, side) - _rect_reach(other, side)
+		var rise: float = absf(between.dot(up)) - _rect_reach(job, up) - _rect_reach(other, up)
+
+		if gap < BRIDGE_MIN_GAP_M or gap >= best_gap or rise > 0.0:
+			continue
+
+		best = other
+		best_gap = gap
+
+	if best == null:
+		return
+
+	var bridge := Job.new()
+	bridge.fills = true
+
+	bridge.push = (job.push + best.push).normalized()
+
+	bridge.side = bridge.push.cross(Vector3.UP)
+	if bridge.side.length_squared() < 0.01:
+		bridge.side = Vector3.RIGHT
+
+	bridge.side = bridge.side.normalized()
+	bridge.up = bridge.push.cross(bridge.side).normalized()
+
+	var a: Vector3 = _rect_centre(job)
+	var b: Vector3 = _rect_centre(best)
+
+	bridge.axis = (a + b) * 0.5
+	bridge.plane = minf(a.dot(bridge.push), b.dot(bridge.push))
+
+	var a_side: float = a.dot(bridge.side)
+	var b_side: float = b.dot(bridge.side)
+
+	var inner_a: float = a_side + _rect_reach(job, bridge.side) * signf(b_side - a_side)
+	var inner_b: float = b_side + _rect_reach(best, bridge.side) * signf(a_side - b_side)
+
+	bridge.center_side = (inner_a + inner_b) * 0.5
+	bridge.half_side = absf(inner_a - inner_b) * 0.5
+
+	var low: float = minf(
+		a.dot(bridge.up) - _rect_reach(job, bridge.up),
+		b.dot(bridge.up) - _rect_reach(best, bridge.up),
+	)
+	var high: float = maxf(
+		a.dot(bridge.up) + _rect_reach(job, bridge.up),
+		b.dot(bridge.up) + _rect_reach(best, bridge.up),
+	)
+
+	bridge.center_up = (low + high) * 0.5
+	bridge.half_up = (high - low) * 0.5
+
+	bridge.crush = BRIDGE_SHARE * 0.5 * (job.crush + best.crush)
+	bridge.radius = minf(job.radius, best.radius)
+
+	_queue_job(bridge)
 
 
 func _probe(points: PackedVector3Array, push: Vector3) -> PackedVector3Array:
@@ -530,7 +656,7 @@ func _work() -> void:
 
 func _dent_slab(piece: Piece, job: Job, x: int) -> void:
 	var radius_squared: float = job.radius * job.radius
-	var scuff: float = clampf(job.crush * 5.0, 0.0, 1.0)
+	var scuff: float = 0.0 if job.fills else clampf(job.crush * 5.0, 0.0, 1.0)
 
 	var moved := PackedInt32Array()
 
@@ -562,10 +688,14 @@ func _dent_slab(piece: Piece, job: Job, x: int) -> void:
 				var weight: float = fall * fall
 
 				var give: float = job.crush * spread * weight
+
+				var offset: Vector3 = piece.w_pos[w] - rest
+				if job.fills:
+					give = maxf(give - maxf(offset.dot(job.push), 0.0), 0.0)
+
 				if give < 0.0005:
 					continue
 
-				var offset: Vector3 = piece.w_pos[w] - rest
 				give *= 1.0 - 0.5 * offset.length() / MAX_OFFSET_M
 
 				var parallel: float = 1.0 - absf(piece.w_normal_rest[w].dot(job.push))
@@ -925,9 +1055,13 @@ func _finish_job(job: Job) -> void:
 
 
 func crushed(point: Vector3) -> Vector3:
+	return _crushed_by(point, _applied)
+
+
+func _crushed_by(point: Vector3, jobs: Array[Job]) -> Vector3:
 	var offset: Vector3 = Vector3.ZERO
 
-	for job in _applied:
+	for job in jobs:
 		var behind: float = maxf(point.dot(job.push) - job.plane, 0.0)
 		var spread: float = 1.0 - behind / CRUMPLE_ZONE_M
 		if spread <= 0.0:
@@ -943,8 +1077,10 @@ func crushed(point: Vector3) -> Vector3:
 		var fall: float = 1.0 - gap / (job.radius * job.radius)
 
 		var give: float = job.crush * spread * fall * fall
-		give *= 1.0 - 0.5 * offset.length() / MAX_OFFSET_M
+		if job.fills:
+			give = maxf(give - maxf(offset.dot(job.push), 0.0), 0.0)
 
+		give *= 1.0 - 0.5 * offset.length() / MAX_OFFSET_M
 		offset += job.push * give
 
 		if offset.length() > MAX_OFFSET_M:

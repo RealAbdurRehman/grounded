@@ -48,6 +48,9 @@ extends Resource
 @export_range(0.0, 1.0, 0.01) var body_bounce: float = 0.0
 @export_range(0.0, 1.0, 0.01) var body_friction: float = 0.2
 
+@export_group("Damage")
+@export var panels: Array[CarPanel] = []
+
 @export_group("Size and weight")
 @export var mass_kg: float = 1400.0
 
@@ -117,3 +120,7 @@ extends Resource
 
 @export var front_tire: Tire
 @export var rear_tire: Tire
+
+
+func damage_panels() -> Array[CarPanel]:
+	return panels if not panels.is_empty() else CarPanel.defaults()

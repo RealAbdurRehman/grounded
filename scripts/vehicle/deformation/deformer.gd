@@ -1,6 +1,8 @@
 class_name CarDeformer
 extends RefCounted
 
+signal crashed(points: PackedVector3Array, push: Vector3, delta_v: float)
+
 ## Force it takes to crush the car.
 const CRUSH_A_N_PER_M: float = 67700.0
 const CRUSH_B_N_PER_M2: float = 996000.0
@@ -17,6 +19,14 @@ const CRUMPLE_ZONE_M: float = 0.9
 const MAX_OFFSET_M: float = 0.6
 
 const BOW_SHARE: float = 0.3
+
+const BUCKLE_AT_M: float = 0.38
+const BUCKLE_FRONT_M: float = 0.16
+const BUCKLE_BACK_M: float = 0.36
+
+const BUCKLE_SHARE: float = 1.3
+const BUCKLE_REACH: float = 1.6
+
 const FOLD_SHARE: float = 0.1
 const CRINKLE_SHARE: float = 0.25
 
@@ -353,6 +363,7 @@ func _start_crashes() -> void:
 	_hits.clear()
 
 	for crash in crashes:
+		crashed.emit(crash["points"], crash["push"], crash["delta_v"])
 		_start_job(crash["points"], crash["push"], crash["delta_v"])
 
 
@@ -424,11 +435,11 @@ func _queue_job(job: Job) -> void:
 	var corners: Array[Vector3] = []
 	for a in [-1.0, 1.0]:
 		for b in [-1.0, 1.0]:
-			for c in [-0.5, 2.0]:
+			for c in [-0.5, 2.5]:
 				corners.append(
-					job.side * (job.center_side + a * (job.half_side + job.radius))
-					+ job.up * (job.center_up + b * (job.half_up + job.radius))
-					+ job.push * (job.plane + c * job.radius),
+					job.side * (job.center_side + a * (job.half_side + job.radius * BUCKLE_REACH))
+					+ job.up * (job.center_up + b * (job.half_up + job.radius * BUCKLE_REACH))
+					+ job.push * (job.plane + c * job.radius)
 				)
 
 	job.box = AABB(corners[0], Vector3.ZERO)
@@ -680,35 +691,56 @@ func _dent_slab(piece: Piece, job: Job, x: int) -> void:
 				)
 				var over: float = maxf(absf(rest.dot(job.up) - job.center_up) - job.half_up, 0.0)
 
-				var gap: float = across * across + over * over + behind * behind * 0.25
-				if gap >= radius_squared:
-					continue
+				var lateral: float = across * across + over * over
+				var gap: float = lateral + behind * behind * 0.25
 
-				var fall: float = 1.0 - gap / radius_squared
-				var weight: float = fall * fall
+				var weight: float = 0.0
+				var give: float = 0.0
 
-				var give: float = job.crush * spread * weight
+				if gap < radius_squared:
+					var fall: float = 1.0 - gap / radius_squared
+					weight = fall * fall
+
+					give = job.crush * spread * weight
 
 				var offset: Vector3 = piece.w_pos[w] - rest
 				if job.fills:
 					give = maxf(give - maxf(offset.dot(job.push), 0.0), 0.0)
 
-				if give < 0.0005:
+				var normal: Vector3 = piece.w_normal_rest[w]
+				var parallel: float = 1.0 - absf(normal.dot(job.push))
+
+				var rise: float = 0.0
+				if not job.fills:
+					rise = _crease_rise(job, behind, lateral, parallel)
+
+				if give < 0.0005 and rise < 0.0005:
 					continue
 
-				give *= 1.0 - 0.5 * offset.length() / MAX_OFFSET_M
-
-				var parallel: float = 1.0 - absf(piece.w_normal_rest[w].dot(job.push))
-
-				var away: Vector3 = rest - job.axis
-				away -= job.push * away.dot(job.push)
-
-				var bow: Vector3 = away.normalized() * clampf(away.length() / 0.3, 0.0, 1.0)
 				var rough: float = piece.w_rough[w * 2]
-				var fold: float = 1.0 + piece.w_rough[w * 2 + 1] * FOLD_SHARE
 
-				offset += job.push * (give * (1.0 + rough * CRINKLE_SHARE))
-				offset += bow * (give * BOW_SHARE * parallel * fold)
+				if give >= 0.0005:
+					give *= 1.0 - 0.5 * offset.length() / MAX_OFFSET_M
+
+					var away: Vector3 = rest - job.axis
+					away -= job.push * away.dot(job.push)
+
+					var bow: Vector3 = away.normalized() * clampf(away.length() / 0.3, 0.0, 1.0)
+					var fold: float = 1.0 + piece.w_rough[w * 2 + 1] * FOLD_SHARE
+
+					offset += job.push * (give * (1.0 + rough * CRINKLE_SHARE))
+					offset += bow * (give * BOW_SHARE * parallel * fold)
+
+				if rise >= 0.0005:
+					var outward: Vector3 = Vector3.UP
+					if absf(normal.y) <= 0.6:
+						outward = Vector3(rest.x, 0.0, rest.z)
+						outward -= job.push * outward.dot(job.push)
+						outward = outward.normalized()
+
+					offset += outward * (
+						rise * (1.0 + rough * 0.3) * (1.0 - 0.5 * offset.length() / MAX_OFFSET_M)
+					)
 
 				if offset.length() > MAX_OFFSET_M:
 					offset = offset.normalized() * MAX_OFFSET_M
@@ -723,6 +755,23 @@ func _dent_slab(piece: Piece, job: Job, x: int) -> void:
 
 	_refresh(piece, moved)
 	piece.deformed = true
+
+
+func _crease_rise(job: Job, behind: float, lateral: float, parallel: float) -> float:
+	var from_crease: float = behind - BUCKLE_AT_M
+	var ridge: float = 1.0 - absf(from_crease) / (
+		BUCKLE_FRONT_M if from_crease < 0.0 else BUCKLE_BACK_M
+	)
+
+	if ridge <= 0.0:
+		return 0.0
+
+	var reach: float = job.radius * BUCKLE_REACH
+	if lateral >= reach * reach:
+		return 0.0
+
+	var fall: float = 1.0 - lateral / (reach * reach)
+	return job.crush * BUCKLE_SHARE * ridge * fall * parallel * parallel
 
 
 func _refresh(piece: Piece, moved: PackedInt32Array) -> void:

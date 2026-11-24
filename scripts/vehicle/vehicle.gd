@@ -59,6 +59,7 @@ var aero: Aero
 
 var damage: CarDamage
 var deformer: CarDeformer
+var panel_damage: PanelDamage
 
 var obstacles: ObstacleSolver = ObstacleSolver.new()
 
@@ -113,6 +114,18 @@ func _ready() -> void:
 	damage.part_hit.connect(deformer.dent)
 	damage.repaired.connect(deformer.repair)
 
+	var body := get_node_or_null(^"Body") as CarBody
+	if body != null and body.definition != null:
+		panel_damage = PanelDamage.new(
+			self,
+			get_node_or_null(^"Body/Model") as Node3D,
+			body.definition.damage_panels(),
+		)
+
+		deformer.crashed.connect(panel_damage.on_crash)
+		damage.piece_pushed.connect(panel_damage.on_piece_pushed)
+		damage.repaired.connect(panel_damage.repair)
+
 
 func _sync_center_of_mass() -> void:
 	var local_com: Vector3 = to_local(center_of_mass_node.global_position)
@@ -139,6 +152,9 @@ func _physics_process(delta: float) -> void:
 
 	damage.step()
 	deformer.step()
+
+	if panel_damage != null:
+		panel_damage.step(delta)
 
 
 func _handle_inputs(delta: float) -> void:

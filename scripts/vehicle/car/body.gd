@@ -78,6 +78,7 @@ func _build() -> void:
 		wheels.append(node as Node3D)
 
 	_fit(model, vehicle, wheels)
+	_split_off_panel_pieces(model, vehicle)
 
 	var carriers: Dictionary = _mount_tires(model, wheels)
 
@@ -185,6 +186,52 @@ func _fit(model: Node3D, vehicle: Node3D, wheels: Array[Node3D]) -> void:
 
 	var axle_middle: Vector3 = basis * Vector3(0.0, height, (front + rear) * 0.5)
 	position = Vector3(0.0, hub_y - axle_middle.y, spot.z - axle_middle.z) + definition.nudge_m
+
+
+func _split_off_panel_pieces(model: Node3D, vehicle: Node3D) -> void:
+	if Engine.is_editor_hint():
+		return
+
+	var to_car: Transform3D = vehicle.global_transform.affine_inverse()
+
+	for panel in definition.damage_panels():
+		if panel.split_box.size == Vector3.ZERO:
+			continue
+
+		for node in model.find_children("*", "MeshInstance3D", true, false):
+			var piece := node as MeshInstance3D
+			var from_here: bool = false
+
+			for word in panel.split_words:
+				if (
+					String(piece.name).contains(word)
+					or String(piece.get_parent().name).contains(word)
+				):
+					from_here = true
+
+			if not from_here or not piece.mesh is ArrayMesh:
+				continue
+
+			var to_car_here: Transform3D = to_car * piece.global_transform
+
+			var halves: Array[ArrayMesh] = MeshSplitter.split_by_shape(
+				piece.mesh as ArrayMesh,
+				func(box: AABB) -> bool:
+					return panel.split_box.has_point((to_car_here * box).get_center()),
+			)
+
+			if halves.size() != 2:
+				continue
+
+			var split_off := MeshInstance3D.new()
+			split_off.name = String(piece.name) + panel.words[0]
+			split_off.mesh = halves[0]
+
+			split_off.transform = piece.transform
+			split_off.cast_shadow = piece.cast_shadow
+
+			piece.mesh = halves[1]
+			piece.get_parent().add_child(split_off)
 
 
 func _hub_height(wheel: Node3D) -> float:

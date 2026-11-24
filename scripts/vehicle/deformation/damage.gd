@@ -2,6 +2,7 @@ class_name CarDamage
 extends RefCounted
 
 signal part_hit(part_name: String, points: PackedVector3Array, direction: Vector3, delta_v: float)
+signal piece_pushed(piece_name: String, impulse_ns: float)
 
 signal repaired
 
@@ -105,6 +106,9 @@ func step() -> void:
 	for part_name in parts:
 		var impulse: Vector3 = impulses.get(part_name, Vector3.ZERO)
 		var delta_v: float = impulse.length() / _car.mass
+
+		if impulse.length_squared() > 0.0:
+			piece_pushed.emit(part_name, impulse.length())
 
 		if _hit(part_name, parts[part_name], delta_v):
 			part_hit.emit(part_name, points[part_name], (to_car * impulse).normalized(), delta_v)

@@ -141,6 +141,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		handbrake_latched = not handbrake_latched
 
 
+func _process(_delta: float) -> void:
+	if panel_damage != null:
+		panel_damage.update_visuals()
+
+
 func _physics_process(delta: float) -> void:
 	_handle_inputs(delta)
 

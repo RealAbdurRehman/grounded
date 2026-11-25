@@ -59,8 +59,8 @@ const MAX_JOBS: int = 8
 
 const FORGIVEN_DELTA_V_MPS: float = 3.0
 
-const CRUSH_SHARE: float = 0.5
-const SOFT_MAX_CRUSH_M: float = 0.15
+const CRUSH_SHARE: float = 0.25
+const SOFT_MAX_CRUSH_M: float = 0.12
 
 const SAME_CRASH_S: float = 0.03
 const SAME_CRASH_M: float = 1.2

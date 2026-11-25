@@ -1,21 +1,48 @@
 class_name PanelDamage
 extends RefCounted
 
-const SPRING: float = 90.0
-const SETTLE: float = 7.0
+const PANEL_LAYER: int = 1 << 19
+const WORLD_MASK: int = 1
+
+const HINGE_SPREAD: float = 0.6
+const CLIP_SPREAD: float = 0.85
+const GRIP_SPREAD: float = 0.25
 
 const MIN_LOAD_SHARE: float = 0.4
-const STRENGTH_SPREAD: float = 0.12
+const LOAD_JITTER: float = 0.2
+
+const CRUMPLED_AT: float = 2.5
 
 const HISTORY_TICKS: int = 12
 
 const SLOWED_RATIO: float = 1.2
 const SLOWED_SLACK_MPS: float = 1.0
 
-const MIDDLE_M: float = 0.2
+const CARRY_SHARE: float = 0.5
+const POP_SHARE: float = 0.12
+
+const STRAY_M: float = 3.0
+
+const CLOSED_SLACK_DEG: float = 3.0
+
+const SPRING_SAG_RAD: float = 0.075
+const SPRING_PROP_RAD: float = 0.1
+const SPRING_DAMPING: float = 1.0
 
 const SHARDS: int = 40
 const SHARD_LIFE_S: float = 1.6
+
+
+class Mount extends RefCounted:
+	var point: Vector3
+	var on_panel: Vector3
+
+	var is_hinge: bool = false
+
+	var grip_mps: float = 10.0
+	var wear: float = 0.0
+
+	var broken: bool = false
 
 
 class PanelState extends RefCounted:
@@ -23,28 +50,31 @@ class PanelState extends RefCounted:
 
 	var nodes: Array[MeshInstance3D] = []
 	var rest: Array[Transform3D] = []
-	var to_car: Array[Transform3D] = []
+	var offsets: Array[Transform3D] = []
 
 	var bounds: AABB
+	var mounts: Array[Mount] = []
 
 	var wear: float = 0.0
+	var fold: float = 0.0
+	var jam: float = 1.0
+
 	var pushed: float = 0.0
-
 	var strength: float = 1.0
-
-	var target: float = 0.0
-	var angle: float = 0.0
-
-	var velocity: float = 0.0
-	var shown: float = 0.0
 
 	var broken: bool = false
 
-	var chosen: bool = false
-	var pivot: Vector3 = Vector3.ZERO
+	var body: RigidBody3D
+	var joint: Generic6DOFJoint3D
 
-	var swing_sign: float = 1.0
-	var droop_sign: float = 1.0
+	var springy: bool = false
+
+	var spring_axis: Vector3
+	var spring_sign: float = 1.0
+
+	var spring_target: float = 0.0
+	var spring_damping: float = 0.0
+	var spring_stiffness: float = 0.0
 
 
 var panels: Array[PanelState] = []
@@ -61,6 +91,7 @@ func _init(car: RigidBody3D, model: Node3D, definitions: Array[CarPanel]) -> voi
 
 	_random.randomize()
 	_history.resize(HISTORY_TICKS)
+	_car.tree_exiting.connect(_free_all)
 
 	if model == null:
 		return
@@ -72,99 +103,109 @@ func _init(car: RigidBody3D, model: Node3D, definitions: Array[CarPanel]) -> voi
 		state.def = def
 
 		var box_set: bool = false
-
 		for node in model.find_children("*", "MeshInstance3D", true, false):
 			var piece := node as MeshInstance3D
+
 			if piece.mesh == null or not def.matches(piece):
 				continue
 
 			state.nodes.append(piece)
 			state.rest.append(piece.transform)
-			state.to_car.append(from_car * piece.get_parent().global_transform)
 
 			var box: AABB = from_car * piece.global_transform * piece.mesh.get_aabb()
 			state.bounds = box if not box_set else state.bounds.merge(box)
+
 			box_set = true
 
 		if state.nodes.is_empty():
 			continue
 
 		state.strength = _roll_strength()
+
+		if def.kind != CarPanel.Kind.GLASS:
+			_make_mounts(state)
+
 		panels.append(state)
 
 
 func on_crash(points: PackedVector3Array, push: Vector3, delta_v: float) -> void:
-	delta_v = minf(delta_v, _slowed_by() * SLOWED_RATIO + SLOWED_SLACK_MPS)
+	delta_v = minf(delta_v, _slowed_by().length() * SLOWED_RATIO + SLOWED_SLACK_MPS)
 
 	for state in panels:
 		if state.broken:
 			continue
 
-		var def: CarPanel = state.def
-
-		var nearest: float = INF
-		for point in points:
-			nearest = minf(nearest, _distance_to(state.bounds, point, def.reach_m))
-
-		if nearest >= 1.0:
-			continue
-
-		var facing: float = 1.0
-		if def.load_direction != Vector3.ZERO:
-			facing = def.load_floor + (1.0 - def.load_floor) * maxf(
-				push.dot(def.load_direction.normalized()),
-				0.0,
-			)
-
-		var panel_load: float = delta_v * (1.0 - nearest * nearest) * facing
-		if panel_load < def.start_mps * MIN_LOAD_SHARE:
-			continue
-
-		state.wear += panel_load * panel_load
-		_aim(state, push, points)
+		var facing: float = _facing(state.def, push)
+		if state.def.kind == CarPanel.Kind.GLASS:
+			_hit_glass(state, points, push, delta_v, facing)
+		else:
+			_hit_panel(state, points, delta_v, facing)
 
 
 func on_piece_pushed(piece_name: String, impulse_ns: float) -> void:
 	for state in panels:
-		if state.def.touch_piece != piece_name or state.def.touch_limit_ns <= 0.0:
+		var def: CarPanel = state.def
+		if def.touch_piece != piece_name or def.touch_limit_ns <= 0.0:
 			continue
 
 		state.pushed += impulse_ns
+		if state.pushed < def.touch_limit_ns:
+			continue
 
-		var share: float = clampf(state.pushed / state.def.touch_limit_ns, 0.0, 1.0)
-		_swing_towards(state, share)
+		var latches: Array[Mount] = []
+		for mount in state.mounts:
+			if not mount.is_hinge and not mount.broken:
+				latches.append(mount)
+
+		if latches.is_empty():
+			continue
+
+		for mount in latches:
+			mount.broken = true
+
+		_let_go(state, latches, minf(impulse_ns / def.mass_kg, 4.0), 1.0)
 
 
-func step(delta: float) -> void:
+func step(_delta: float) -> void:
 	_history[_head] = _car.linear_velocity
 	_head = (_head + 1) % HISTORY_TICKS
 
 	for state in panels:
-		if state.def.kind == CarPanel.Kind.GLASS:
+		if state.body == null:
 			continue
 
-		state.velocity += (state.target - state.angle) * SPRING * delta
-		state.velocity *= exp(-SETTLE * delta)
-		state.angle += state.velocity * delta
+		if state.springy:
+			_spring(state)
 
-		if absf(state.angle - state.shown) > 0.0003:
-			_swing(state, state.angle)
-			state.shown = state.angle
+		var wanted: Vector3 = _car.to_global(state.bounds.get_center())
+		if state.body.global_position.distance_to(wanted) > STRAY_M:
+			_put_back(state)
+
+
+func update_visuals() -> void:
+	for state in panels:
+		if state.body == null:
+			continue
+
+		var at: Transform3D = state.body.global_transform
+		for i in range(state.nodes.size()):
+			if is_instance_valid(state.nodes[i]):
+				state.nodes[i].global_transform = at * state.offsets[i]
 
 
 func repair() -> void:
 	for state in panels:
+		_free_physics(state)
+
 		state.wear = 0.0
+		state.fold = 0.0
 		state.pushed = 0.0
 		state.strength = _roll_strength()
 
-		state.target = 0.0
-		state.angle = 0.0
-
-		state.velocity = 0.0
-		state.shown = 0.0
-
-		state.chosen = false
+		for mount in state.mounts:
+			mount.broken = false
+			mount.wear = 0.0
+			mount.grip_mps = _roll_grip(state.def, mount.is_hinge)
 
 		for i in range(state.nodes.size()):
 			if is_instance_valid(state.nodes[i]):
@@ -178,84 +219,451 @@ func repair() -> void:
 					node.visible = true
 
 
-func _aim(state: PanelState, push: Vector3, points: PackedVector3Array) -> void:
+func _make_mounts(state: PanelState) -> void:
 	var def: CarPanel = state.def
-	var felt: float = sqrt(state.wear) / state.strength
 
-	if def.kind == CarPanel.Kind.GLASS:
-		if felt >= def.full_mps:
-			_break(state, push)
+	var middle: Vector3 = state.bounds.get_center()
+	var half: Vector3 = state.bounds.size * 0.5
 
+	if def.kind == CarPanel.Kind.HINGED:
+		var edge: Vector3 = def.hinge_edge.normalized()
+		var axis: Vector3 = def.hinge_axis.normalized()
+
+		var to_edge: float = _half_length(half, edge)
+		var along: float = _half_length(half, axis) * HINGE_SPREAD
+
+		var edge_middle: Vector3 = middle + edge * to_edge
+
+		state.mounts.append(_mount(def, edge_middle - axis * along, true))
+		state.mounts.append(_mount(def, edge_middle + axis * along, true))
+		state.mounts.append(_mount(def, middle - edge * to_edge, false))
+	else:
+		var row: Vector3 = def.clips_along.normalized()
+		var span: float = _half_length(half, row) * CLIP_SPREAD
+
+		for i in range(def.clip_count):
+			var t: float = lerpf(-1.0, 1.0, float(i) / float(def.clip_count - 1))
+			state.mounts.append(_mount(def, middle + row * span * t, false))
+
+
+func _mount(def: CarPanel, point: Vector3, is_hinge: bool) -> Mount:
+	var mount := Mount.new()
+
+	mount.point = point
+	mount.is_hinge = is_hinge
+	mount.grip_mps = _roll_grip(def, is_hinge)
+
+	return mount
+
+
+func _hit_glass(
+	state: PanelState,
+	points: PackedVector3Array,
+	push: Vector3,
+	delta_v: float,
+	facing: float,
+) -> void:
+	var nearest: float = INF
+	for point in points:
+		nearest = minf(nearest, _distance_to_box(state.bounds, point, state.def.reach_m))
+
+	if nearest >= 1.0:
 		return
 
-	var share: float = clampf(
-		(felt - def.start_mps) / maxf(def.full_mps - def.start_mps, 0.001),
-		0.0,
-		1.0,
+	var glass_load: float = delta_v * (1.0 - nearest * nearest) * facing
+	if glass_load < state.def.break_mps * MIN_LOAD_SHARE:
+		return
+
+	state.wear += glass_load * glass_load
+
+	if sqrt(state.wear) / state.strength >= state.def.break_mps:
+		_break(state, push)
+
+
+func _hit_panel(
+	state: PanelState,
+	points: PackedVector3Array,
+	delta_v: float,
+	facing: float,
+) -> void:
+	var def: CarPanel = state.def
+
+	var gave_way: Array[Mount] = []
+
+	for mount in state.mounts:
+		if mount.broken:
+			continue
+
+		var nearest: float = INF
+		for point in points:
+			nearest = minf(nearest, _distance_to_point(mount.point, point, def.reach_m))
+
+		if nearest >= 1.0:
+			continue
+
+		var panel_load: float = delta_v * (1.0 - nearest * nearest) * facing
+		panel_load *= _random.randf_range(1.0 - LOAD_JITTER, 1.0 + LOAD_JITTER)
+
+		if panel_load < mount.grip_mps * MIN_LOAD_SHARE:
+			continue
+
+		mount.wear += panel_load * panel_load
+		if sqrt(mount.wear) >= mount.grip_mps:
+			gave_way.append(mount)
+
+	var near_panel: float = INF
+	for point in points:
+		near_panel = minf(near_panel, _distance_to_box(state.bounds, point, def.reach_m))
+
+	if near_panel < 1.0:
+		var panel_load: float = delta_v * (1.0 - near_panel * near_panel) * facing
+
+		if panel_load > def.latch_grip_mps * MIN_LOAD_SHARE:
+			state.wear += panel_load * panel_load
+			state.fold = clampf(sqrt(state.wear) / (def.latch_grip_mps * CRUMPLED_AT), 0.0, 1.0)
+
+	var held: int = 0
+	for mount in state.mounts:
+		if not mount.broken:
+			held += 1
+
+	if gave_way.size() >= held:
+		var strongest: Mount = gave_way[0]
+
+		for mount in gave_way:
+			if mount.grip_mps - sqrt(mount.wear) > strongest.grip_mps - sqrt(strongest.wear):
+				strongest = mount
+
+		gave_way.erase(strongest)
+
+	for mount in gave_way:
+		mount.broken = true
+
+	if not gave_way.is_empty():
+		_let_go(state, gave_way, delta_v, facing)
+	elif state.body != null:
+		_connect(state)
+
+
+func _let_go(state: PanelState, gave_way: Array[Mount], delta_v: float, facing: float) -> void:
+	var def: CarPanel = state.def
+
+	if state.body == null:
+		_make_body(state)
+
+		state.body.linear_velocity += _slowed_by() * CARRY_SHARE
+		state.jam = _random.randf_range(0.5, 1.0)
+
+	_connect(state)
+
+	var at := Vector3.ZERO
+	for mount in gave_way:
+		at += state.body.global_transform * mount.on_panel
+
+	at /= float(gave_way.size())
+
+	var open: Vector3 = _car.global_basis * def.open_direction.normalized()
+	var shove: float = def.mass_kg * delta_v * POP_SHARE * facing * _random.randf_range(0.4, 1.2)
+
+	state.body.apply_impulse(open * shove, at - state.body.global_position)
+
+
+func _make_body(state: PanelState) -> void:
+	var def: CarPanel = state.def
+	var world: Node = _car.get_parent()
+
+	var body := RigidBody3D.new()
+
+	body.mass = def.mass_kg
+	body.collision_layer = PANEL_LAYER
+	body.collision_mask = WORLD_MASK
+	body.continuous_cd = true
+	body.can_sleep = false
+	body.linear_damp = 0.1
+	body.angular_damp = def.swing_damping
+
+	var paint := PhysicsMaterial.new()
+
+	paint.friction = 0.6
+	paint.bounce = 0.15
+	body.physics_material_override = paint
+
+	var shape := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = state.bounds.size.max(Vector3(0.04, 0.04, 0.04))
+	shape.shape = box
+	body.add_child(shape)
+
+	world.add_child(body)
+	body.add_collision_exception_with(_car)
+
+	var rigid := Transform3D(
+		_car.global_basis.orthonormalized(),
+		_car.to_global(state.bounds.get_center()),
+	)
+	body.global_transform = rigid
+
+	state.offsets.clear()
+	for node in state.nodes:
+		state.offsets.append(rigid.affine_inverse() * node.global_transform)
+
+	for mount in state.mounts:
+		mount.on_panel = rigid.affine_inverse() * _car.to_global(mount.point)
+
+	var physics: PhysicsDirectBodyState3D = PhysicsServer3D.body_get_direct_state(_car.get_rid())
+	if physics != null:
+		body.linear_velocity = physics.get_velocity_at_local_position(
+			rigid.origin - _car.global_position
+		)
+
+	body.angular_velocity = _car.angular_velocity
+	state.body = body
+
+
+func _connect(state: PanelState) -> void:
+	state.springy = false
+
+	if state.joint != null:
+		state.joint.free()
+		state.joint = null
+
+	var held: Array[Mount] = []
+	for mount in state.mounts:
+		if not mount.broken:
+			held.append(mount)
+
+	if held.is_empty():
+		return
+
+	var def: CarPanel = state.def
+	var body: RigidBody3D = state.body
+	var car_basis: Basis = _car.global_basis.orthonormalized()
+
+	var open: Vector3 = car_basis * def.open_direction.normalized()
+
+	var swing_front: float = deg_to_rad(def.swing_front_deg)
+	var most: float = deg_to_rad(def.open_limit_deg)
+
+	var stuck: float = maxf(
+		deg_to_rad(def.jam_deg) * state.fold * state.jam,
+		deg_to_rad(CLOSED_SLACK_DEG),
+	)
+	var swing_back: float = maxf(stuck, deg_to_rad(def.swing_back_deg))
+
+	var basis: Basis = car_basis
+	var pivot: Vector3
+
+	var lowest := Vector3(-swing_front, -swing_front, -swing_front)
+	var highest := Vector3(swing_front, swing_front, swing_front)
+	var now := Vector3.ZERO
+
+	if held.size() >= 2:
+		var first: Mount = held[0]
+		var second: Mount = held[1]
+		var apart: float = -1.0
+
+		for a in held:
+			for b in held:
+				var gap: float = (a.on_panel - b.on_panel).length_squared()
+				if gap > apart:
+					apart = gap
+					first = a
+					second = b
+
+		pivot = body.global_transform * ((first.on_panel + second.on_panel) * 0.5)
+
+		var axis: Vector3 = (body.global_basis * (second.on_panel - first.on_panel)).normalized()
+		basis = _basis_along(axis)
+
+		var opens: float = _opens(axis, body.global_position - pivot, open)
+
+		now.x = _turned_about(axis, car_basis, body.global_basis)
+
+		var lever: float = (body.global_position - pivot).length()
+		state.springy = def.kind == CarPanel.Kind.HINGED and absf(axis.y) < 0.5 and lever > 0.05
+
+		if state.springy:
+			var weight: float = def.mass_kg * 9.8 * lever
+			var inertia: float = def.mass_kg * lever * lever * 1.33
+
+			state.spring_axis = car_basis.inverse() * axis
+			state.spring_sign = 1.0 if opens >= 0.0 else -1.0
+
+			state.spring_target = minf(stuck + SPRING_PROP_RAD, most - 0.1)
+			state.spring_damping = 2.0 * SPRING_DAMPING * sqrt(state.spring_stiffness * inertia)
+			state.spring_stiffness = weight / SPRING_SAG_RAD
+
+		lowest = Vector3.ZERO
+		highest = Vector3.ZERO
+
+		if opens >= 0.0:
+			lowest.x = stuck
+			highest.x = most
+		else:
+			lowest.x = -most
+			highest.x = -stuck
+	else:
+		pivot = body.global_transform * held[0].on_panel
+
+		var turned: Vector3 = (
+			car_basis.inverse() * body.global_basis.orthonormalized()
+		).get_euler()
+		var reach: Vector3 = body.global_position - pivot
+
+		for i in range(3):
+			var opens: float = _opens(basis[i], reach, open)
+			now[i] = turned[i]
+
+			if opens > 0.2:
+				lowest[i] = -swing_back
+			elif opens < -0.2:
+				highest[i] = swing_back
+			else:
+				lowest[i] = -swing_back
+				highest[i] = swing_back
+
+	var world: Node = _car.get_parent()
+	var joint := Generic6DOFJoint3D.new()
+	world.add_child(joint)
+
+	joint.global_transform = Transform3D(basis, pivot)
+	joint.node_a = joint.get_path_to(_car)
+	joint.node_b = joint.get_path_to(body)
+
+	for i in range(3):
+		var lower: float = -(highest[i] - now[i])
+		var upper: float = -(lowest[i] - now[i])
+
+		_limit(
+			joint,
+			i,
+			Generic6DOFJoint3D.PARAM_LINEAR_LOWER_LIMIT,
+			Generic6DOFJoint3D.PARAM_LINEAR_UPPER_LIMIT,
+			Generic6DOFJoint3D.FLAG_ENABLE_LINEAR_LIMIT,
+			0.0,
+			0.0,
+		)
+
+		_limit(
+			joint,
+			i,
+			Generic6DOFJoint3D.PARAM_ANGULAR_LOWER_LIMIT,
+			Generic6DOFJoint3D.PARAM_ANGULAR_UPPER_LIMIT,
+			Generic6DOFJoint3D.FLAG_ENABLE_ANGULAR_LIMIT,
+			lower,
+			upper,
+		)
+
+	state.joint = joint
+
+
+func _spring(state: PanelState) -> void:
+	var car_basis: Basis = _car.global_basis.orthonormalized()
+	var axis: Vector3 = car_basis * state.spring_axis
+
+	var open: float = state.spring_sign * _turned_about(axis, car_basis, state.body.global_basis)
+	var speed: float = state.spring_sign * (
+		state.body.angular_velocity - _car.angular_velocity
+	).dot(axis)
+
+	var torque: float = state.spring_stiffness * (state.spring_target - open) - state.spring_damping * speed
+	state.body.apply_torque(axis * state.spring_sign * torque)
+
+
+func _opens(axis: Vector3, reach: Vector3, open: Vector3) -> float:
+	var length: float = reach.length()
+	if length < 0.01:
+		return 0.0
+
+	return axis.cross(reach).dot(open) / length
+
+
+func _limit(
+	joint: Generic6DOFJoint3D,
+	axis: int,
+	lower_param: int,
+	upper_param: int,
+	flag: int,
+	lower: float,
+	upper: float,
+) -> void:
+	match axis:
+		0:
+			joint.set_flag_x(flag, true)
+			joint.set_param_x(lower_param, lower)
+			joint.set_param_x(upper_param, upper)
+		1:
+			joint.set_flag_y(flag, true)
+			joint.set_param_y(lower_param, lower)
+			joint.set_param_y(upper_param, upper)
+		_:
+			joint.set_flag_z(flag, true)
+			joint.set_param_z(lower_param, lower)
+			joint.set_param_z(upper_param, upper)
+
+
+func _basis_along(axis: Vector3) -> Basis:
+	var other: Vector3 = Vector3.UP if absf(axis.y) < 0.9 else Vector3.RIGHT
+	var z: Vector3 = axis.cross(other).normalized()
+
+	return Basis(axis, z.cross(axis), z)
+
+
+func _turned_about(axis: Vector3, car_basis: Basis, panel_basis: Basis) -> float:
+	var turned: Quaternion = (
+		car_basis.inverse() * panel_basis.orthonormalized()
+	).get_rotation_quaternion()
+
+	var about: Vector3 = car_basis.inverse() * axis
+	var angle: float = 2.0 * atan2(Vector3(turned.x, turned.y, turned.z).dot(about), turned.w)
+
+	return wrapf(angle, -PI, PI)
+
+
+func _put_back(state: PanelState) -> void:
+	state.body.global_transform = Transform3D(
+		_car.global_basis.orthonormalized(),
+		_car.to_global(state.bounds.get_center()),
 	)
 
-	if def.kind == CarPanel.Kind.HANGING and share > 0.0 and not state.chosen:
-		_let_go_of_one_end(state, points)
+	state.body.linear_velocity = _car.linear_velocity
+	state.body.angular_velocity = _car.angular_velocity
 
-	_swing_towards(state, share)
-
-
-func _let_go_of_one_end(state: PanelState, points: PackedVector3Array) -> void:
-	var def: CarPanel = state.def
-
-	var hit_x: float = 0.0
-	for point in points:
-		hit_x += point.x
-
-	hit_x /= float(maxi(points.size(), 1))
-
-	var near_a: float = absf(hit_x - def.hinge_point.x)
-	var near_b: float = absf(hit_x - def.other_end_point.x)
-
-	var a_lets_go: bool = near_a < near_b
-	if absf(near_a - near_b) < MIDDLE_M:
-		a_lets_go = _random.randf() < 0.5
-
-	var loose: Vector3 = def.hinge_point if a_lets_go else def.other_end_point
-	state.pivot = def.other_end_point if a_lets_go else def.hinge_point
-
-	var loose_side: float = signf(loose.x - state.pivot.x)
-	var outward: float = signf(state.bounds.get_center().z)
-
-	state.swing_sign = -loose_side * outward
-	state.droop_sign = -loose_side
-	state.chosen = true
+	_connect(state)
 
 
-func _swing_towards(state: PanelState, share: float) -> void:
-	var wanted: float = deg_to_rad(state.def.max_angle_deg) * share
-	if absf(wanted) > absf(state.target):
-		state.target = wanted
+func _free_physics(state: PanelState) -> void:
+	if state.joint != null and is_instance_valid(state.joint):
+		state.joint.free()
+
+	if state.body != null and is_instance_valid(state.body):
+		state.body.free()
+
+	state.joint = null
+	state.body = null
+	state.springy = false
 
 
-func _swing(state: PanelState, angle: float) -> void:
-	var def: CarPanel = state.def
+func _free_all() -> void:
+	for state in panels:
+		if state.joint != null and is_instance_valid(state.joint):
+			state.joint.queue_free()
 
-	var turn: Basis
-	var about: Vector3 = def.hinge_point
+		if state.body != null and is_instance_valid(state.body):
+			state.body.queue_free()
 
-	if def.kind == CarPanel.Kind.HANGING:
-		if not state.chosen:
-			return
+		state.joint = null
+		state.body = null
 
-		var droop: float = angle * (def.droop_deg / maxf(def.max_angle_deg, 0.001)) * state.droop_sign
-		turn = Basis(Vector3.BACK, droop) * Basis(Vector3.UP, angle * state.swing_sign)
-		about = state.pivot
-	else:
-		turn = Basis(def.hinge_axis.normalized(), angle)
 
-	var pose := Transform3D(turn, about - turn * about)
+func _facing(def: CarPanel, push: Vector3) -> float:
+	if def.load_direction == Vector3.ZERO:
+		return 1.0
 
-	for i in range(state.nodes.size()):
-		if is_instance_valid(state.nodes[i]):
-			state.nodes[i].transform = state.to_car[i].affine_inverse() * pose * state.to_car[i] * state.rest[
-				i
-			]
+	return def.load_floor + (1.0 - def.load_floor) * maxf(
+		push.dot(def.load_direction.normalized()),
+		0.0,
+	)
 
 
 func _break(state: PanelState, push: Vector3) -> void:
@@ -280,21 +688,20 @@ func _scatter(state: PanelState, push: Vector3) -> void:
 	var outward: Vector3 = (middle - _car.center_of_mass).normalized()
 
 	var shards := CPUParticles3D.new()
+
 	shards.emitting = false
 	shards.one_shot = true
-
 	shards.amount = SHARDS
 	shards.lifetime = SHARD_LIFE_S
-
 	shards.explosiveness = 1.0
 
 	var quad := QuadMesh.new()
 	quad.size = Vector2(0.035, 0.035)
 
 	var paint := StandardMaterial3D.new()
+
 	paint.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	paint.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-
 	paint.cull_mode = BaseMaterial3D.CULL_DISABLED
 	paint.albedo_color = Color(0.78, 0.9, 0.95, 0.75)
 
@@ -306,16 +713,13 @@ func _scatter(state: PanelState, push: Vector3) -> void:
 	shards.emission_box_extents = state.bounds.size * 0.5
 
 	shards.direction = _car.global_basis * (outward - push * 0.4).normalized()
-
 	shards.spread = 55.0
 	shards.initial_velocity_min = 1.0
 	shards.initial_velocity_max = 4.5
-
 	shards.gravity = Vector3(0.0, -9.8, 0.0)
 
 	shards.angular_velocity_min = -540.0
 	shards.angular_velocity_max = 540.0
-
 	shards.scale_amount_min = 0.6
 	shards.scale_amount_max = 1.8
 
@@ -326,16 +730,28 @@ func _scatter(state: PanelState, push: Vector3) -> void:
 	_car.get_tree().create_timer(SHARD_LIFE_S + 0.5).timeout.connect(shards.queue_free)
 
 
-func _slowed_by() -> float:
-	var before: Vector3 = _history[_head]
-	return (before - _car.linear_velocity).length()
+func _slowed_by() -> Vector3:
+	return _history[_head] - _car.linear_velocity
 
 
 func _roll_strength() -> float:
-	return _random.randf_range(1.0 - STRENGTH_SPREAD, 1.0 + STRENGTH_SPREAD)
+	return _random.randf_range(1.0 - GRIP_SPREAD, 1.0 + GRIP_SPREAD)
 
 
-func _distance_to(box: AABB, point: Vector3, reach: Vector3) -> float:
+func _roll_grip(def: CarPanel, is_hinge: bool) -> float:
+	return (def.hinge_grip_mps if is_hinge else def.latch_grip_mps) * _roll_strength()
+
+
+func _half_length(half: Vector3, direction: Vector3) -> float:
+	return absf(direction.x) * half.x + absf(direction.y) * half.y + absf(direction.z) * half.z
+
+
+func _distance_to_point(from: Vector3, to: Vector3, reach: Vector3) -> float:
+	var gap: Vector3 = (to - from).abs()
+	return Vector3(gap.x / reach.x, gap.y / reach.y, gap.z / reach.z).length()
+
+
+func _distance_to_box(box: AABB, point: Vector3, reach: Vector3) -> float:
 	var over: Vector3 = (point - box.get_center()).abs() - box.size * 0.5
 	over = Vector3(maxf(over.x, 0.0), maxf(over.y, 0.0), maxf(over.z, 0.0))
 

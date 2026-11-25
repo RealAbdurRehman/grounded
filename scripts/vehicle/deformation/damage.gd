@@ -6,7 +6,7 @@ signal piece_pushed(piece_name: String, impulse_ns: float)
 
 signal repaired
 
-const MIN_DELTA_V_MPS: float = 2.5
+const MIN_DELTA_V_MPS: float = 0.3
 const FULL_DELTA_V_MPS: float = 15.6
 
 const MAX_CONTACTS: int = 64

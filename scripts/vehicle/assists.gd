@@ -88,7 +88,7 @@ func _update_traction_control(delta: float, throttle: float) -> void:
 
 	var worst: float = 0.0
 	for w in _wheels:
-		if w.is_driven and w.is_grounded:
+		if w.is_driven and w.is_grounded and not w.detached:
 			var target: float = w.kappa_peak() * cfg.tcs_slip_target
 			worst = maxf(worst, w.slip_ratio / target)
 
@@ -112,7 +112,10 @@ func _tcs_axle_brakes(left: Wheel, right: Wheel, delta: float) -> void:
 	var target_left: float = 0.0
 	var target_right: float = 0.0
 
-	if left.is_driven and right.is_driven and left.is_grounded and right.is_grounded:
+	if (
+		left.is_driven and right.is_driven and left.is_grounded
+		and right.is_grounded and not left.detached and not right.detached
+	):
 		var difference: float = left.slip_ratio - right.slip_ratio
 
 		var spin_floor: float = left.kappa_peak() * config.tcs_slip_target * 0.5

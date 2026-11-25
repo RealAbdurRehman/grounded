@@ -8,6 +8,14 @@ const CENTER_WHEEL_M: float = 0.05
 const SIDE_WALL_COS: float = 0.8
 const SIDE_WALL_MARGIN_M: float = 0.003
 
+const HUB_RADIUS_RATIO: float = 0.8
+
+const HUB_WIDTH_M: float = 0.1
+const HUB_STIFFNESS_N_M: float = 400000.0
+
+const HUB_FRICTION: float = 0.45
+const HUB_LOCK_NM: float = 100000.0
+
 @export var suspension_config: SuspensionConfig
 
 @export var tire_model: Tire
@@ -37,6 +45,7 @@ var is_grounded: bool = false
 
 var is_locked: bool = false
 var is_stuck: bool = false
+var detached: bool = false
 
 var compression: float = 0.0
 var spring_displacement: float = 0.0
@@ -97,6 +106,9 @@ var mass_fraction: float = 0.25
 var _side: float = 0.0
 var _side_known: bool = false
 var _mesh_rest: Basis = Basis.IDENTITY
+
+var _intact_config: SuspensionConfig
+var _intact_friction: float = 1.0
 
 var _ground: GroundProbe = GroundProbe.new()
 
@@ -332,7 +344,44 @@ func find_obstacles(chassis: RigidBody3D, delta: float) -> void:
 
 
 func update_squash(chassis: RigidBody3D, delta: float) -> void:
+	if detached:
+		return
+
 	_visual.update(self, chassis, delta)
+
+
+func detach() -> void:
+	if detached:
+		return
+
+	detached = true
+
+	_intact_config = suspension_config
+	_intact_friction = friction_coef
+
+	var hub: SuspensionConfig = suspension_config.duplicate()
+	hub.wheel_radius = suspension_config.rim_m() * HUB_RADIUS_RATIO
+	hub.rim_radius = hub.wheel_radius
+	hub.wheel_width = HUB_WIDTH_M
+	hub.tire_stiffness = HUB_STIFFNESS_N_M
+
+	suspension_config = hub
+	friction_coef = HUB_FRICTION
+
+	angular_velocity_rad_s = 0.0
+
+	damage_tilt_rad = 0.0
+	damage_radial_m = 0.0
+
+
+func reattach() -> void:
+	if not detached:
+		return
+
+	detached = false
+
+	suspension_config = _intact_config
+	friction_coef = _intact_friction
 
 
 func _tick_path(chassis: RigidBody3D, delta: float) -> Vector3:

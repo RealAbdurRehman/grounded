@@ -52,6 +52,18 @@ const CARVE_MOVED_M: float = 0.004
 const CARVE_TURNED_COS: float = 0.99998
 const CARVE_NEAR_M: float = 0.3
 
+const TEAR_RATIO: float = 2.2
+const TEAR_WEAKENING: float = 1.0
+const TEAR_MIN_SPEED_MPS: float = 27.8
+
+const HUB_WORDS: Array[String] = ["ROTOR", "DISC", "HUB", "CALIPER"]
+
+const KEEP_SPEED_SHARE: float = 0.8
+const OUT_MPS: float = 2.0
+const UP_MPS: float = 1.5
+const KICK_SPREAD_MPS: float = 1.0
+const WOBBLE_RAD_S: float = 3.0
+
 const HISTORY_TICKS: int = 12
 
 const SLOWED_RATIO: float = 1.2
@@ -94,6 +106,13 @@ class WheelState extends RefCounted:
 
 	var carved_center: Vector3 = Vector3.INF
 	var carved_axis: Vector3 = Vector3.ZERO
+
+	var pull: float = 0.0
+
+	var torn: bool = false
+	var lost: LostWheel = null
+
+	var hidden: Array[Node3D] = []
 
 
 var states: Array[WheelState] = []
@@ -143,6 +162,9 @@ func on_crash(points: PackedVector3Array, push: Vector3, delta_v: float) -> void
 
 	var peak_force: float = _car.mass * delta_v / CRASH_S * PEAK_FACTOR
 	for state in states:
+		if state.torn:
+			continue
+
 		var hub: Vector3 = _car.to_local(state.wheel.hub_world_position())
 
 		var nearest: float = INF
@@ -171,6 +193,9 @@ func step(delta: float) -> void:
 	_clock += delta
 
 	for state in states:
+		if state.torn:
+			continue
+
 		_strike(state, delta)
 
 		if _clock - state.carve_clock >= CARVE_EVERY_S and (state.carve_due or _is_bent(state)):
@@ -265,9 +290,103 @@ func burst(state: WheelState) -> void:
 	state.burst = true
 
 
-## Put every wheel back.
+func tear_off(state: WheelState) -> void:
+	if state.torn:
+		return
+
+	var wheel: Wheel = state.wheel
+	var carrier: MeshInstance3D = wheel.visual_mesh
+	var world: Node = _car.get_parent()
+
+	if carrier == null or world == null:
+		return
+
+	var com: Vector3 = _car.to_global(_car.center_of_mass)
+	var hub: Vector3 = wheel.hub_world_position()
+
+	var velocity: Vector3 = _car.linear_velocity + _car.angular_velocity.cross(hub - com)
+	velocity += _slowed_by() * KEEP_SPEED_SHARE
+
+	var outward: Vector3 = _car.global_basis.orthonormalized() * Vector3(state.side, 0.0, 0.0)
+	velocity += outward * OUT_MPS + Vector3.UP * UP_MPS
+	velocity += Vector3(
+		_random.randf_range(-1.0, 1.0),
+		_random.randf_range(0.0, 1.0),
+		_random.randf_range(-1.0, 1.0),
+	) * KICK_SPREAD_MPS
+
+	var spin: Vector3 = wheel.spin_axis(_car) * wheel.angular_velocity_rad_s
+	spin += _car.angular_velocity
+	spin += Vector3(
+		_random.randf_range(-1.0, 1.0),
+		_random.randf_range(-1.0, 1.0),
+		_random.randf_range(-1.0, 1.0),
+	) * WOBBLE_RAD_S
+
+	var lost := LostWheel.new()
+	world.add_child(lost)
+
+	lost.setup(_car, carrier, wheel.suspension_config, HUB_WORDS, velocity, spin, state.air)
+
+	state.lost = lost
+	state.torn = true
+
+	state.hidden.clear()
+	for child in carrier.get_children():
+		var part := child as Node3D
+		if part == null or _stays_on_hub(part):
+			continue
+
+		part.visible = false
+		state.hidden.append(part)
+
+	carrier.layers = 0
+
+	wheel.detach()
+
+	state.tilt_rad = 0.0
+	state.leak_per_s = 0.0
+	state.burst = false
+
+	_apply(state)
+	wheel.inflation.air_left = 1.0
+
+
+func _stays_on_hub(part: Node3D) -> bool:
+	for word in HUB_WORDS:
+		if String(part.name).contains(word):
+			return true
+
+	return false
+
+
+func _put_wheel_back(state: WheelState) -> void:
+	if not state.torn:
+		return
+
+	state.torn = false
+
+	if is_instance_valid(state.lost):
+		state.lost.queue_free()
+
+	state.lost = null
+
+	for part in state.hidden:
+		if is_instance_valid(part):
+			part.visible = true
+
+	state.hidden.clear()
+
+	if state.wheel.visual_mesh != null:
+		state.wheel.visual_mesh.layers = 1
+
+	state.wheel.reattach()
+
+
 func repair() -> void:
 	for state in states:
+		_put_wheel_back(state)
+
 		state.swing_rad = 0.0
 		state.lean_rad = 0.0
 		state.sideways_m = 0.0
@@ -282,6 +401,7 @@ func repair() -> void:
 		state.burst = false
 
 		state.worst_n = 0.0
+		state.pull = 0.0
 
 		state.strike_n = Vector3.ZERO
 		state.strike_spot = Vector3.ZERO
@@ -307,6 +427,26 @@ func _load(state: WheelState, spot: Vector3, direction: Vector3, force_n: float)
 
 	var lever: float = state.lever_m
 	var strength: float = state.strength
+
+	var pull: float = maxf(
+		maxf(
+			absf(torque.y) / lever / (SWING_YIELD_N * strength),
+			absf(torque.z) / lever / (LEAN_YIELD_N * strength),
+		),
+		maxf(absf(push.x) / (SIDEWAYS_YIELD_N * strength), force_n / (STRUT_YIELD_N * strength)),
+	)
+
+	var worn: float = maxf(
+		maxf(absf(state.swing_rad) / MAX_SWING_RAD, absf(state.lean_rad) / MAX_LEAN_RAD),
+		maxf(absf(state.sideways_m) / MAX_SIDEWAYS_M, state.sag_m / MAX_SAG_M),
+	)
+
+	state.pull = maxf(state.pull, pull)
+
+	var impact_mps: float = _history[_head].length()
+	if impact_mps >= TEAR_MIN_SPEED_MPS and pull > TEAR_RATIO - TEAR_WEAKENING * worn:
+		tear_off(state)
+		return
 
 	state.swing_rad = _bent_by(
 		torque.y / lever,

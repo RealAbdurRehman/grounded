@@ -475,14 +475,14 @@ func _set_axle_arb(left: Wheel, right: Wheel, stiffness: float) -> void:
 func _update_drivetrain_and_wheels(delta: float) -> void:
 	var driver_brake_nm: Dictionary[Wheel, float] = { }
 	for w in wheels:
-		driver_brake_nm[w] = brake_input * brakes_for(w).max_torque_nm
+		driver_brake_nm[w] = 0.0 if w.detached else brake_input * brakes_for(w).max_torque_nm
 
 	assists.update(delta, throttle_input, driver_brake_nm, handbrake_input)
 
 	var driven_wheels: Array[Wheel] = []
 	for axle in axles:
 		for w: Wheel in axle:
-			if w.is_driven:
+			if w.is_driven and not w.detached:
 				driven_wheels.append(w)
 
 	drivetrain_node.setup_driveline(driven_wheels)
@@ -529,6 +529,9 @@ func _update_drivetrain_and_wheels(delta: float) -> void:
 		var w_brake_torque: float = (
 			assists.brake_torque(w) + get_handbrake_torque_nm(w) + get_gear_hold_torque_nm(w)
 		)
+
+		if w.detached:
+			w_brake_torque = Wheel.HUB_LOCK_NM
 
 		w.update_wheel(self, delta, w_drive_torque, w_brake_torque, w_reflected)
 		w.find_obstacles(self, delta)

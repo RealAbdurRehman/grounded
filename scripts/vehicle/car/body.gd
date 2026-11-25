@@ -124,7 +124,10 @@ func _set_body_material(vehicle: Node3D) -> void:
 
 func _process(_delta: float) -> void:
 	for entry in _tires:
-		if is_instance_valid(entry["wheel"]) and _sizes(entry["wheel"]) != entry["sizes"]:
+		if (
+			is_instance_valid(entry["wheel"]) and not entry["wheel"].get("detached")
+			and _sizes(entry["wheel"]) != entry["sizes"]
+		):
 			_refit(entry)
 
 	if Engine.is_editor_hint():

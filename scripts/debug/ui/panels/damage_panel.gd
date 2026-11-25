@@ -33,20 +33,27 @@ func draw() -> void:
 		for state in wheel_damage.states:
 			var label: String = state.wheel.label
 
-			Widgets.key_value(
-				label,
-				"toe %+.1f  camber %+.1f  back %+.0f mm  sag %.0f mm  air %.0f%%"
-				% [
-					rad_to_deg(state.wheel.damage_toe_rad),
-					rad_to_deg(state.wheel.damage_camber_rad),
-					state.setback_m * 1000.0,
-					state.sag_m * 1000.0,
-					state.air * 100.0,
-				],
-			)
+			if state.torn:
+				Widgets.key_value(label, "torn off")
+			else:
+				Widgets.key_value(
+					label,
+					"toe %+.1f  camber %+.1f  back %+.0f mm  sag %.0f mm  air %.0f%%  pull %.1f"
+					% [
+						rad_to_deg(state.wheel.damage_toe_rad),
+						rad_to_deg(state.wheel.damage_camber_rad),
+						state.setback_m * 1000.0,
+						state.sag_m * 1000.0,
+						state.air * 100.0,
+						state.pull,
+					],
+				)
 
-			if ImGui.Button("Burst " + label):
-				wheel_damage.burst(state)
+				if ImGui.Button("Burst " + label):
+					wheel_damage.burst(state)
+
+				if ImGui.Button("Tear off " + label):
+					wheel_damage.tear_off(state)
 
 	Widgets.gap(0.5)
 	if ImGui.Button("Repair all"):

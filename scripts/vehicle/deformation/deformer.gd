@@ -14,7 +14,7 @@ const MIN_WIDTH_M: float = 0.5
 const MAX_WIDTH_M: float = 1.8
 
 ## How deep the car can crush on impact.
-const CRUMPLE_ZONE_M: float = 0.9
+const CRUMPLE_ZONE_M: float = 1.2
 
 ## No point on the body is pushed further than this.
 const MAX_OFFSET_M: float = 0.6

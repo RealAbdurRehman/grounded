@@ -115,7 +115,7 @@ func _ready() -> void:
 	damage.part_hit.connect(deformer.dent)
 	damage.repaired.connect(deformer.repair)
 
-	wheel_damage = WheelDamage.new(self, wheels)
+	wheel_damage = WheelDamage.new(self, wheels, deformer)
 	deformer.crashed.connect(wheel_damage.on_crash)
 	damage.repaired.connect(wheel_damage.repair)
 

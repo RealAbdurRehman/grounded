@@ -2,6 +2,7 @@ class_name CarDeformer
 extends RefCounted
 
 signal crashed(points: PackedVector3Array, push: Vector3, delta_v: float)
+signal dented(box: AABB)
 
 ## Force it takes to crush the car.
 const CRUSH_A_N_PER_M: float = 67700.0
@@ -86,6 +87,10 @@ const MAX_APPLIED: int = 16
 
 const START_AFTER_TICKS: int = 30
 
+const CARVE_MAX_M: float = 0.6
+const CARVE_CLEARANCE_M: float = 0.012
+const CARVE_OVERSHOOT_M: float = 0.006
+
 const WELD_BIAS: int = 1 << 19
 const WELD_SPAN: int = 1 << 20
 
@@ -100,6 +105,8 @@ class Piece extends RefCounted:
 	var turn: Quaternion
 
 	var bounds: AABB
+
+	var reach: float = 0.0
 
 	var stage: int = 0
 	var passes: int = 0
@@ -192,6 +199,14 @@ class Job extends RefCounted:
 	var started: bool = false
 
 	var fills: bool = false
+
+	var carve: bool = false
+
+	var tire_radius: float = 0.0
+	var tire_half: float = 0.0
+
+	var tire_center: PackedVector3Array = PackedVector3Array()
+	var tire_axis: PackedVector3Array = PackedVector3Array()
 
 
 var pieces: Array[Piece] = []
@@ -307,6 +322,8 @@ func repair() -> void:
 
 		piece.deformed = false
 		piece.dirty = true
+
+		piece.reach = 0.0
 
 
 func dent(
@@ -653,7 +670,10 @@ func _work() -> void:
 			job.slab = job.low.x
 
 		if piece.ready:
-			_dent_slab(piece, job, job.slab)
+			if job.carve:
+				_carve_piece(piece, job, job.next)
+			else:
+				_dent_slab(piece, job, job.slab)
 
 		job.slab += 1
 
@@ -661,7 +681,7 @@ func _work() -> void:
 			job.next += 1
 			job.started = false
 
-			if piece.deformed:
+			if piece.deformed and not job.carve:
 				piece.dirty = true
 
 
@@ -745,6 +765,7 @@ func _dent_slab(piece: Piece, job: Job, x: int) -> void:
 				if offset.length() > MAX_OFFSET_M:
 					offset = offset.normalized() * MAX_OFFSET_M
 
+				piece.reach = maxf(piece.reach, offset.length())
 				piece.w_pos[w] = rest + offset
 				piece.w_dirt[w] = minf(1.0, piece.w_dirt[w] + weight * scuff)
 
@@ -755,6 +776,117 @@ func _dent_slab(piece: Piece, job: Job, x: int) -> void:
 
 	_refresh(piece, moved)
 	piece.deformed = true
+
+
+func carve(center: Vector3, axis: Vector3, radius: float, half_width: float) -> bool:
+	if _jobs.size() >= MAX_JOBS:
+		return false
+
+	var job := Job.new()
+	job.carve = true
+
+	job.tire_radius = radius + CARVE_CLEARANCE_M
+	job.tire_half = half_width + CARVE_CLEARANCE_M
+
+	var span: float = sqrt(job.tire_radius * job.tire_radius + job.tire_half * job.tire_half)
+	var now: Transform3D = _car.global_transform
+
+	for piece in pieces:
+		if piece.skip or not is_instance_valid(piece.node):
+			continue
+
+		var to_piece: Transform3D = piece.to_car * piece.node.global_transform.affine_inverse() * now
+		var spot: Vector3 = to_piece * center
+
+		if not piece.bounds.grow(piece.reach + span).has_point(spot):
+			continue
+
+		if not piece.ready:
+			return false
+
+		job.pieces.append(piece)
+		job.tire_center.append(spot)
+		job.tire_axis.append((to_piece.basis * axis).normalized())
+
+	if job.pieces.is_empty():
+		return true
+
+	_jobs.append(job)
+
+	return true
+
+
+func _carve_piece(piece: Piece, job: Job, index: int) -> void:
+	var center: Vector3 = job.tire_center[index]
+	var axis: Vector3 = job.tire_axis[index]
+
+	var radius: float = job.tire_radius
+	var half: float = job.tire_half
+
+	var room := Vector3.ZERO
+	for i in range(3):
+		room[i] = absf(axis[i]) * half + sqrt(maxf(1.0 - axis[i] * axis[i], 0.0)) * radius
+
+	room += Vector3.ONE * (piece.reach + 0.02)
+
+	var low := Vector3i(((center - room) / CELL_M).floor())
+	var high := Vector3i(((center + room) / CELL_M).floor())
+
+	var moved := PackedInt32Array()
+
+	for x in range(low.x, high.x + 1):
+		for y in range(low.y, high.y + 1):
+			for z in range(low.z, high.z + 1):
+				var list: Variant = piece.cells.get(Vector3i(x, y, z))
+				if list == null:
+					continue
+
+				for w in list:
+					var from_center: Vector3 = piece.w_pos[w] - center
+
+					var along: float = from_center.dot(axis)
+					if absf(along) >= half:
+						continue
+
+					var radial: Vector3 = from_center - axis * along
+					var distance: float = radial.length()
+					if distance >= radius:
+						continue
+
+					var out_round: float = radius + CARVE_OVERSHOOT_M - distance
+					var out_side: float = half + CARVE_OVERSHOOT_M - absf(along)
+
+					var target: Vector3
+					var depth: float
+
+					if out_round < out_side and distance > 0.001:
+						target = center + axis * along + radial / distance * (
+							radius + CARVE_OVERSHOOT_M
+						)
+						depth = out_round
+					else:
+						target = center + radial + axis * (
+							(half + CARVE_OVERSHOOT_M) * (1.0 if along >= 0.0 else -1.0)
+						)
+						depth = out_side
+
+					var offset: Vector3 = target - piece.w_rest[w]
+					if offset.length() > CARVE_MAX_M:
+						offset = offset.normalized() * CARVE_MAX_M
+
+					piece.reach = maxf(piece.reach, offset.length())
+					piece.w_pos[w] = piece.w_rest[w] + offset
+					piece.w_dirt[w] = minf(1.0, piece.w_dirt[w] + depth * 12.0)
+
+					moved.append(w)
+
+	if moved.is_empty():
+		return
+
+	_refresh(piece, moved)
+
+	piece.deformed = true
+	piece.dirty = true
 
 
 func _crease_rise(job: Job, behind: float, lateral: float, parallel: float) -> float:
@@ -1061,13 +1193,14 @@ func _run_jobs() -> void:
 	if _jobs.is_empty() or _uploading():
 		return
 
-	var job: Job = _jobs.pop_front()
+	var job: Job = _jobs[0]
+	for piece in job.pieces:
+		if not piece.ready and not piece.skip:
+			return
 
+	_jobs.pop_front()
 	if job.pieces.is_empty():
 		return
-
-	for piece in job.pieces:
-		_ensure_ready(piece)
 
 	_group_job = job
 	_group = WorkerThreadPool.add_group_task(
@@ -1085,11 +1218,18 @@ func _dent_in_thread(index: int, job: Job) -> void:
 	if not piece.ready:
 		return
 
+	if job.carve:
+		_carve_piece(piece, job, index)
+		return
+
 	for x in range(job.low.x, job.high.x + 1):
 		_dent_slab(piece, job, x)
 
 
 func _finish_job(job: Job) -> void:
+	if job.carve:
+		return
+
 	for piece in job.pieces:
 		if piece.deformed:
 			piece.dirty = true
@@ -1101,6 +1241,8 @@ func _finish_job(job: Job) -> void:
 	_hull_due = true
 	_hull_restore = false
 	_last_change = _clock
+
+	dented.emit(job.box)
 
 
 func crushed(point: Vector3) -> Vector3:

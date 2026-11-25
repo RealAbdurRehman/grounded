@@ -29,8 +29,17 @@ const SPRING_SAG_RAD: float = 0.075
 const SPRING_PROP_RAD: float = 0.1
 const SPRING_DAMPING: float = 1.0
 
-const SHARDS: int = 40
-const SHARD_LIFE_S: float = 1.6
+const AIR_DRAG_COEF: float = 1.2
+const AIR_MIN_MPS: float = 3.0
+
+const AIR_TEAR_N_PER_KG: float = 120.0
+const AIR_TEAR_S: float = 0.2
+
+const SKID_MIN_FROM_MIDDLE_M: float = 0.8
+const SKID_MIN_DROP_M: float = 0.03
+
+const SKID_SLOPE: float = 1.0
+const SKID_SIDE_INSET_M: float = 0.05
 
 
 class Mount extends RefCounted:
@@ -69,6 +78,11 @@ class PanelState extends RefCounted:
 
 	var springy: bool = false
 
+	var face: Vector3 = Vector3.UP
+	var area_m2: float = 0.0
+
+	var air_s: float = 0.0
+
 	var spring_axis: Vector3
 	var spring_sign: float = 1.0
 
@@ -80,6 +94,7 @@ class PanelState extends RefCounted:
 var panels: Array[PanelState] = []
 
 var _car: RigidBody3D
+var _vehicle: Vehicle
 var _random := RandomNumberGenerator.new()
 
 var _history: PackedVector3Array = PackedVector3Array()
@@ -88,6 +103,7 @@ var _head: int = 0
 
 func _init(car: RigidBody3D, model: Node3D, definitions: Array[CarPanel]) -> void:
 	_car = car
+	_vehicle = car as Vehicle
 
 	_random.randomize()
 	_history.resize(HISTORY_TICKS)
@@ -137,7 +153,7 @@ func on_crash(points: PackedVector3Array, push: Vector3, delta_v: float) -> void
 
 		var facing: float = _facing(state.def, push)
 		if state.def.kind == CarPanel.Kind.GLASS:
-			_hit_glass(state, points, push, delta_v, facing)
+			_hit_glass(state, points, delta_v, facing)
 		else:
 			_hit_panel(state, points, delta_v, facing)
 
@@ -166,7 +182,7 @@ func on_piece_pushed(piece_name: String, impulse_ns: float) -> void:
 		_let_go(state, latches, minf(impulse_ns / def.mass_kg, 4.0), 1.0)
 
 
-func step(_delta: float) -> void:
+func step(delta: float) -> void:
 	_history[_head] = _car.linear_velocity
 	_head = (_head + 1) % HISTORY_TICKS
 
@@ -176,6 +192,8 @@ func step(_delta: float) -> void:
 
 		if state.springy:
 			_spring(state)
+
+		_air(state, delta)
 
 		var wanted: Vector3 = _car.to_global(state.bounds.get_center())
 		if state.body.global_position.distance_to(wanted) > STRAY_M:
@@ -200,6 +218,7 @@ func repair() -> void:
 		state.wear = 0.0
 		state.fold = 0.0
 		state.pushed = 0.0
+		state.air_s = 0.0
 		state.strength = _roll_strength()
 
 		for mount in state.mounts:
@@ -259,7 +278,6 @@ func _mount(def: CarPanel, point: Vector3, is_hinge: bool) -> Mount:
 func _hit_glass(
 	state: PanelState,
 	points: PackedVector3Array,
-	push: Vector3,
 	delta_v: float,
 	facing: float,
 ) -> void:
@@ -277,7 +295,7 @@ func _hit_glass(
 	state.wear += glass_load * glass_load
 
 	if sqrt(state.wear) / state.strength >= state.def.break_mps:
-		_break(state, push)
+		_break(state)
 
 
 func _hit_panel(
@@ -388,11 +406,42 @@ func _make_body(state: PanelState) -> void:
 	paint.bounce = 0.15
 	body.physics_material_override = paint
 
-	var shape := CollisionShape3D.new()
-	var box := BoxShape3D.new()
-	box.size = state.bounds.size.max(Vector3(0.04, 0.04, 0.04))
-	shape.shape = box
-	body.add_child(shape)
+	var middle: Vector3 = state.bounds.get_center()
+	var hulls: Array[CollisionShape3D] = _hulls_of(def)
+
+	var size: Vector3 = state.bounds.size
+	state.face = def.open_direction.normalized()
+	state.area_m2 = (
+		absf(state.face.x) * size.y * size.z + absf(state.face.y) * size.x * size.z
+		+ absf(state.face.z) * size.x * size.y
+	)
+
+	for hull in hulls:
+		var shape := CollisionShape3D.new()
+		shape.shape = hull.shape.duplicate()
+		shape.transform = Transform3D(Basis.IDENTITY, -middle) * hull.transform
+
+		body.add_child(shape)
+
+	if not hulls.is_empty():
+		var skid: ConvexPolygonShape3D = _skid_of(state, hulls)
+		if skid != null:
+			var skid_shape := CollisionShape3D.new()
+			skid_shape.shape = skid
+			skid_shape.transform = Transform3D(Basis.IDENTITY, -middle)
+
+			body.add_child(skid_shape)
+
+	if hulls.is_empty():
+		var shape := CollisionShape3D.new()
+		var box := BoxShape3D.new()
+
+		box.size = state.bounds.size.max(Vector3(0.04, 0.04, 0.04))
+		shape.shape = box
+		body.add_child(shape)
+
+	body.center_of_mass_mode = RigidBody3D.CENTER_OF_MASS_MODE_CUSTOM
+	body.center_of_mass = Vector3.ZERO
 
 	world.add_child(body)
 	body.add_collision_exception_with(_car)
@@ -418,6 +467,63 @@ func _make_body(state: PanelState) -> void:
 
 	body.angular_velocity = _car.angular_velocity
 	state.body = body
+
+
+func _hulls_of(def: CarPanel) -> Array[CollisionShape3D]:
+	var prefix: String = "Collision" + def.panel_name.replace(" ", "")
+	var found: Array[CollisionShape3D] = []
+
+	for child in _car.get_children():
+		var node := child as CollisionShape3D
+		if node == null or node.shape == null or not String(node.name).begins_with(prefix):
+			continue
+
+		if String(node.name).trim_prefix(prefix).is_valid_int():
+			found.append(node)
+
+	return found
+
+
+func _skid_of(state: PanelState, hulls: Array[CollisionShape3D]) -> ConvexPolygonShape3D:
+	var bounds: AABB = state.bounds
+	var middle: Vector3 = bounds.get_center()
+
+	if absf(middle.z - _car.center_of_mass.z) < SKID_MIN_FROM_MIDDLE_M:
+		return null
+
+	var hull_low: float = INF
+	for hull in hulls:
+		var convex := hull.shape as ConvexPolygonShape3D
+		if convex == null:
+			continue
+
+		for point in convex.points:
+			hull_low = minf(hull_low, (hull.transform * point).y)
+
+	var bottom: float = bounds.position.y
+	var drop: float = hull_low - bottom
+
+	if drop < SKID_MIN_DROP_M:
+		return null
+
+	var outward: float = signf(middle.z - _car.center_of_mass.z)
+	var z_out: float = bounds.end.z if outward > 0.0 else bounds.position.z
+	var z_in: float = bounds.position.z if outward > 0.0 else bounds.end.z
+
+	var slope: float = minf(drop * SKID_SLOPE, absf(z_out - z_in) * 0.8)
+	var half: float = maxf(bounds.size.x * 0.5 - SKID_SIDE_INSET_M, 0.05)
+
+	var points := PackedVector3Array()
+	for side in [-1.0, 1.0]:
+		points.append(Vector3(side * half, hull_low, z_out))
+		points.append(Vector3(side * half, hull_low, z_in))
+		points.append(Vector3(side * half, bottom, z_out - outward * slope))
+		points.append(Vector3(side * half, bottom, z_in))
+
+	var skid := ConvexPolygonShape3D.new()
+	skid.points = points
+
+	return skid
 
 
 func _connect(state: PanelState) -> void:
@@ -570,6 +676,49 @@ func _spring(state: PanelState) -> void:
 	state.body.apply_torque(axis * state.spring_sign * torque)
 
 
+func _air(state: PanelState, delta: float) -> void:
+	var def: CarPanel = state.def
+	var body: RigidBody3D = state.body
+
+	var wind: Vector3 = Vector3.ZERO
+	if _vehicle != null and _vehicle.aero != null:
+		wind = _vehicle.aero.wind_mps
+
+	var flow: Vector3 = wind - body.linear_velocity
+	var speed: float = flow.length()
+
+	if speed < AIR_MIN_MPS:
+		state.air_s = maxf(state.air_s - delta, 0.0)
+		return
+
+	var normal: Vector3 = body.global_basis.orthonormalized() * state.face
+	var pressure: float = 0.5 * Atmosphere.config.air_density * speed * speed
+
+	var force: Vector3 = normal * (
+		pressure * state.area_m2 * AIR_DRAG_COEF * flow.dot(normal) / speed
+	)
+
+	body.apply_force(force)
+
+	var lifted: float = maxf(force.dot(normal), 0.0)
+	if lifted <= def.mass_kg * AIR_TEAR_N_PER_KG:
+		state.air_s = maxf(state.air_s - delta, 0.0)
+		return
+
+	state.air_s += delta
+	if state.air_s < AIR_TEAR_S:
+		return
+
+	var torn: Array[Mount] = []
+	for mount in state.mounts:
+		if not mount.broken:
+			mount.broken = true
+			torn.append(mount)
+
+	if not torn.is_empty():
+		_let_go(state, torn, 0.0, 0.0)
+
+
 func _opens(axis: Vector3, reach: Vector3, open: Vector3) -> float:
 	var length: float = reach.length()
 	if length < 0.01:
@@ -666,68 +815,11 @@ func _facing(def: CarPanel, push: Vector3) -> float:
 	)
 
 
-func _break(state: PanelState, push: Vector3) -> void:
+func _break(state: PanelState) -> void:
 	state.broken = true
-
-	var shown: bool = false
 	for node in state.nodes:
-		if is_instance_valid(node) and node.is_visible_in_tree():
-			shown = true
+		if is_instance_valid(node):
 			node.visible = false
-
-	if shown:
-		_scatter(state, push)
-
-
-func _scatter(state: PanelState, push: Vector3) -> void:
-	var world: Node = _car.get_parent()
-	if world == null:
-		return
-
-	var middle: Vector3 = state.bounds.get_center()
-	var outward: Vector3 = (middle - _car.center_of_mass).normalized()
-
-	var shards := CPUParticles3D.new()
-
-	shards.emitting = false
-	shards.one_shot = true
-	shards.amount = SHARDS
-	shards.lifetime = SHARD_LIFE_S
-	shards.explosiveness = 1.0
-
-	var quad := QuadMesh.new()
-	quad.size = Vector2(0.035, 0.035)
-
-	var paint := StandardMaterial3D.new()
-
-	paint.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	paint.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	paint.cull_mode = BaseMaterial3D.CULL_DISABLED
-	paint.albedo_color = Color(0.78, 0.9, 0.95, 0.75)
-
-	quad.material = paint
-
-	shards.mesh = quad
-
-	shards.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
-	shards.emission_box_extents = state.bounds.size * 0.5
-
-	shards.direction = _car.global_basis * (outward - push * 0.4).normalized()
-	shards.spread = 55.0
-	shards.initial_velocity_min = 1.0
-	shards.initial_velocity_max = 4.5
-	shards.gravity = Vector3(0.0, -9.8, 0.0)
-
-	shards.angular_velocity_min = -540.0
-	shards.angular_velocity_max = 540.0
-	shards.scale_amount_min = 0.6
-	shards.scale_amount_max = 1.8
-
-	world.add_child(shards)
-	shards.global_position = _car.to_global(middle)
-	shards.emitting = true
-
-	_car.get_tree().create_timer(SHARD_LIFE_S + 0.5).timeout.connect(shards.queue_free)
 
 
 func _slowed_by() -> Vector3:

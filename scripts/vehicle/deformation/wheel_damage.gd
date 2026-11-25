@@ -26,6 +26,11 @@ const MAX_SWING_RAD: float = 0.35
 const MAX_LEAN_RAD: float = 0.35
 
 const MAX_SIDEWAYS_M: float = 0.1
+const MAX_SETBACK_M: float = 0.05
+
+const STRUT_YIELD_N: float = 45000.0
+const STRUT_STIFFNESS_N_M: float = 400000.0
+const MAX_SAG_M: float = 0.08
 
 const RIM_YIELD_N: float = 28000.0
 const RIM_STIFFNESS_N_RAD: float = 900000.0
@@ -41,6 +46,11 @@ const LEAK_MIN_PER_S: float = 0.03
 const LEAK_MAX_PER_S: float = 0.12
 
 const BURST_PER_S: float = 6.0
+
+const CARVE_EVERY_S: float = 0.25
+const CARVE_MOVED_M: float = 0.004
+const CARVE_TURNED_COS: float = 0.99998
+const CARVE_NEAR_M: float = 0.3
 
 const HISTORY_TICKS: int = 12
 
@@ -64,6 +74,9 @@ class WheelState extends RefCounted:
 	var lean_rad: float = 0.0
 	var sideways_m: float = 0.0
 
+	var sag_m: float = 0.0
+	var setback_m: float = 0.0
+
 	var tilt_rad: float = 0.0
 	var tilt_phase: float = 0.0
 
@@ -76,18 +89,28 @@ class WheelState extends RefCounted:
 	var strike_n: Vector3 = Vector3.ZERO
 	var strike_spot: Vector3 = Vector3.ZERO
 
+	var carve_due: bool = false
+	var carve_clock: float = 0.0
+
+	var carved_center: Vector3 = Vector3.INF
+	var carved_axis: Vector3 = Vector3.ZERO
+
 
 var states: Array[WheelState] = []
 
 var _car: RigidBody3D
+var _deformer: CarDeformer
 var _random := RandomNumberGenerator.new()
+
+var _clock: float = 0.0
 
 var _history: PackedVector3Array = PackedVector3Array()
 var _head: int = 0
 
 
-func _init(car: RigidBody3D, wheels: Array[Wheel]) -> void:
+func _init(car: RigidBody3D, wheels: Array[Wheel], deformer: CarDeformer) -> void:
 	_car = car
+	_deformer = deformer
 
 	_random.randomize()
 	_history.resize(HISTORY_TICKS)
@@ -110,6 +133,9 @@ func _init(car: RigidBody3D, wheels: Array[Wheel]) -> void:
 		state.tire_strength = _roll_strength()
 
 		states.append(state)
+
+	if _deformer != null:
+		_deformer.dented.connect(_on_dented)
 
 
 func on_crash(points: PackedVector3Array, push: Vector3, delta_v: float) -> void:
@@ -142,8 +168,13 @@ func step(delta: float) -> void:
 	_history[_head] = _car.linear_velocity
 	_head = (_head + 1) % HISTORY_TICKS
 
+	_clock += delta
+
 	for state in states:
 		_strike(state, delta)
+
+		if _clock - state.carve_clock >= CARVE_EVERY_S and (state.carve_due or _is_bent(state)):
+			_carve(state)
 
 		var rate: float = BURST_PER_S if state.burst else state.leak_per_s
 		if rate > 0.0 and state.air > 0.0:
@@ -158,6 +189,9 @@ func step(delta: float) -> void:
 func _strike(state: WheelState, delta: float) -> void:
 	var wheel: Wheel = state.wheel
 	var impulse: Vector3 = wheel.obstacle_impulse_n_s
+
+	if impulse.is_zero_approx() and state.strike_n.length_squared() < 1.0:
+		return
 
 	var up: Vector3 = wheel.global_transform.basis.orthonormalized().y
 	impulse -= up * impulse.dot(up)
@@ -181,6 +215,52 @@ func _strike(state: WheelState, delta: float) -> void:
 	_load(state, state.strike_spot, state.strike_n / force, force)
 
 
+func _is_bent(state: WheelState) -> bool:
+	return (
+		absf(state.swing_rad) > 0.002 or absf(state.lean_rad) > 0.002
+		or absf(state.sideways_m) > 0.002 or state.sag_m > 0.002 or state.tilt_rad > 0.0
+	)
+
+
+func _on_dented(box: AABB) -> void:
+	for state in states:
+		var hub: Vector3 = _car.to_local(state.wheel.hub_world_position())
+		var reach: float = state.wheel.suspension_config.wheel_radius + CARVE_NEAR_M
+
+		if box.grow(CARVE_NEAR_M).intersects(
+			AABB(hub - Vector3.ONE * reach, Vector3.ONE * reach * 2.0)
+		):
+			state.carve_due = true
+
+
+func _carve(state: WheelState) -> void:
+	var wheel: Wheel = state.wheel
+	var config: SuspensionConfig = wheel.suspension_config
+
+	var hub: Vector3 = _car.to_local(wheel.hub_world_position())
+	var axis: Vector3 = (_car.global_basis.orthonormalized().inverse() * wheel.hub_basis()) \
+			.x \
+			.normalized()
+
+	var still: bool = (
+		hub.distance_to(state.carved_center) < CARVE_MOVED_M
+		and absf(axis.dot(state.carved_axis)) > CARVE_TURNED_COS
+	)
+
+	if still and not state.carve_due:
+		return
+
+	var radius: float = config.wheel_radius + wheel.damage_radial_m
+	var half: float = config.width_m() * 0.5 + config.wheel_radius * sin(state.tilt_rad)
+
+	if _deformer.carve(hub, axis, radius, half):
+		state.carved_center = hub
+		state.carved_axis = axis
+
+		state.carve_due = false
+		state.carve_clock = _clock
+
+
 func burst(state: WheelState) -> void:
 	state.burst = true
 
@@ -192,6 +272,9 @@ func repair() -> void:
 		state.lean_rad = 0.0
 		state.sideways_m = 0.0
 
+		state.sag_m = 0.0
+		state.setback_m = 0.0
+
 		state.tilt_rad = 0.0
 
 		state.air = 1.0
@@ -202,6 +285,9 @@ func repair() -> void:
 
 		state.strike_n = Vector3.ZERO
 		state.strike_spot = Vector3.ZERO
+
+		state.carve_due = false
+		state.carved_center = Vector3.INF
 
 		state.strength = _roll_strength()
 		state.tire_strength = _roll_strength()
@@ -244,6 +330,14 @@ func _load(state: WheelState, spot: Vector3, direction: Vector3, force_n: float)
 		state.sideways_m,
 		STIFFNESS_N_M,
 		MAX_SIDEWAYS_M,
+	)
+
+	state.sag_m = _bent_by(
+		force_n,
+		STRUT_YIELD_N * strength,
+		state.sag_m,
+		STRUT_STIFFNESS_N_M,
+		MAX_SAG_M,
 	)
 
 	var tilt: float = clampf(
@@ -298,7 +392,9 @@ func _apply(state: WheelState) -> void:
 	wheel.damage_radial_m = state.tilt_rad * RADIAL_PER_TILT_M
 
 	var lever_x: float = state.side * state.lever_m
-	var shift := Vector3(state.sideways_m, 0.0, -state.swing_rad * lever_x)
+	state.setback_m = clampf(-state.swing_rad * lever_x, -MAX_SETBACK_M, MAX_SETBACK_M)
+
+	var shift := Vector3(state.sideways_m, state.sag_m, state.setback_m)
 
 	var parent: Node3D = wheel.get_parent_node_3d()
 	if parent != null:
@@ -323,8 +419,8 @@ func _nearest_on_tire(wheel: Wheel, hub: Vector3, point: Vector3) -> Vector3:
 func _distance_to_tire(wheel: Wheel, hub: Vector3, point: Vector3) -> float:
 	var config: SuspensionConfig = wheel.suspension_config
 	var around: float = Vector2(point.y - hub.y, point.z - hub.z).length() - config.wheel_radius
-
 	var across: float = absf(point.x - hub.x) - config.width_m() * 0.5
+
 	return Vector2(maxf(around, 0.0), maxf(across, 0.0)).length()
 
 

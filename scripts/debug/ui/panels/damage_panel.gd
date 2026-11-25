@@ -35,11 +35,12 @@ func draw() -> void:
 
 			Widgets.key_value(
 				label,
-				"toe %+.1f  camber %+.1f  back %+.0f mm  air %.0f%%"
+				"toe %+.1f  camber %+.1f  back %+.0f mm  sag %.0f mm  air %.0f%%"
 				% [
 					rad_to_deg(state.wheel.damage_toe_rad),
 					rad_to_deg(state.wheel.damage_camber_rad),
-					-state.swing_rad * state.side * state.lever_m * 1000.0,
+					state.setback_m * 1000.0,
+					state.sag_m * 1000.0,
 					state.air * 100.0,
 				],
 			)

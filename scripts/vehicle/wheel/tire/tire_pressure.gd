@@ -24,8 +24,18 @@ const TRAIL_FACTOR_MAX: float = 2.0
 const GRIP_FACTOR_MIN: float = 0.5
 const GRIP_FACTOR_MAX: float = 1.2
 
-var gauge_kpa: float = 220.0
+const FLAT_BELOW_RATIO: float = 0.35
 
+const FLAT_STIFFNESS: float = 0.5
+const FLAT_ROLLING: float = 2.0
+
+const FLAT_GRIP: float = 0.8
+const FLAT_CORNERING: float = 0.8
+
+var gauge_kpa: float = 220.0
+var air_left: float = 1.0
+
+var flat: float = 0.0
 var ratio: float = 1.0
 
 var stiffness_factor: float = 1.0
@@ -52,7 +62,7 @@ func update(tire: Tire, cavity_c: float, load_n: float) -> void:
 		MAX_WARMING,
 	)
 
-	gauge_kpa = maxf(cold_kpa * warming - OUTSIDE_AIR_KPA, 0.0)
+	gauge_kpa = maxf(cold_kpa * warming * air_left - OUTSIDE_AIR_KPA, 0.0)
 	ratio = clampf(gauge_kpa / maxf(tire.design_pressure_kpa, 1.0), MIN_RATIO, MAX_RATIO)
 
 	var structure: float = clampf(tire.structural_stiffness_share, 0.0, 1.0)
@@ -84,9 +94,14 @@ func update(tire: Tire, cavity_c: float, load_n: float) -> void:
 		GRIP_FACTOR_MAX,
 	)
 
+	_go_flat(tire)
+
 
 func reset(tire: Tire) -> void:
-	gauge_kpa = maxf(tire.cold_pressure_kpa, 0.0)
+	gauge_kpa = maxf(
+		(maxf(tire.cold_pressure_kpa, 0.0) + OUTSIDE_AIR_KPA) * air_left - OUTSIDE_AIR_KPA,
+		0.0,
+	)
 
 	ratio = 1.0
 
@@ -97,3 +112,18 @@ func reset(tire: Tire) -> void:
 
 	trail_factor = 1.0
 	grip_factor = 1.0
+
+	_go_flat(tire)
+
+
+func _go_flat(tire: Tire) -> void:
+	flat = 1.0 - clampf(
+		gauge_kpa / maxf(tire.design_pressure_kpa * FLAT_BELOW_RATIO, 1.0),
+		0.0,
+		1.0,
+	)
+
+	stiffness_factor *= lerpf(1.0, FLAT_STIFFNESS, flat)
+	rolling_factor *= lerpf(1.0, FLAT_ROLLING, flat)
+	grip_factor *= lerpf(1.0, FLAT_GRIP, flat)
+	cornering_factor *= lerpf(1.0, FLAT_CORNERING, flat)

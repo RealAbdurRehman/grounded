@@ -60,6 +60,14 @@ var slip_angle_rad: float = 0.0
 var camber_rad: float = 0.0
 var toe_rad: float = 0.0
 
+var damage_toe_rad: float = 0.0
+var damage_camber_rad: float = 0.0
+
+var damage_tilt_rad: float = 0.0
+var damage_tilt_phase: float = 0.0
+
+var damage_radial_m: float = 0.0
+
 var grip_limit_n: float = 0.0
 
 var pneumatic_trail_m: float = 0.0
@@ -122,15 +130,17 @@ func _ready() -> void:
 func _design_camber_rad() -> float:
 	var config: SuspensionConfig = suspension_config
 	var offset: float = spring_displacement - config.alignment_compression
+	var wobble: float = damage_tilt_rad * cos(_spin_angle + damage_tilt_phase)
 
-	return deg_to_rad(config.static_camber_deg + config.camber_gain_deg_per_m * offset)
+	return deg_to_rad(config.static_camber_deg + config.camber_gain_deg_per_m * offset) + damage_camber_rad + wobble
 
 
 func _design_toe_rad() -> float:
 	var config: SuspensionConfig = suspension_config
 	var offset: float = spring_displacement - config.alignment_compression
+	var wobble: float = damage_tilt_rad * sin(_spin_angle + damage_tilt_phase)
 
-	return deg_to_rad(config.static_toe_deg + config.bump_steer_deg_per_m * offset)
+	return deg_to_rad(config.static_toe_deg + config.bump_steer_deg_per_m * offset) + damage_toe_rad + wobble
 
 
 func _alignment_basis() -> Basis:
@@ -369,6 +379,8 @@ func update_wheel(
 			air_speed,
 			delta,
 		)
+
+		_ground.displacement += damage_radial_m * cos(_spin_angle + damage_tilt_phase)
 
 	_step_hub(chassis, delta)
 

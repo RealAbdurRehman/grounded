@@ -60,6 +60,7 @@ var aero: Aero
 var damage: CarDamage
 var deformer: CarDeformer
 var panel_damage: PanelDamage
+var wheel_damage: WheelDamage
 
 var obstacles: ObstacleSolver = ObstacleSolver.new()
 
@@ -114,6 +115,10 @@ func _ready() -> void:
 	damage.part_hit.connect(deformer.dent)
 	damage.repaired.connect(deformer.repair)
 
+	wheel_damage = WheelDamage.new(self, wheels)
+	deformer.crashed.connect(wheel_damage.on_crash)
+	damage.repaired.connect(wheel_damage.repair)
+
 	var body := get_node_or_null(^"Body") as CarBody
 	if body != null and body.definition != null:
 		panel_damage = PanelDamage.new(
@@ -157,6 +162,8 @@ func _physics_process(delta: float) -> void:
 
 	damage.step()
 	deformer.step()
+
+	wheel_damage.step(delta)
 
 	if panel_damage != null:
 		panel_damage.step(delta)

@@ -27,6 +27,26 @@ func draw() -> void:
 			Color(0.35, 0.85, 0.45).lerp(Color(1.0, 0.3, 0.2), part.damage),
 		)
 
+	var wheel_damage: WheelDamage = vehicle.wheel_damage
+	if wheel_damage != null:
+		ImGui.SeparatorText("Wheels")
+		for state in wheel_damage.states:
+			var label: String = state.wheel.label
+
+			Widgets.key_value(
+				label,
+				"toe %+.1f  camber %+.1f  back %+.0f mm  air %.0f%%"
+				% [
+					rad_to_deg(state.wheel.damage_toe_rad),
+					rad_to_deg(state.wheel.damage_camber_rad),
+					-state.swing_rad * state.side * state.lever_m * 1000.0,
+					state.air * 100.0,
+				],
+			)
+
+			if ImGui.Button("Burst " + label):
+				wheel_damage.burst(state)
+
 	Widgets.gap(0.5)
 	if ImGui.Button("Repair all"):
 		damage.reset()

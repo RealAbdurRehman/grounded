@@ -47,6 +47,8 @@ var is_locked: bool = false
 var is_stuck: bool = false
 var detached: bool = false
 
+var bottomed_mps: float = 0.0
+
 var compression: float = 0.0
 var spring_displacement: float = 0.0
 
@@ -91,7 +93,9 @@ var _stick_y: float = 0.0
 
 var _hub_speed: float = 0.0
 var _tire_squash: float = 0.0
+
 var _stop_force_n: float = 0.0
+var _stop_peak_mps: float = 0.0
 
 var _hub_started: bool = false
 
@@ -692,6 +696,13 @@ func _step_hub(chassis: RigidBody3D, delta: float) -> void:
 	var displacement: float = spring_displacement + delta * speed
 
 	var travel: float = config.suspension_rest_length
+	var closing: float = maxf(speed, _mount_down_mps(chassis))
+
+	if displacement > travel * config.bump_stop_start and closing > 0.0:
+		_stop_peak_mps = maxf(_stop_peak_mps, closing)
+	elif _stop_peak_mps > 0.0:
+		bottomed_mps = maxf(bottomed_mps, _stop_peak_mps)
+		_stop_peak_mps = 0.0
 
 	var needed: float = _rim_room(chassis, delta)
 	if is_grounded and needed > minf(displacement, travel):
@@ -721,6 +732,16 @@ func _step_hub(chassis: RigidBody3D, delta: float) -> void:
 	_tire_squash = 0.0
 	if is_grounded:
 		_tire_squash = maxf(_ground.displacement - displacement, 0.0)
+
+
+func _mount_down_mps(chassis: RigidBody3D) -> float:
+	var up: Vector3 = global_transform.basis.orthonormalized().y
+	var com: Vector3 = chassis.to_global(chassis.center_of_mass)
+	var mount_velocity: Vector3 = (chassis.linear_velocity + chassis.angular_velocity.cross(
+			global_position - com
+		))
+
+	return -mount_velocity.dot(up)
 
 
 func _rim_room(chassis: RigidBody3D, delta: float) -> float:

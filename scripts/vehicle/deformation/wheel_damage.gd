@@ -56,6 +56,9 @@ const TEAR_RATIO: float = 2.2
 const TEAR_WEAKENING: float = 1.0
 const TEAR_MIN_SPEED_MPS: float = 27.8
 
+const LAND_STIFFNESS_N_M: float = 250000.0
+const LAND_SAFE_MPS: float = 3.5
+
 const HUB_WORDS: Array[String] = ["ROTOR", "DISC", "HUB", "CALIPER"]
 
 const KEEP_SPEED_SHARE: float = 0.8
@@ -108,6 +111,7 @@ class WheelState extends RefCounted:
 	var carved_axis: Vector3 = Vector3.ZERO
 
 	var pull: float = 0.0
+	var bottom_mps: float = 0.0
 
 	var torn: bool = false
 	var lost: LostWheel = null
@@ -193,8 +197,15 @@ func step(delta: float) -> void:
 	_clock += delta
 
 	for state in states:
+		var landed: float = state.wheel.bottomed_mps
+		state.wheel.bottomed_mps = 0.0
+
 		if state.torn:
 			continue
+
+		state.bottom_mps = maxf(state.bottom_mps, landed)
+		if landed > LAND_SAFE_MPS:
+			_land(state, landed)
 
 		_strike(state, delta)
 
@@ -402,6 +413,7 @@ func repair() -> void:
 
 		state.worst_n = 0.0
 		state.pull = 0.0
+		state.bottom_mps = 0.0
 
 		state.strike_n = Vector3.ZERO
 		state.strike_spot = Vector3.ZERO
@@ -416,7 +428,27 @@ func repair() -> void:
 		state.wheel.inflation.air_left = 1.0
 
 
-func _load(state: WheelState, spot: Vector3, direction: Vector3, force_n: float) -> void:
+func _land(state: WheelState, speed_mps: float) -> void:
+	var wheel: Wheel = state.wheel
+
+	var share: float = _car.mass * wheel.mass_fraction
+	var force: float = sqrt(
+		LAND_STIFFNESS_N_M * share * (speed_mps * speed_mps - LAND_SAFE_MPS * LAND_SAFE_MPS)
+	)
+
+	var hub: Vector3 = _car.to_local(wheel.hub_world_position())
+	var spot := Vector3(state.inner_x, hub.y - wheel.suspension_config.wheel_radius, hub.z)
+
+	_load(state, spot, Vector3.UP, force, false)
+
+
+func _load(
+	state: WheelState,
+	spot: Vector3,
+	direction: Vector3,
+	force_n: float,
+	can_tear: bool = true,
+) -> void:
 	state.worst_n = maxf(state.worst_n, force_n)
 
 	var hub: Vector3 = _car.to_local(state.wheel.hub_world_position())
@@ -441,12 +473,13 @@ func _load(state: WheelState, spot: Vector3, direction: Vector3, force_n: float)
 		maxf(absf(state.sideways_m) / MAX_SIDEWAYS_M, state.sag_m / MAX_SAG_M),
 	)
 
-	state.pull = maxf(state.pull, pull)
+	if can_tear:
+		state.pull = maxf(state.pull, pull)
 
-	var impact_mps: float = _history[_head].length()
-	if impact_mps >= TEAR_MIN_SPEED_MPS and pull > TEAR_RATIO - TEAR_WEAKENING * worn:
-		tear_off(state)
-		return
+		var impact_mps: float = _history[_head].length()
+		if impact_mps >= TEAR_MIN_SPEED_MPS and pull > TEAR_RATIO - TEAR_WEAKENING * worn:
+			tear_off(state)
+			return
 
 	state.swing_rad = _bent_by(
 		torque.y / lever,

@@ -38,7 +38,7 @@ func draw() -> void:
 			else:
 				Widgets.key_value(
 					label,
-					"toe %+.1f  camber %+.1f  back %+.0f mm  sag %.0f mm  air %.0f%%  pull %.1f"
+					"toe %+.1f  camber %+.1f  back %+.0f mm  sag %.0f mm  air %.0f%%  pull %.1f  stop %.1f m/s"
 					% [
 						rad_to_deg(state.wheel.damage_toe_rad),
 						rad_to_deg(state.wheel.damage_camber_rad),
@@ -46,6 +46,7 @@ func draw() -> void:
 						state.sag_m * 1000.0,
 						state.air * 100.0,
 						state.pull,
+						state.bottom_mps,
 					],
 				)
 

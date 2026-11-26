@@ -48,6 +48,7 @@ var is_stuck: bool = false
 var detached: bool = false
 
 var bottomed_mps: float = 0.0
+var damper_health: float = 1.0
 
 var compression: float = 0.0
 var spring_displacement: float = 0.0
@@ -461,7 +462,7 @@ func update_wheel(
 		k_spring * spring_displacement + suspension_config.bump_stop_force(spring_displacement)
 	)
 
-	var f_damper: float = suspension_config.damper_force(_hub_speed)
+	var f_damper: float = suspension_config.damper_force(_hub_speed) * damper_health
 	suspension_force_n = maxf(0.0, f_spring + f_damper + arb_force_n)
 
 	normal_load_n = tire_stiffness_n_m() * _tire_squash
@@ -686,6 +687,8 @@ func _step_hub(chassis: RigidBody3D, delta: float) -> void:
 	var damper_rate: float = config.wheel_bump()
 	if absf(_hub_speed) > 0.001:
 		damper_rate = config.damper_force(_hub_speed) / _hub_speed
+
+	damper_rate *= damper_health
 
 	var mass: float = maxf(config.unsprung_mass, 1.0)
 	var speed: float = (

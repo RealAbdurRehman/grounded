@@ -92,6 +92,8 @@ func apply() -> void:
 		slant = across * across / (speed * speed)
 
 	var drag_area: float = half_density * config.drag_coefficient * config.frontal_area
+	drag_area *= _vehicle.mechanical_damage.aero_drag
+
 	var yaw_gain: float = 1.0 + config.drag_yaw_gain * slant
 
 	force_long_n = drag_area * yaw_gain * speed * along
@@ -112,8 +114,13 @@ func apply() -> void:
 	travel_front = _travel_fraction(front)
 	travel_rear = _travel_fraction(rear)
 
+	var head_on_n: float = half_density * head_on * head_on * config.frontal_area
+
 	downforce_front_n = base_force * config.front_share * ground_effect_front
+	downforce_front_n -= head_on_n * _vehicle.mechanical_damage.lift_front
+
 	downforce_rear_n = base_force * (1.0 - config.front_share) * ground_effect_rear
+	downforce_rear_n -= head_on_n * _vehicle.mechanical_damage.lift_rear
 
 	induced_drag_n = (
 		(maxf(downforce_front_n, 0.0) + maxf(downforce_rear_n, 0.0))

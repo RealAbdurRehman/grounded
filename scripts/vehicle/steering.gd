@@ -24,6 +24,9 @@ var load_torque_nm: float = 0.0
 ## Torque driver puts on steering.
 var driver_torque_nm: float = 0.0
 
+var strength_scale: float = 1.0
+var extra_friction_nm: float = 0.0
+
 
 func step(
 	config: ChassisConfig,
@@ -55,7 +58,7 @@ func step(
 	var passive_nm: float = tire_torque_nm - config.low_speed_return_nm_per_rad * angle_rad
 
 	var grip: float = hands_on * DRIVER_DAMPING
-	var strength_nm: float = hands_on * config.driver_strength_nm
+	var strength_nm: float = hands_on * config.driver_strength_nm * strength_scale
 
 	var momentum: float = inertia * velocity_rad_s / delta
 	var error_rad: float = target_rad - angle_rad
@@ -95,7 +98,8 @@ func step(
 		resistance = inertia / delta + damping
 		new_velocity = (momentum + driver_torque_nm + passive_nm) / resistance
 
-	new_velocity = move_toward(new_velocity, 0.0, config.steering_friction_nm / resistance)
+	var friction_nm: float = config.steering_friction_nm + extra_friction_nm
+	new_velocity = move_toward(new_velocity, 0.0, friction_nm / resistance)
 
 	var new_angle: float = angle_rad + new_velocity * delta
 	if absf(new_angle) > lock_rad:

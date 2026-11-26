@@ -1,6 +1,8 @@
 class_name WheelDamage
 extends RefCounted
 
+signal loaded(state: WheelState, spot: Vector3, push: Vector3)
+
 const REACH_M: float = 1.0
 
 const LOAD_SHARE: float = 0.5
@@ -498,6 +500,8 @@ func _load(
 	var inner := Vector3(state.inner_x, hub.y, hub.z)
 
 	var push: Vector3 = direction * force_n
+	loaded.emit(state, spot, push)
+
 	var torque: Vector3 = (spot - inner).cross(push)
 
 	var lever: float = state.lever_m

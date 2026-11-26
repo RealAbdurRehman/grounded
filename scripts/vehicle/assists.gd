@@ -153,7 +153,7 @@ func _update_stability_control(delta: float, forward_speed: float) -> void:
 
 		return
 
-	var steer_rad: float = _vehicle.steer_angle_rad
+	var steer_rad: float = _vehicle.road_steer_rad
 	var desired: float = forward_speed * steer_rad / (
 		_wheelbase_m + cfg.esc_understeer_gradient * forward_speed * forward_speed
 	)

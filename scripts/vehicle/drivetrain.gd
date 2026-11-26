@@ -15,6 +15,9 @@ const AUTO_LIFT_THROTTLE: float = 0.05
 ## Picks the lowest gear that keeps the engine under this share of the upshift speed.
 const AUTO_KICKDOWN_LIMIT: float = 0.9
 
+const LOOSE_SHAFT_INERTIA: float = 0.08
+const LOOSE_SHAFT_DRAG_NM: float = 15.0
+
 @export var config: DrivetrainConfig
 
 @export var transmission_type: TransmissionType = TransmissionType.MANUAL_SEQUENTIAL
@@ -22,6 +25,8 @@ const AUTO_KICKDOWN_LIMIT: float = 0.9
 var is_shifting: bool = false
 
 var current_gear_index: int = 2
+
+var shift_time_scale: float = 1.0
 
 var _shift_timer: float = 0.0
 
@@ -34,6 +39,8 @@ var _driveline_key: Array = []
 
 var _wheel_share: Dictionary[Wheel, float] = { }
 var _prev_wheel_speed: Dictionary[Wheel, float] = { }
+
+var _loose: Dictionary[Wheel, float] = { }
 
 
 class DriveNode extends RefCounted:
@@ -144,13 +151,30 @@ func _axle_differential(axle_index: int) -> DifferentialConfig:
 
 
 func get_wheel_share(wheel: Wheel) -> float:
+	if _loose.has(wheel):
+		return 0.0
+
 	return _wheel_share.get(wheel, 0.0)
+
+
+func set_loose_wheels(wheels: Array[Wheel]) -> void:
+	for wheel: Wheel in _loose.keys():
+		if not wheels.has(wheel):
+			_loose.erase(wheel)
+
+	for wheel in wheels:
+		if not _loose.has(wheel):
+			_loose[wheel] = wheel.angular_velocity_rad_s
+
+
+func shaft_speed(wheel: Wheel) -> float:
+	return _loose.get(wheel, wheel.angular_velocity_rad_s)
 
 
 func get_input_speed_rad_s() -> float:
 	var total: float = 0.0
 	for w: Wheel in _wheel_share:
-		total += _wheel_share[w] * absf(w.angular_velocity_rad_s)
+		total += _wheel_share[w] * absf(shaft_speed(w))
 
 	return total
 
@@ -167,8 +191,25 @@ func split_drive_torque(
 
 	var fix: Dictionary[Wheel, float] = _inertia_fix(total_torque_nm, engine_inertia, delta)
 	_distribute(_root, total_torque_nm, is_power, engine_inertia, delta, fix, result)
+	_spin_loose_shafts(engine_inertia, delta, result)
 
 	return result
+
+
+func _spin_loose_shafts(
+	engine_inertia: float,
+	delta: float,
+	result: Dictionary[Wheel, float],
+) -> void:
+	for wheel in _loose:
+		if not result.has(wheel):
+			continue
+
+		var inertia: float = LOOSE_SHAFT_INERTIA + engine_inertia * _wheel_share[wheel]
+		var speed: float = _loose[wheel] + result[wheel] * delta / inertia
+
+		_loose[wheel] = move_toward(speed, 0.0, LOOSE_SHAFT_DRAG_NM * delta / inertia)
+		result[wheel] = 0.0
 
 
 func _make_axle_node(wheels: Array[Wheel], diff: DifferentialConfig) -> DriveNode:
@@ -221,11 +262,12 @@ func _inertia_fix(
 	var accel: Dictionary[Wheel, float] = { }
 	var mean_accel: float = 0.0
 	for w: Wheel in _wheel_share:
-		var previous: float = _prev_wheel_speed.get(w, w.angular_velocity_rad_s)
-		accel[w] = (w.angular_velocity_rad_s - previous) / delta
+		var speed: float = shaft_speed(w)
+		var previous: float = _prev_wheel_speed.get(w, speed)
+		accel[w] = (speed - previous) / delta
 		mean_accel += _wheel_share[w] * accel[w]
 
-		_prev_wheel_speed[w] = w.angular_velocity_rad_s
+		_prev_wheel_speed[w] = speed
 
 	var fix: Dictionary[Wheel, float] = { }
 	for w: Wheel in _wheel_share:
@@ -291,7 +333,7 @@ func _subtree_speed(node: DriveNode) -> float:
 	var total: float = 0.0
 	for w in node.leaves:
 		weight += _wheel_share[w]
-		total += _wheel_share[w] * w.angular_velocity_rad_s
+		total += _wheel_share[w] * shaft_speed(w)
 
 	return total / maxf(weight, 0.0001)
 
@@ -299,7 +341,11 @@ func _subtree_speed(node: DriveNode) -> float:
 func _subtree_inertia(node: DriveNode, engine_inertia: float) -> float:
 	var total: float = 0.0
 	for w in node.leaves:
-		total += w.suspension_config.wheel_inertia + engine_inertia * _wheel_share[w]
+		var own: float = w.suspension_config.wheel_inertia
+		if _loose.has(w):
+			own = LOOSE_SHAFT_INERTIA
+
+		total += own + engine_inertia * _wheel_share[w]
 
 	return total
 
@@ -315,7 +361,8 @@ func _subtree_fix(node: DriveNode, fix: Dictionary[Wheel, float]) -> float:
 func _subtree_tire_torque(node: DriveNode) -> float:
 	var total: float = 0.0
 	for w in node.leaves:
-		total += w.rolling_radius_m() * w.longitudinal_force_n
+		if not _loose.has(w):
+			total += w.rolling_radius_m() * w.longitudinal_force_n
 
 	return total
 
@@ -446,7 +493,7 @@ func _handle_automatic_shifting(engine_rpm: float, at_rev_limiter: bool, throttl
 
 func _start_shift() -> void:
 	is_shifting = true
-	_shift_timer = config.shift_delay_seconds
+	_shift_timer = config.shift_delay_seconds * shift_time_scale
 
 
 func shift_up() -> void:

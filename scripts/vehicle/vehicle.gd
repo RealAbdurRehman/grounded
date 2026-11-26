@@ -37,6 +37,9 @@ class WheelPair extends RefCounted:
 @export_group("Aerodynamics")
 @export var aero_config: AeroConfig = AeroConfig.new()
 
+@export_group("Damage")
+@export_range(0.5, 5.0, 0.05) var mechanical_toughness: float = 1.3
+
 var throttle_input: float = 0.0
 var throttle_demand: float = 0.0
 
@@ -51,6 +54,7 @@ var _gear_holding: bool = false
 
 var steer_cap_rad: float = 0.0
 var steer_angle_rad: float = 0.0
+var road_steer_rad: float = 0.0
 
 var assists: Assists
 var steering: Steering = Steering.new()
@@ -61,6 +65,7 @@ var damage: CarDamage
 var deformer: CarDeformer
 var panel_damage: PanelDamage
 var wheel_damage: WheelDamage
+var mechanical_damage: MechanicalDamage
 
 var obstacles: ObstacleSolver = ObstacleSolver.new()
 
@@ -131,6 +136,12 @@ func _ready() -> void:
 		damage.piece_pushed.connect(panel_damage.on_piece_pushed)
 		damage.repaired.connect(panel_damage.repair)
 
+	mechanical_damage = MechanicalDamage.new(self)
+
+	deformer.crashed.connect(mechanical_damage.on_crash)
+	wheel_damage.loaded.connect(mechanical_damage.on_wheel_load)
+	damage.repaired.connect(mechanical_damage.repair)
+
 
 func _sync_center_of_mass() -> void:
 	var local_com: Vector3 = to_local(center_of_mass_node.global_position)
@@ -167,6 +178,8 @@ func _physics_process(delta: float) -> void:
 
 	if panel_damage != null:
 		panel_damage.step(delta)
+
+	mechanical_damage.step(delta)
 
 
 func _handle_inputs(delta: float) -> void:
@@ -382,13 +395,17 @@ func _cache_steering_geometry() -> void:
 func _update_steering(delta: float) -> void:
 	steer_input = Input.get_action_strength("steer_left") - Input.get_action_strength("steer_right")
 
-	var lock_rad: float = deg_to_rad(config.max_steer_angle_deg)
+	var lock_rad: float = deg_to_rad(config.max_steer_angle_deg) * mechanical_damage.steer_lock_scale()
 	steer_cap_rad = _speed_steer_cap_rad(linear_velocity.length(), lock_rad)
 
 	var target_rad: float = steer_input * steer_cap_rad
 
 	var cap_fraction: float = clampf(steer_cap_rad / lock_rad, 0.15, 1.0)
 	var rate_rad_s: float = deg_to_rad(config.steer_rate_deg_s) * cap_fraction
+	rate_rad_s *= mechanical_damage.steer_rate_scale()
+
+	steering.strength_scale = mechanical_damage.steer_strength_scale()
+	steering.extra_friction_nm = mechanical_damage.steer_friction_nm()
 
 	steer_angle_rad = steering.step(
 		config,
@@ -402,9 +419,11 @@ func _update_steering(delta: float) -> void:
 		linear_velocity.length(),
 	)
 
+	road_steer_rad = mechanical_damage.road_angle(steer_angle_rad)
+
 	for w in wheels:
 		if w.can_steer:
-			w.steer_angle_rad = _ackermann_angle_rad(steer_angle_rad, w)
+			w.steer_angle_rad = _ackermann_angle_rad(road_steer_rad, w)
 
 
 func _tire_steering_torque_nm(delta: float) -> float:
@@ -486,9 +505,15 @@ func _update_drivetrain_and_wheels(delta: float) -> void:
 				driven_wheels.append(w)
 
 	drivetrain_node.setup_driveline(driven_wheels)
+	drivetrain_node.set_loose_wheels(mechanical_damage.broken_axles())
 	var driveline_speed: float = drivetrain_node.get_input_speed_rad_s()
 
 	var forward_speed: float = linear_velocity.dot(-global_transform.basis.z)
+
+	drivetrain_node.shift_time_scale = mechanical_damage.shift_time_scale()
+	if drivetrain_node.is_clutch_engaged() and mechanical_damage.pops_out(delta, throttle_input):
+		drivetrain_node.current_gear_index = 1
+
 	drivetrain_node.handle_transmission(
 		engine_node.current_rpm,
 		forward_speed,
@@ -496,6 +521,11 @@ func _update_drivetrain_and_wheels(delta: float) -> void:
 		engine_node.is_rev_limiter_active,
 		throttle_demand,
 	)
+
+	engine_node.power_factor = mechanical_damage.power_factor()
+	engine_node.boost_factor = mechanical_damage.boost_factor()
+	engine_node.drag_nm = mechanical_damage.engine_drag_nm()
+	engine_node.is_seized = mechanical_damage.seized
 
 	var target_engine_rpm: float = drivetrain_node.calculate_target_engine_rpm(driveline_speed)
 	var engine_torque: float = engine_node.update_engine(
@@ -522,16 +552,21 @@ func _update_drivetrain_and_wheels(delta: float) -> void:
 		delta,
 	)
 
+	mechanical_damage.load_axles(drive_torques, delta)
+
 	for w in wheels:
 		var w_drive_torque: float = drive_torques.get(w, 0.0)
 		var w_reflected: float = engine_inertia * drivetrain_node.get_wheel_share(w)
 
 		var w_brake_torque: float = (
-			assists.brake_torque(w) + get_handbrake_torque_nm(w) + get_gear_hold_torque_nm(w)
+			assists.brake_torque(w) * mechanical_damage.brake_factor(w) + get_handbrake_torque_nm(w)
+			+ get_gear_hold_torque_nm(w) + mechanical_damage.seized_torque_nm(w)
 		)
 
 		if w.detached:
 			w_brake_torque = Wheel.HUB_LOCK_NM
+
+		w.damper_health = mechanical_damage.damper_health(w)
 
 		w.update_wheel(self, delta, w_drive_torque, w_brake_torque, w_reflected)
 		w.find_obstacles(self, delta)

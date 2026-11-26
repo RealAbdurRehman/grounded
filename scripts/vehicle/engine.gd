@@ -8,6 +8,12 @@ var output_torque_nm: float = 0.0
 
 var is_rev_limiter_active: bool = false
 
+var power_factor: float = 1.0
+var boost_factor: float = 1.0
+
+var drag_nm: float = 0.0
+var is_seized: bool = false
+
 
 func _ready() -> void:
 	current_rpm = config.idle_rpm
@@ -19,7 +25,9 @@ func calculate_raw_torque(rpm: float) -> float:
 		pow(config.bandwidth, 2.0),
 		1.0,
 	)
-	var torque: float = config.displacement + (config.boost - config.displacement) * exp(exponent)
+
+	var peak: float = lerpf(config.displacement, config.boost, boost_factor)
+	var torque: float = config.displacement + (peak - config.displacement) * exp(exponent)
 
 	return max(0.0, torque)
 
@@ -35,6 +43,12 @@ func update_engine(
 	is_clutch_engaged: bool,
 	is_shifting: bool = false,
 ) -> float:
+	if is_seized:
+		current_rpm = move_toward(current_rpm, 0.0, delta * 20000.0)
+		output_torque_nm = 0.0
+
+		return output_torque_nm
+
 	if current_rpm >= config.rev_limiter_rpm:
 		is_rev_limiter_active = true
 	elif current_rpm <= config.rev_limiter_rpm - 250.0:
@@ -52,9 +66,9 @@ func update_engine(
 		var net_torque: float = 0.0
 
 		if effective_throttle > 0.01:
-			net_torque = calculate_raw_torque(current_rpm) * effective_throttle
+			net_torque = calculate_raw_torque(current_rpm) * effective_throttle * power_factor
 		else:
-			net_torque = -config.engine_braking_factor * (current_rpm / config.max_rpm)
+			net_torque = -(config.engine_braking_factor + drag_nm) * (current_rpm / config.max_rpm)
 
 		var rpm_accel: float = (net_torque / config.flywheel_inertia) * (60.0 / (2.0 * PI))
 		current_rpm += rpm_accel * delta
@@ -69,13 +83,16 @@ func update_engine(
 		current_rpm = move_toward(current_rpm, config.idle_rpm, delta * 1200.0)
 	current_rpm = clamp(current_rpm, 0.0, config.max_rpm)
 
+	var spin: float = clampf(
+		(current_rpm - config.idle_rpm) / (config.max_rpm - config.idle_rpm),
+		0.0,
+		1.0,
+	)
+
 	if effective_throttle > 0.01:
-		output_torque_nm = calculate_raw_torque(current_rpm) * effective_throttle
+		var made_nm: float = calculate_raw_torque(current_rpm) * effective_throttle * power_factor
+		output_torque_nm = made_nm - drag_nm * spin
 	else:
-		output_torque_nm = -config.engine_braking_factor * clamp(
-			(current_rpm - config.idle_rpm) / (config.max_rpm - config.idle_rpm),
-			0.0,
-			1.0,
-		)
+		output_torque_nm = -(config.engine_braking_factor + drag_nm) * spin
 
 	return output_torque_nm

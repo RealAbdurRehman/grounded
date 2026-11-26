@@ -204,6 +204,7 @@ class Job extends RefCounted:
 
 	var tire_radius: float = 0.0
 	var tire_half: float = 0.0
+	var tire_push: float = 0.0
 
 	var tire_center: PackedVector3Array = PackedVector3Array()
 	var tire_axis: PackedVector3Array = PackedVector3Array()
@@ -778,7 +779,13 @@ func _dent_slab(piece: Piece, job: Job, x: int) -> void:
 	piece.deformed = true
 
 
-func carve(center: Vector3, axis: Vector3, radius: float, half_width: float) -> bool:
+func carve(
+	center: Vector3,
+	axis: Vector3,
+	radius: float,
+	half_width: float,
+	max_push_m: float = CARVE_MAX_M,
+) -> bool:
 	if _jobs.size() >= MAX_JOBS:
 		return false
 
@@ -787,6 +794,7 @@ func carve(center: Vector3, axis: Vector3, radius: float, half_width: float) -> 
 
 	job.tire_radius = radius + CARVE_CLEARANCE_M
 	job.tire_half = half_width + CARVE_CLEARANCE_M
+	job.tire_push = max_push_m
 
 	var span: float = sqrt(job.tire_radius * job.tire_radius + job.tire_half * job.tire_half)
 	var now: Transform3D = _car.global_transform
@@ -871,8 +879,13 @@ func _carve_piece(piece: Piece, job: Job, index: int) -> void:
 						depth = out_side
 
 					var offset: Vector3 = target - piece.w_rest[w]
-					if offset.length() > CARVE_MAX_M:
-						offset = offset.normalized() * CARVE_MAX_M
+					var allowed: float = maxf(
+						job.tire_push,
+						(piece.w_pos[w] - piece.w_rest[w]).length(),
+					)
+
+					if offset.length() > allowed:
+						offset = offset.normalized() * allowed
 
 					piece.reach = maxf(piece.reach, offset.length())
 					piece.w_pos[w] = piece.w_rest[w] + offset

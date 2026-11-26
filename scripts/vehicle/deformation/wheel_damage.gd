@@ -56,8 +56,14 @@ const TEAR_RATIO: float = 2.2
 const TEAR_WEAKENING: float = 1.0
 const TEAR_MIN_SPEED_MPS: float = 27.8
 
-const LAND_STIFFNESS_N_M: float = 250000.0
-const LAND_SAFE_MPS: float = 3.5
+const LAND_STIFFNESS_N_M: float = 150000.0
+
+const LAND_SAFE_MPS: float = 7.0
+const LAND_HOLD_S: float = 1.0
+const FLOOR_PUSH_Y: float = 0.75
+
+const WELL_GIVE_PER_MPS: float = 0.006
+const WELL_GIVE_MAX_M: float = 0.02
 
 const HUB_WORDS: Array[String] = ["ROTOR", "DISC", "HUB", "CALIPER"]
 
@@ -113,6 +119,10 @@ class WheelState extends RefCounted:
 	var pull: float = 0.0
 	var bottom_mps: float = 0.0
 
+	var well_give_m: float = 0.0
+	var well_due: bool = false
+	var landed_clock: float = -INF
+
 	var torn: bool = false
 	var lost: LostWheel = null
 
@@ -162,6 +172,9 @@ func _init(car: RigidBody3D, wheels: Array[Wheel], deformer: CarDeformer) -> voi
 
 
 func on_crash(points: PackedVector3Array, push: Vector3, delta_v: float) -> void:
+	if push.normalized().y > FLOOR_PUSH_Y:
+		return
+
 	delta_v = minf(delta_v, _slowed_by().length() * SLOWED_RATIO + SLOWED_SLACK_MPS)
 
 	var peak_force: float = _car.mass * delta_v / CRASH_S * PEAK_FACTOR
@@ -205,11 +218,15 @@ func step(delta: float) -> void:
 
 		state.bottom_mps = maxf(state.bottom_mps, landed)
 		if landed > LAND_SAFE_MPS:
+			state.landed_clock = _clock
 			_land(state, landed)
 
 		_strike(state, delta)
 
-		if _clock - state.carve_clock >= CARVE_EVERY_S and (state.carve_due or _is_bent(state)):
+		if (
+			_clock - state.carve_clock >= CARVE_EVERY_S
+			and (state.carve_due or state.well_due or _is_bent(state))
+		):
 			_carve(state)
 
 		var rate: float = BURST_PER_S if state.burst else state.leak_per_s
@@ -258,6 +275,13 @@ func _is_bent(state: WheelState) -> bool:
 	)
 
 
+func _is_twisted(state: WheelState) -> bool:
+	return (
+		absf(state.swing_rad) > 0.002 or absf(state.lean_rad) > 0.002
+		or absf(state.sideways_m) > 0.002
+	)
+
+
 func _on_dented(box: AABB) -> void:
 	for state in states:
 		var hub: Vector3 = _car.to_local(state.wheel.hub_world_position())
@@ -283,17 +307,27 @@ func _carve(state: WheelState) -> void:
 		and absf(axis.dot(state.carved_axis)) > CARVE_TURNED_COS
 	)
 
-	if still and not state.carve_due:
+	if still and not state.carve_due and not state.well_due:
+		return
+
+	var landing: bool = _clock - state.landed_clock < LAND_HOLD_S
+	var push: float = CarDeformer.CARVE_MAX_M
+	if (landing or not state.carve_due) and not _is_twisted(state):
+		push = state.well_give_m
+
+	if push <= 0.0:
+		state.carve_due = false
 		return
 
 	var radius: float = config.wheel_radius + wheel.damage_radial_m
 	var half: float = config.width_m() * 0.5 + config.wheel_radius * sin(state.tilt_rad)
 
-	if _deformer.carve(hub, axis, radius, half):
+	if _deformer.carve(hub, axis, radius, half, push):
 		state.carved_center = hub
 		state.carved_axis = axis
 
 		state.carve_due = false
+		state.well_due = false
 		state.carve_clock = _clock
 
 
@@ -415,6 +449,10 @@ func repair() -> void:
 		state.pull = 0.0
 		state.bottom_mps = 0.0
 
+		state.well_give_m = 0.0
+		state.well_due = false
+		state.landed_clock = -INF
+
 		state.strike_n = Vector3.ZERO
 		state.strike_spot = Vector3.ZERO
 
@@ -440,6 +478,11 @@ func _land(state: WheelState, speed_mps: float) -> void:
 	var spot := Vector3(state.inner_x, hub.y - wheel.suspension_config.wheel_radius, hub.z)
 
 	_load(state, spot, Vector3.UP, force, false)
+
+	var give: float = minf((speed_mps - LAND_SAFE_MPS) * WELL_GIVE_PER_MPS, WELL_GIVE_MAX_M)
+	if give > state.well_give_m:
+		state.well_give_m = give
+		state.well_due = true
 
 
 func _load(

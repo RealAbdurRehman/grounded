@@ -196,7 +196,7 @@ func step(delta: float) -> void:
 		_air(state, delta)
 
 		var wanted: Vector3 = _car.to_global(state.bounds.get_center())
-		if state.body.global_position.distance_to(wanted) > STRAY_M:
+		if state.joint != null and state.body.global_position.distance_to(wanted) > STRAY_M:
 			_put_back(state)
 
 

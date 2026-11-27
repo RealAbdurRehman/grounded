@@ -2,6 +2,7 @@ class_name Plots
 extends RefCounted
 
 const CURVE_SAMPLES: int = 81
+const CURVE_REFRESH_MS: int = 200
 
 const GEAR_COLORS: Array[Color] = [
 	Color(0.45, 0.65, 1.00),
@@ -13,6 +14,8 @@ const GEAR_COLORS: Array[Color] = [
 	Color(0.35, 0.85, 0.90),
 	Color(0.90, 0.55, 0.85),
 ]
+
+static var _curves: Dictionary = { }
 
 
 class PlotSpec extends RefCounted:
@@ -40,14 +43,20 @@ static func curve_plot(
 	active: Array[bool],
 	curve2: Callable = Callable(),
 ) -> void:
-	var values: Array = []
-	var values2: Array = []
-	for i in range(CURVE_SAMPLES):
-		var x: float = lerpf(-spec.x_extent, spec.x_extent, float(i) / float(CURVE_SAMPLES - 1))
-		values.append(float(curve.call(x)))
+	var kept: Array = _curves.get(id, [])
+	if kept.is_empty() or Time.get_ticks_msec() - kept[0] >= CURVE_REFRESH_MS:
+		kept = [Time.get_ticks_msec(), [], []]
+		_curves[id] = kept
 
-		if curve2.is_valid():
-			values2.append(float(curve2.call(x)))
+		for i in range(CURVE_SAMPLES):
+			var x: float = lerpf(-spec.x_extent, spec.x_extent, float(i) / float(CURVE_SAMPLES - 1))
+			kept[1].append(float(curve.call(x)))
+
+			if curve2.is_valid():
+				kept[2].append(float(curve2.call(x)))
+
+	var values: Array = kept[1]
+	var values2: Array = kept[2]
 
 	var size := Vector2(ImGui.GetContentRegionAvail().x, spec.height)
 

@@ -687,30 +687,54 @@ func _work() -> void:
 
 
 func _dent_slab(piece: Piece, job: Job, x: int) -> void:
-	var radius_squared: float = job.radius * job.radius
-	var scuff: float = 0.0 if job.fills else clampf(job.crush * 5.0, 0.0, 1.0)
+	var push: Vector3 = job.push
+	var side: Vector3 = job.side
+	var up: Vector3 = job.up
+	var axis: Vector3 = job.axis
 
+	var plane: float = job.plane
+	var crush: float = job.crush
+	var fills: bool = job.fills
+
+	var center_side: float = job.center_side
+	var center_up: float = job.center_up
+	var half_side: float = job.half_side
+	var half_up: float = job.half_up
+
+	var low: Vector3i = job.low
+	var high: Vector3i = job.high
+
+	var radius_squared: float = job.radius * job.radius
+	var crease_reach: float = job.radius * BUCKLE_REACH
+	var crease_squared: float = crease_reach * crease_reach
+	var scuff: float = 0.0 if fills else clampf(crush * 5.0, 0.0, 1.0)
+
+	var cells: Dictionary = piece.cells
+	var rest_of: PackedVector3Array = piece.w_rest
+	var now_of: PackedVector3Array = piece.w_pos
+	var normal_of: PackedVector3Array = piece.w_normal_rest
+	var rough_of: PackedFloat32Array = piece.w_rough
+	var dirt_of: PackedFloat32Array = piece.w_dirt
+
+	var furthest: float = piece.reach
 	var moved := PackedInt32Array()
 
-	for y in range(job.low.y, job.high.y + 1):
-		for z in range(job.low.z, job.high.z + 1):
-			var list: Variant = piece.cells.get(Vector3i(x, y, z))
+	for y in range(low.y, high.y + 1):
+		for z in range(low.z, high.z + 1):
+			var list: Variant = cells.get(Vector3i(x, y, z))
 			if list == null:
 				continue
 
 			for w in list:
-				var rest: Vector3 = piece.w_rest[w]
+				var rest: Vector3 = rest_of[w]
 
-				var behind: float = maxf(rest.dot(job.push) - job.plane, 0.0)
+				var behind: float = maxf(rest.dot(push) - plane, 0.0)
 				var spread: float = 1.0 - behind / CRUMPLE_ZONE_M
 				if spread <= 0.0:
 					continue
 
-				var across: float = maxf(
-					absf(rest.dot(job.side) - job.center_side) - job.half_side,
-					0.0,
-				)
-				var over: float = maxf(absf(rest.dot(job.up) - job.center_up) - job.half_up, 0.0)
+				var across: float = maxf(absf(rest.dot(side) - center_side) - half_side, 0.0)
+				var over: float = maxf(absf(rest.dot(up) - center_up) - half_up, 0.0)
 
 				var lateral: float = across * across + over * over
 				var gap: float = lateral + behind * behind * 0.25
@@ -722,41 +746,48 @@ func _dent_slab(piece: Piece, job: Job, x: int) -> void:
 					var fall: float = 1.0 - gap / radius_squared
 					weight = fall * fall
 
-					give = job.crush * spread * weight
+					give = crush * spread * weight
 
-				var offset: Vector3 = piece.w_pos[w] - rest
-				if job.fills:
-					give = maxf(give - maxf(offset.dot(job.push), 0.0), 0.0)
+				var offset: Vector3 = now_of[w] - rest
+				if fills:
+					give = maxf(give - maxf(offset.dot(push), 0.0), 0.0)
 
-				var normal: Vector3 = piece.w_normal_rest[w]
-				var parallel: float = 1.0 - absf(normal.dot(job.push))
+				var normal: Vector3 = normal_of[w]
+				var parallel: float = 1.0 - absf(normal.dot(push))
 
 				var rise: float = 0.0
-				if not job.fills:
-					rise = _crease_rise(job, behind, lateral, parallel)
+				if not fills and lateral < crease_squared:
+					var from_crease: float = behind - BUCKLE_AT_M
+					var ridge: float = 1.0 - absf(from_crease) / (
+						BUCKLE_FRONT_M if from_crease < 0.0 else BUCKLE_BACK_M
+					)
+
+					if ridge > 0.0:
+						var fade: float = 1.0 - lateral / crease_squared
+						rise = crush * BUCKLE_SHARE * ridge * fade * parallel * parallel
 
 				if give < 0.0005 and rise < 0.0005:
 					continue
 
-				var rough: float = piece.w_rough[w * 2]
+				var rough: float = rough_of[w * 2]
 
 				if give >= 0.0005:
 					give *= 1.0 - 0.5 * offset.length() / MAX_OFFSET_M
 
-					var away: Vector3 = rest - job.axis
-					away -= job.push * away.dot(job.push)
+					var away: Vector3 = rest - axis
+					away -= push * away.dot(push)
 
 					var bow: Vector3 = away.normalized() * clampf(away.length() / 0.3, 0.0, 1.0)
-					var fold: float = 1.0 + piece.w_rough[w * 2 + 1] * FOLD_SHARE
+					var fold: float = 1.0 + rough_of[w * 2 + 1] * FOLD_SHARE
 
-					offset += job.push * (give * (1.0 + rough * CRINKLE_SHARE))
+					offset += push * (give * (1.0 + rough * CRINKLE_SHARE))
 					offset += bow * (give * BOW_SHARE * parallel * fold)
 
 				if rise >= 0.0005:
 					var outward: Vector3 = Vector3.UP
 					if absf(normal.y) <= 0.6:
 						outward = Vector3(rest.x, 0.0, rest.z)
-						outward -= job.push * outward.dot(job.push)
+						outward -= push * outward.dot(push)
 						outward = outward.normalized()
 
 					offset += outward * (
@@ -766,15 +797,16 @@ func _dent_slab(piece: Piece, job: Job, x: int) -> void:
 				if offset.length() > MAX_OFFSET_M:
 					offset = offset.normalized() * MAX_OFFSET_M
 
-				piece.reach = maxf(piece.reach, offset.length())
-				piece.w_pos[w] = rest + offset
-				piece.w_dirt[w] = minf(1.0, piece.w_dirt[w] + weight * scuff)
+				furthest = maxf(furthest, offset.length())
+				now_of[w] = rest + offset
+				dirt_of[w] = minf(1.0, dirt_of[w] + weight * scuff)
 
 				moved.append(w)
 
 	if moved.is_empty():
 		return
 
+	piece.reach = furthest
 	_refresh(piece, moved)
 	piece.deformed = true
 
@@ -830,12 +862,20 @@ func _carve_piece(piece: Piece, job: Job, index: int) -> void:
 
 	var radius: float = job.tire_radius
 	var half: float = job.tire_half
+	var most: float = job.tire_push
+
+	var cells: Dictionary = piece.cells
+	var rest_of: PackedVector3Array = piece.w_rest
+	var now_of: PackedVector3Array = piece.w_pos
+	var dirt_of: PackedFloat32Array = piece.w_dirt
+
+	var furthest: float = piece.reach
 
 	var room := Vector3.ZERO
 	for i in range(3):
 		room[i] = absf(axis[i]) * half + sqrt(maxf(1.0 - axis[i] * axis[i], 0.0)) * radius
 
-	room += Vector3.ONE * (piece.reach + 0.02)
+	room += Vector3.ONE * (furthest + 0.02)
 
 	var low := Vector3i(((center - room) / CELL_M).floor())
 	var high := Vector3i(((center + room) / CELL_M).floor())
@@ -845,12 +885,12 @@ func _carve_piece(piece: Piece, job: Job, index: int) -> void:
 	for x in range(low.x, high.x + 1):
 		for y in range(low.y, high.y + 1):
 			for z in range(low.z, high.z + 1):
-				var list: Variant = piece.cells.get(Vector3i(x, y, z))
+				var list: Variant = cells.get(Vector3i(x, y, z))
 				if list == null:
 					continue
 
 				for w in list:
-					var from_center: Vector3 = piece.w_pos[w] - center
+					var from_center: Vector3 = now_of[w] - center
 
 					var along: float = from_center.dot(axis)
 					if absf(along) >= half:
@@ -878,116 +918,123 @@ func _carve_piece(piece: Piece, job: Job, index: int) -> void:
 						)
 						depth = out_side
 
-					var offset: Vector3 = target - piece.w_rest[w]
-					var allowed: float = maxf(
-						job.tire_push,
-						(piece.w_pos[w] - piece.w_rest[w]).length(),
-					)
+					var rest: Vector3 = rest_of[w]
+					var offset: Vector3 = target - rest
+					var allowed: float = maxf(most, (now_of[w] - rest).length())
 
 					if offset.length() > allowed:
 						offset = offset.normalized() * allowed
 
-					piece.reach = maxf(piece.reach, offset.length())
-					piece.w_pos[w] = piece.w_rest[w] + offset
-					piece.w_dirt[w] = minf(1.0, piece.w_dirt[w] + depth * 12.0)
+					furthest = maxf(furthest, offset.length())
+					now_of[w] = rest + offset
+					dirt_of[w] = minf(1.0, dirt_of[w] + depth * 12.0)
 
 					moved.append(w)
 
 	if moved.is_empty():
 		return
 
+	piece.reach = furthest
 	_refresh(piece, moved)
 
 	piece.deformed = true
 	piece.dirty = true
 
 
-func _crease_rise(job: Job, behind: float, lateral: float, parallel: float) -> float:
-	var from_crease: float = behind - BUCKLE_AT_M
-	var ridge: float = 1.0 - absf(from_crease) / (
-		BUCKLE_FRONT_M if from_crease < 0.0 else BUCKLE_BACK_M
-	)
-
-	if ridge <= 0.0:
-		return 0.0
-
-	var reach: float = job.radius * BUCKLE_REACH
-	if lateral >= reach * reach:
-		return 0.0
-
-	var fall: float = 1.0 - lateral / (reach * reach)
-	return job.crush * BUCKLE_SHARE * ridge * fall * parallel * parallel
-
-
 func _refresh(piece: Piece, moved: PackedInt32Array) -> void:
 	piece.stamp += 1
 	var stamp: int = piece.stamp
 
+	var index: PackedInt32Array = piece.index
+	var weld: PackedInt32Array = piece.weld
+
+	var tri_start: PackedInt32Array = piece.w_tri_start
+	var tris: PackedInt32Array = piece.w_tris
+	var vert_start: PackedInt32Array = piece.w_vert_start
+	var verts: PackedInt32Array = piece.w_verts
+
+	var tri_seen: PackedInt32Array = piece.t_stamp
+	var weld_seen: PackedInt32Array = piece.w_stamp
+
+	var welded: PackedVector3Array = piece.w_pos
+	var rest_normal: PackedVector3Array = piece.w_normal_rest
+	var dirt: PackedFloat32Array = piece.w_dirt
+	var faces: PackedVector3Array = piece.face
+
 	var around := PackedInt32Array()
 
 	for w in moved:
-		for k in range(piece.w_tri_start[w], piece.w_tri_start[w + 1]):
-			var t: int = piece.w_tris[k]
-			if piece.t_stamp[t] == stamp:
+		for k in range(tri_start[w], tri_start[w + 1]):
+			var t: int = tris[k]
+			if tri_seen[t] == stamp:
 				continue
 
-			piece.t_stamp[t] = stamp
+			tri_seen[t] = stamp
 
-			var wa: int = piece.weld[piece.index[t * 3]]
-			var wb: int = piece.weld[piece.index[t * 3 + 1]]
-			var wc: int = piece.weld[piece.index[t * 3 + 2]]
+			var wa: int = weld[index[t * 3]]
+			var wb: int = weld[index[t * 3 + 1]]
+			var wc: int = weld[index[t * 3 + 2]]
 
-			var a: Vector3 = piece.w_pos[wa]
-			piece.face[t] = (piece.w_pos[wb] - a).cross(piece.w_pos[wc] - a)
+			var a: Vector3 = welded[wa]
+			faces[t] = (welded[wb] - a).cross(welded[wc] - a)
 
-			if piece.w_stamp[wa] != stamp:
-				piece.w_stamp[wa] = stamp
+			if weld_seen[wa] != stamp:
+				weld_seen[wa] = stamp
 				around.append(wa)
 
-			if piece.w_stamp[wb] != stamp:
-				piece.w_stamp[wb] = stamp
+			if weld_seen[wb] != stamp:
+				weld_seen[wb] = stamp
 				around.append(wb)
 
-			if piece.w_stamp[wc] != stamp:
-				piece.w_stamp[wc] = stamp
+			if weld_seen[wc] != stamp:
+				weld_seen[wc] = stamp
 				around.append(wc)
 
-	var rotation_back: Quaternion = piece.turn.inverse()
-	var has_tangents: bool = not piece.auth_tangent.is_empty()
+	var turn: Quaternion = piece.turn
+	var rotation_back: Quaternion = turn.inverse()
+
+	var pos: PackedVector3Array = piece.pos
+	var normal: PackedVector3Array = piece.normal
+	var tangents: PackedFloat32Array = piece.tangent
+	var color: PackedColorArray = piece.color
+
+	var auth_normal: PackedVector3Array = piece.auth_normal
+	var auth_tangent: PackedFloat32Array = piece.auth_tangent
+	var has_tangents: bool = not auth_tangent.is_empty()
 
 	for w in around:
 		var now: Vector3 = Vector3.ZERO
 
-		for k in range(piece.w_tri_start[w], piece.w_tri_start[w + 1]):
-			now += piece.face[piece.w_tris[k]]
+		for k in range(tri_start[w], tri_start[w + 1]):
+			now += faces[tris[k]]
 
 		var tilt: Quaternion = Quaternion.IDENTITY
 
 		if now.length_squared() > 0.0000000001:
 			now = now.normalized()
 
-			if piece.w_normal_rest[w].dot(now) > -0.95:
-				tilt = rotation_back * Quaternion(piece.w_normal_rest[w], now) * piece.turn
+			if rest_normal[w].dot(now) > -0.95:
+				tilt = rotation_back * Quaternion(rest_normal[w], now) * turn
 
-		var shade: Color = Color.WHITE.lerp(SCUFF_COLOR, piece.w_dirt[w] * 0.85)
+		var shade: Color = Color.WHITE.lerp(SCUFF_COLOR, dirt[w] * 0.85)
 
-		for k in range(piece.w_vert_start[w], piece.w_vert_start[w + 1]):
-			var v: int = piece.w_verts[k]
+		for k in range(vert_start[w], vert_start[w + 1]):
+			var v: int = verts[k]
 
-			piece.pos[v] = piece.w_pos[w]
-			piece.normal[v] = tilt * piece.auth_normal[v]
-			piece.color[v] = shade
+			pos[v] = welded[w]
+			normal[v] = tilt * auth_normal[v]
+			color[v] = shade
 
 			if has_tangents:
 				var tangent: Vector3 = tilt * Vector3(
-					piece.auth_tangent[v * 4],
-					piece.auth_tangent[v * 4 + 1],
-					piece.auth_tangent[v * 4 + 2],
+					auth_tangent[v * 4],
+					auth_tangent[v * 4 + 1],
+					auth_tangent[v * 4 + 2],
 				)
 
-				piece.tangent[v * 4] = tangent.x
-				piece.tangent[v * 4 + 1] = tangent.y
-				piece.tangent[v * 4 + 2] = tangent.z
+				tangents[v * 4] = tangent.x
+				tangents[v * 4 + 1] = tangent.y
+				tangents[v * 4 + 2] = tangent.z
 
 
 func _hash(x: int, y: int, z: int) -> float:

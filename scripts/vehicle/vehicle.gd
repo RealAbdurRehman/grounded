@@ -66,6 +66,7 @@ var deformer: CarDeformer
 var panel_damage: PanelDamage
 var wheel_damage: WheelDamage
 var mechanical_damage: MechanicalDamage
+var impacts: ImpactResponse
 
 var obstacles: ObstacleSolver = ObstacleSolver.new()
 
@@ -138,6 +139,8 @@ func _ready() -> void:
 
 	mechanical_damage = MechanicalDamage.new(self)
 
+	impacts = ImpactResponse.new(self)
+
 	deformer.crashed.connect(mechanical_damage.on_crash)
 	wheel_damage.loaded.connect(mechanical_damage.on_wheel_load)
 	damage.repaired.connect(mechanical_damage.repair)
@@ -172,6 +175,7 @@ func _physics_process(delta: float) -> void:
 	aero.apply()
 
 	damage.step()
+	impacts.step()
 	deformer.step()
 
 	wheel_damage.step(delta)

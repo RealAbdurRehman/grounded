@@ -14,6 +14,7 @@
 [ext_resource type="Script" uid="uid://ctir53ch3pb3y" path="res://scripts/vehicle/car/paint_fix.gd" id="11_4rjyb"]
 [ext_resource type="Resource" uid="uid://bvthk3tm7vpj7" path="res://resources/vehicles/subaru/differential_rear.tres" id="12_ikjid"]
 [ext_resource type="Resource" uid="uid://eavh1joxup8d" path="res://resources/vehicles/subaru/suspension_rear.tres" id="13_5yyq1"]
+[ext_resource type="Script" uid="uid://c00igpg14f54r" path="res://scripts/vehicle/car/panel.gd" id="13_lilum"]
 [ext_resource type="Resource" uid="uid://c451ftplc6fx1" path="res://resources/tires/rear.tres" id="14_g47dk"]
 [ext_resource type="Script" uid="uid://bqluerbjlelee" path="res://scripts/vehicle/car/definition.gd" id="15_japf8"]
 

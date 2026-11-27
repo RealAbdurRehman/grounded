@@ -68,7 +68,7 @@ func _mechanical() -> void:
 	if mechanical_damage == null:
 		return
 
-	ImGui.SeparatorText("Mechanical")
+	ImGui.SeparatorText("Mechanical Damage")
 	var toughness: Array = [vehicle.mechanical_toughness]
 	if ImGui.SliderFloatEx("Toughness", toughness, 0.5, 5.0, "%.2fx", 0):
 		vehicle.mechanical_toughness = toughness[0]

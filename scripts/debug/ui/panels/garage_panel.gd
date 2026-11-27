@@ -8,6 +8,8 @@ var _labels: Array[String] = []
 
 
 func _build() -> void:
+	Garage.start = vehicle.global_transform
+
 	for path in Garage.CARS:
 		var scene := load(path) as PackedScene
 		var car := scene.instantiate() as Vehicle

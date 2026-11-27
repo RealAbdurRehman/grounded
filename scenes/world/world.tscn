@@ -654,9 +654,6 @@ environment = SubResource("Environment_t5ptc")
 [node name="Vehicle" parent="." unique_id=429220544 instance=ExtResource("3_j2gmx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 525)
 
-[node name="Body" parent="Vehicle" index="0" unique_id=453940726]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.30301532, 0.028686523)
-
 [node name="Tests" type="Node3D" parent="." unique_id=1518008125]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -53.848, 0.6, 500)
 
@@ -1560,4 +1557,3 @@ material_override = SubResource("ShaderMaterial_kngxi")
 mesh = SubResource("BoxMesh_a5636")
 
 [editable path="Telemetry"]
-[editable path="Vehicle"]

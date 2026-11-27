@@ -8,13 +8,19 @@ const CARS: Array[String] = [
 
 const DROP_M: float = 0.05
 
+static var start: Transform3D
+
 
 static func switch_to(old: Vehicle, scene: PackedScene) -> void:
 	var world: Node = old.get_parent()
 	var place: int = old.get_index()
 
 	var from: Transform3D = old.global_transform
-	var road: float = _road_under(old)
+	var road: float = _road_under(old, from.origin)
+
+	if is_nan(road):
+		from = start
+		road = _road_under(old, from.origin)
 
 	var forward: Vector3 = -from.basis.z
 	forward.y = 0.0
@@ -52,8 +58,8 @@ static func _retire(car: Vehicle) -> void:
 		car.queue_free()
 
 
-static func _road_under(car: Vehicle) -> float:
-	var from: Vector3 = car.global_position + Vector3.UP
+static func _road_under(car: Vehicle, at: Vector3) -> float:
+	var from: Vector3 = at + Vector3.UP
 	var query := PhysicsRayQueryParameters3D.create(
 		from,
 		from + Vector3.DOWN * 50.0,
@@ -63,7 +69,7 @@ static func _road_under(car: Vehicle) -> float:
 
 	var hit: Dictionary = car.get_world_3d().direct_space_state.intersect_ray(query)
 	if hit.is_empty():
-		return car.global_position.y
+		return NAN
 
 	return hit["position"].y
 

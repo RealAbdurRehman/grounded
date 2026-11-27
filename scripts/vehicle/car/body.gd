@@ -334,6 +334,9 @@ func _tire_mesh(entry: Dictionary) -> ArrayMesh:
 
 		arrays[Mesh.ARRAY_TANGENT] = tangents
 
+	arrays[Mesh.ARRAY_TEX_UV2] = null
+	arrays[Mesh.ARRAY_COLOR] = null
+
 	for step in range(definition.tire_detail):
 		arrays = _cut_in_four(arrays)
 

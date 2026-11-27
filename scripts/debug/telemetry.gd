@@ -147,7 +147,8 @@ func _sample_powertrain() -> void:
 	var final_drive: float = drivetrain.config.final_drive_ratio
 
 	wheel_torque_nm = (
-		engine_torque_nm * ratio * final_drive * drivetrain.config.drivetrain_efficiency
+		engine_torque_nm * ratio * final_drive
+		* drivetrain.config.drivetrain_efficiency * engine.converter_gain
 	)
 
 

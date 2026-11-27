@@ -42,6 +42,14 @@ var _h_valid: bool = false
 
 
 func _ready() -> void:
+	add_to_group("car_followers")
+	follow_car(vehicle)
+
+
+func follow_car(car: Vehicle) -> void:
+	vehicle = car
+	_geometry_ready = false
+
 	await get_tree().physics_frame
 	_measure_geometry()
 

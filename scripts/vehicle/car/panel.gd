@@ -13,14 +13,12 @@ enum Kind {
 @export var words: Array[String] = []
 @export var except_words: Array[String] = []
 
-@export_group("Split off")
-@export var split_box: AABB = AABB()
-@export var split_words: Array[String] = []
-
-
 @export_group("Mounts")
+@export var mount_words: Array[String] = []
+
 @export var hinge_edge: Vector3 = Vector3.BACK
 @export var hinge_axis: Vector3 = Vector3.RIGHT
+@export var hinge_nudge_m: Vector3 = Vector3.ZERO
 
 @export var clips_along: Vector3 = Vector3.RIGHT
 @export_range(2, 6) var clip_count: int = 3
@@ -60,6 +58,16 @@ func matches(node: Node) -> bool:
 			return false
 
 	for word in words:
+		if text.contains(word):
+			return true
+
+	return false
+
+
+func holds_mounts(node: Node) -> bool:
+	var text: String = String(node.name) + "|" + String(node.get_parent().name)
+
+	for word in mount_words:
 		if text.contains(word):
 			return true
 

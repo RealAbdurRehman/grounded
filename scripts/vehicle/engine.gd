@@ -1,6 +1,8 @@
 class_name VehicleEngine
 extends Node
 
+const CONVERTER_LOCK_RATIO: float = 0.85
+
 @export var config: EngineConfig
 
 var current_rpm: float = 850.0
@@ -13,6 +15,8 @@ var boost_factor: float = 1.0
 
 var drag_nm: float = 0.0
 var is_seized: bool = false
+
+var converter_gain: float = 1.0
 
 
 func _ready() -> void:
@@ -73,9 +77,15 @@ func update_engine(
 		var rpm_accel: float = (net_torque / config.flywheel_inertia) * (60.0 / (2.0 * PI))
 		current_rpm += rpm_accel * delta
 	else:
+		var pull_rpm: float = lerpf(
+			config.idle_rpm,
+			maxf(config.converter_stall_rpm, config.idle_rpm),
+			effective_throttle,
+		)
+
 		current_rpm = lerp(
 			current_rpm,
-			max(target_drivetrain_rpm, config.idle_rpm),
+			max(target_drivetrain_rpm, pull_rpm),
 			clamp(config.clutch_blend_rate * delta, 0.0, 1.0),
 		)
 
@@ -88,6 +98,11 @@ func update_engine(
 		0.0,
 		1.0,
 	)
+
+	converter_gain = 1.0
+	if is_clutch_engaged and not is_shifting and effective_throttle > 0.01:
+		var coupled: float = target_drivetrain_rpm / maxf(current_rpm * CONVERTER_LOCK_RATIO, 1.0)
+		converter_gain = lerpf(config.converter_torque_ratio, 1.0, clampf(coupled, 0.0, 1.0))
 
 	if effective_throttle > 0.01:
 		var made_nm: float = calculate_raw_torque(current_rpm) * effective_throttle * power_factor

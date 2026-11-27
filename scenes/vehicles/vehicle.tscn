@@ -1,0 +1,51 @@
+[gd_scene format=3 uid="uid://dhxa64ynje1ai"]
+
+[ext_resource type="Script" uid="uid://oku72ohq2gwr" path="res://scripts/vehicle/vehicle.gd" id="1_t41d5"]
+[ext_resource type="Resource" uid="uid://k66f2m40gcqr" path="res://resources/assists/default.tres" id="2_17vl3"]
+[ext_resource type="Script" uid="uid://b14bnnvtnyni1" path="res://scripts/vehicle/car/body.gd" id="3_0pm0j"]
+[ext_resource type="Script" uid="uid://qdtawm0erttj" path="res://scripts/vehicle/engine.gd" id="4_b434i"]
+[ext_resource type="Script" uid="uid://dwugrbcr8g24y" path="res://scripts/vehicle/drivetrain.gd" id="5_gye0e"]
+[ext_resource type="Script" uid="uid://cnyyb4kyw2uoj" path="res://scripts/vehicle/wheel/wheel.gd" id="6_hykei"]
+
+[node name="Vehicle" type="RigidBody3D" unique_id=429220544 node_paths=PackedStringArray("engine_node", "drivetrain_node", "center_of_mass_node")]
+script = ExtResource("1_t41d5")
+engine_node = NodePath("Engine")
+drivetrain_node = NodePath("Drivetrain")
+center_of_mass_node = NodePath("Markers/CenterOfMass")
+assists_config = ExtResource("2_17vl3")
+
+[node name="Body" type="Node3D" parent="." unique_id=453940726]
+script = ExtResource("3_0pm0j")
+
+[node name="Engine" type="Node" parent="." unique_id=1472005107]
+script = ExtResource("4_b434i")
+
+[node name="Drivetrain" type="Node" parent="." unique_id=1236505186]
+script = ExtResource("5_gye0e")
+
+[node name="Wheels" type="Node3D" parent="." unique_id=2027221242]
+
+[node name="WheelFL" type="Node3D" parent="Wheels" unique_id=796668443]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.75, 0.25, -1.4)
+script = ExtResource("6_hykei")
+can_steer = true
+
+[node name="WheelFR" type="Node3D" parent="Wheels" unique_id=922442114]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.75, 0.25, -1.4)
+script = ExtResource("6_hykei")
+can_steer = true
+
+[node name="WheelRL" type="Node3D" parent="Wheels" unique_id=398066511]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.75, 0.25, 1.4)
+script = ExtResource("6_hykei")
+has_handbrake = true
+
+[node name="WheelRR" type="Node3D" parent="Wheels" unique_id=669380842]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.75, 0.25, 1.4)
+script = ExtResource("6_hykei")
+has_handbrake = true
+
+[node name="Markers" type="Node3D" parent="." unique_id=111010334]
+
+[node name="CenterOfMass" type="Marker3D" parent="Markers" unique_id=779543473]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.25, 0)

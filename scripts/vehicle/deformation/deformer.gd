@@ -248,6 +248,7 @@ func _init(car: RigidBody3D, model: Node3D) -> void:
 	if model == null:
 		return
 
+	car.tree_exiting.connect(_stop_threads)
 	var to_car_root: Transform3D = car.global_transform.affine_inverse()
 
 	for node in model.find_children("*", "MeshInstance3D", true, false):
@@ -290,6 +291,29 @@ func step() -> void:
 
 	_upload_pieces()
 	_follow_with_hull()
+
+
+func _stop_threads() -> void:
+	if _group >= 0:
+		WorkerThreadPool.wait_for_group_task_completion(_group)
+		_group = -1
+		_group_job = null
+
+	for piece in pieces:
+		if piece.task >= 0:
+			WorkerThreadPool.wait_for_task_completion(piece.task)
+			piece.task = -1
+
+
+func is_busy() -> bool:
+	if _group >= 0 and not WorkerThreadPool.is_group_task_completed(_group):
+		return true
+
+	for piece in pieces:
+		if piece.task >= 0 and not WorkerThreadPool.is_task_completed(piece.task):
+			return true
+
+	return false
 
 
 func repair() -> void:

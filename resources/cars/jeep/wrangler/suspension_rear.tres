@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="SuspensionConfig" format=3 uid="uid://btri3um0r4aw7"]
+
+[ext_resource type="Script" path="res://scripts/vehicle/configs/suspension.gd" id="1_a7ifd"]
+
+[resource]
+script = ExtResource("1_a7ifd")
+wheel_radius = 0.415
+wheel_width = 0.285
+rim_radius = 0.223
+wheel_inertia = 3.5
+unsprung_mass = 90.0
+tire_stiffness = 280000.0
+spring_stiffness = 44200.0
+suspension_rest_length = 0.4
+bump_stop_stiffness = 150000.0
+alignment_compression = 0.123
+static_camber_deg = 0.0
+camber_gain_deg_per_m = 0.0
+caster_deg = 0.0
+damper_bump = 2540.0
+damper_rebound = 4530.0

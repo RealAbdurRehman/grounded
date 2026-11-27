@@ -67,7 +67,6 @@ func _build() -> void:
 	_made.append(model)
 
 	_hide_parts(model)
-	_fix_materials(model)
 
 	var vehicle := get_parent() as Node3D
 	if vehicle == null:
@@ -78,7 +77,6 @@ func _build() -> void:
 		wheels.append(node as Node3D)
 
 	_fit(model, vehicle, wheels)
-	_split_off_panel_pieces(model, vehicle)
 
 	var carriers: Dictionary = _mount_tires(model, wheels)
 
@@ -160,19 +158,11 @@ func _fit(model: Node3D, vehicle: Node3D, wheels: Array[Node3D]) -> void:
 		rear = minf(rear, middle.z)
 		height += middle.y
 
-	var turn := Basis(Vector3.UP, PI if definition.model_faces_plus_z else 0.0)
-	var tire_scale: float = definition.model_scale
-
 	if tires.size() >= 2 and front - rear > 0.1:
 		height /= float(tires.size())
-
-		if definition.fit_to_wheelbase:
-			tire_scale = definition.wheelbase_m / (front - rear)
 	else:
 		front = 0.0
 		rear = 0.0
-
-	basis = turn.scaled(Vector3.ONE * tire_scale)
 
 	var spot := Vector3.ZERO
 	var hub_y: float = 0.0
@@ -187,54 +177,8 @@ func _fit(model: Node3D, vehicle: Node3D, wheels: Array[Node3D]) -> void:
 		spot /= float(counted)
 		hub_y /= float(counted)
 
-	var axle_middle: Vector3 = basis * Vector3(0.0, height, (front + rear) * 0.5)
-	position = Vector3(0.0, hub_y - axle_middle.y, spot.z - axle_middle.z) + definition.nudge_m
-
-
-func _split_off_panel_pieces(model: Node3D, vehicle: Node3D) -> void:
-	if Engine.is_editor_hint():
-		return
-
-	var to_car: Transform3D = vehicle.global_transform.affine_inverse()
-
-	for panel in definition.damage_panels():
-		if panel.split_box.size == Vector3.ZERO:
-			continue
-
-		for node in model.find_children("*", "MeshInstance3D", true, false):
-			var piece := node as MeshInstance3D
-			var from_here: bool = false
-
-			for word in panel.split_words:
-				if (
-					String(piece.name).contains(word)
-					or String(piece.get_parent().name).contains(word)
-				):
-					from_here = true
-
-			if not from_here or not piece.mesh is ArrayMesh:
-				continue
-
-			var to_car_here: Transform3D = to_car * piece.global_transform
-
-			var halves: Array[ArrayMesh] = MeshSplitter.split_by_shape(
-				piece.mesh as ArrayMesh,
-				func(box: AABB) -> bool:
-					return panel.split_box.has_point((to_car_here * box).get_center()),
-			)
-
-			if halves.size() != 2:
-				continue
-
-			var split_off := MeshInstance3D.new()
-			split_off.name = String(piece.name) + panel.words[0]
-			split_off.mesh = halves[0]
-
-			split_off.transform = piece.transform
-			split_off.cast_shadow = piece.cast_shadow
-
-			piece.mesh = halves[1]
-			piece.get_parent().add_child(split_off)
+	var axle_middle := Vector3(0.0, height, (front + rear) * 0.5)
+	position = Vector3(0.0, hub_y - axle_middle.y, spot.z - axle_middle.z)
 
 
 func _hub_height(wheel: Node3D) -> float:
@@ -250,50 +194,16 @@ func _hub_height(wheel: Node3D) -> float:
 	)
 
 
-func _fix_materials(model: Node3D) -> void:
-	var done: Dictionary = { }
-
-	for node in model.find_children("*", "MeshInstance3D", true, false):
-		var mesh := node as MeshInstance3D
-
-		for surface in range(mesh.mesh.get_surface_count()):
-			var material := mesh.mesh.surface_get_material(surface) as BaseMaterial3D
-			if material == null or done.has(material):
-				continue
-
-			done[material] = true
-
-			for fix in definition.paint_fixes:
-				if fix.material_name != material.resource_name:
-					continue
-
-				if fix.metallic >= 0.0:
-					material.metallic = fix.metallic
-
-				if fix.roughness >= 0.0:
-					material.roughness = fix.roughness
-
-				if not fix.use_normal_map:
-					material.normal_enabled = false
-
-				if fix.clearcoat:
-					material.clearcoat_enabled = true
-					material.clearcoat = 1.0
-					material.clearcoat_roughness = 0.05
-
-
 func _hide_parts(model: Node3D) -> void:
+	if definition.show_interior:
+		return
+
 	for node in model.find_children("*", "Node3D", true, false):
 		var part := node as Node3D
 
-		for word in definition.hidden_words:
+		for word in definition.interior_words:
 			if part.name.contains(word):
 				part.visible = false
-
-		if not definition.show_interior:
-			for word in definition.interior_words:
-				if part.name.contains(word):
-					part.visible = false
 
 
 func _mount_tires(model: Node3D, wheels: Array[Node3D]) -> Dictionary:
@@ -417,7 +327,7 @@ func _tire_mesh(entry: Dictionary) -> ArrayMesh:
 		var tangents: PackedFloat32Array = arrays[Mesh.ARRAY_TANGENT]
 
 		for i in range(0, tangents.size(), 4):
-			var t: Vector3 = rotation * Vector3(tangents[i], tangents[i + 1], tangents[i + 2])
+			var t: Vector3 = tire_rotation * Vector3(tangents[i], tangents[i + 1], tangents[i + 2])
 			tangents[i] = t.x
 			tangents[i + 1] = t.y
 			tangents[i + 2] = t.z
@@ -436,6 +346,11 @@ func _tire_mesh(entry: Dictionary) -> ArrayMesh:
 	var original := source.mesh.surface_get_material(0) as BaseMaterial3D
 	if original != null:
 		material.set_shader_parameter(&"albedo_tex", original.albedo_texture)
+		material.set_shader_parameter(&"albedo_color", original.albedo_color)
+
+		if original.normal_enabled:
+			material.set_shader_parameter(&"normal_tex", original.normal_texture)
+			material.set_shader_parameter(&"normal_depth", original.normal_scale)
 
 	mesh.surface_set_material(0, material)
 

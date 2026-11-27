@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="DrivetrainConfig" format=3 uid="uid://d2w622we8af07"]
+
+[ext_resource type="Resource" uid="uid://b5j1co424h5he" path="res://resources/cars/jeep/wrangler/differential_center.tres" id="1_2o1g7"]
+[ext_resource type="Resource" uid="uid://i7vmrwfvp4qf" path="res://resources/cars/jeep/wrangler/differential_front.tres" id="2_phjil"]
+[ext_resource type="Resource" uid="uid://b0lblgwlaf44t" path="res://resources/cars/jeep/wrangler/differential_rear.tres" id="3_bcww5"]
+[ext_resource type="Script" uid="uid://l2tns4vcug28" path="res://scripts/vehicle/configs/drivetrain.gd" id="4_dgrp7"]
+
+[resource]
+script = ExtResource("4_dgrp7")
+drivetrain_efficiency = 0.87
+gear_ratios = Array[float]([-3.3, 0.0, 4.71, 3.13, 2.1, 1.67, 1.28, 1.0, 0.84, 0.67])
+final_drive_ratio = 3.73
+shift_delay_seconds = 0.08
+auto_upshift_rpm = 6300.0
+auto_downshift_rpm = 1200.0
+auto_light_upshift_rpm = 2200.0
+auto_kickdown_rpm = 3000.0
+front_differential = ExtResource("2_phjil")
+rear_differential = ExtResource("3_bcww5")
+center_differential = ExtResource("1_2o1g7")
+center_front_torque_share = 0.48

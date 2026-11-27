@@ -137,6 +137,8 @@ var _car: RigidBody3D
 var _deformer: CarDeformer
 var _random := RandomNumberGenerator.new()
 
+var _suspension_strength: float = 1.0
+
 var _clock: float = 0.0
 
 var _history: PackedVector3Array = PackedVector3Array()
@@ -146,6 +148,10 @@ var _head: int = 0
 func _init(car: RigidBody3D, wheels: Array[Wheel], deformer: CarDeformer) -> void:
 	_car = car
 	_deformer = deformer
+
+	var body := _car.get_node_or_null(^"Body") as CarBody
+	if body != null and body.definition != null:
+		_suspension_strength = body.definition.suspension_strength
 
 	_random.randomize()
 	_history.resize(HISTORY_TICKS)
@@ -494,6 +500,7 @@ func _load(
 	force_n: float,
 	can_tear: bool = true,
 ) -> void:
+	force_n /= _suspension_strength
 	state.worst_n = maxf(state.worst_n, force_n)
 
 	var hub: Vector3 = _car.to_local(state.wheel.hub_world_position())

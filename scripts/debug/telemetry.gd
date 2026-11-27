@@ -65,6 +65,14 @@ var _previous_velocity: Vector3 = Vector3.ZERO
 
 func _ready() -> void:
 	process_physics_priority = 100
+	add_to_group("car_followers")
+
+
+func follow_car(car: Vehicle) -> void:
+	vehicle = car
+
+	_wheel_nodes = []
+	_has_previous_velocity = false
 
 
 func _physics_process(delta: float) -> void:

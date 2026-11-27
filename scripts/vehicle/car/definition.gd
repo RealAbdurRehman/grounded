@@ -8,17 +8,9 @@ extends Resource
 
 @export_group("Model")
 @export var model: PackedScene
-@export var model_faces_plus_z: bool = true
-
-@export var fit_to_wheelbase: bool = true
-@export var model_scale: float = 1.0
-
-@export var nudge_m: Vector3 = Vector3.ZERO
-
 @export var show_interior: bool = true
 
 @export_group("Part names")
-@export var hidden_words: Array[String] = []
 @export var interior_words: Array[String] = []
 
 @export var tire_word: String = "TYRE"
@@ -27,9 +19,6 @@ extends Resource
 @export var fixed_words: Array[String] = []
 
 @export_range(0, 3) var tire_detail: int = 2
-
-@export_group("Paint")
-@export var paint_fixes: Array[CarPaintFix] = []
 
 @export_group("Collision")
 @export var collision_parts: Array[CarCollisionPart] = []
@@ -102,6 +91,17 @@ extends Resource
 @export_group("Air")
 @export var drag_coefficient: float = 0.31
 @export var frontal_area_m2: float = 2.2
+
+@export_group("Player")
+@export var assists: AssistsConfig
+@export var automatic: bool = false
+
+@export var rolling_resistance: float = 0.012
+
+@export var radiator_ahead_m: float = 0.72
+@export var suspension_strength: float = 1.0
+
+@export var camera_offset: Vector3 = Vector3(0.0, 1.25, 4.0)
 
 @export_group("Resources")
 @export var chassis: ChassisConfig

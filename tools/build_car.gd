@@ -91,6 +91,9 @@ func _set_chassis() -> void:
 
 	_vehicle.set("config", chassis)
 
+	if _definition.assists != null:
+		_vehicle.set("assists_config", _definition.assists)
+
 
 func _set_aero() -> void:
 	var aero: Resource = _have("aero", AeroConfig.new(), "aero")
@@ -139,6 +142,14 @@ func _set_drivetrain() -> void:
 	)
 
 	_vehicle.get_node("Drivetrain").set("config", drivetrain)
+	_vehicle.get_node("Drivetrain").set(
+		"transmission_type",
+		(
+			Drivetrain.TransmissionType.AUTOMATIC
+			if _definition.automatic
+			else Drivetrain.TransmissionType.MANUAL_SEQUENTIAL
+		),
+	)
 
 
 func _set_wheels() -> void:
@@ -173,6 +184,7 @@ func _set_wheels() -> void:
 
 		wheel.set("suspension_config", front if is_front else rear)
 		wheel.set("is_driven", _definition.front_driven if is_front else _definition.rear_driven)
+		wheel.set("rolling_resistance_coef", _definition.rolling_resistance)
 
 		var tire: Tire = _definition.front_tire if is_front else _definition.rear_tire
 		if tire != null:

@@ -24,7 +24,7 @@ func _init(car: RigidBody3D) -> void:
 	_car = car
 
 
-func step() -> void:
+func step(impulse_scale: float) -> void:
 	var state: PhysicsDirectBodyState3D = PhysicsServer3D.body_get_direct_state(_car.get_rid())
 	if state == null:
 		return
@@ -42,7 +42,7 @@ func step() -> void:
 		var closing: float = _closing_mps(state, touching)
 		if closing >= MIN_CLOSING_MPS:
 			_hardest_mps = maxf(_hardest_mps, closing)
-			_push_apart(state, touching, _bounce_at(_hardest_mps))
+			_push_apart(state, touching, _bounce_at(_hardest_mps) * impulse_scale)
 
 	_velocity = _car.linear_velocity
 	_spin = _car.angular_velocity

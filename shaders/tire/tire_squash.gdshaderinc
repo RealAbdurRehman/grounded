@@ -4,6 +4,8 @@ const int SQUASH_ANGLES = 49;
 const int SQUASH_TAPS = 3;
 const int SQUASH_TERMS = 24;
 
+uniform bool squash_on = false;
+
 uniform float squash_depth[245];
 
 uniform mat3 squash_hub_basis = mat3(1.0);
@@ -209,6 +211,8 @@ float squash_room(float theta, float x) {
 }
 
 void tire_squash(mat4 model, inout vec3 vertex, inout vec3 normal) {
+	if (!squash_on) return;
+
 	mat3 to_world = mat3(model);
 	mat3 from_world = inverse(to_world);
 

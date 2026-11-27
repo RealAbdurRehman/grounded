@@ -1,0 +1,170 @@
+[gd_resource type="Resource" script_class="CarDefinition" format=3 uid="uid://bfvua1ayg7p3"]
+
+[ext_resource type="Resource" uid="uid://d1vgwgq6yp3aa" path="res://resources/cars/jeep/wrangler/aero.tres" id="1_y1g2r"]
+[ext_resource type="Resource" uid="uid://b5j1co424h5he" path="res://resources/cars/jeep/wrangler/differential_center.tres" id="2_x7cw1"]
+[ext_resource type="Resource" uid="uid://5wnwx5fw60u1" path="res://resources/cars/jeep/wrangler/chassis.tres" id="3_gy3pq"]
+[ext_resource type="Resource" uid="uid://sayxmhccb6uh" path="res://resources/cars/jeep/wrangler/collision.tres" id="4_1852c"]
+[ext_resource type="Script" uid="uid://d2p3s2ijh1a2o" path="res://scripts/vehicle/car/collision_part.gd" id="5_85m2w"]
+[ext_resource type="Resource" uid="uid://d2w622we8af07" path="res://resources/cars/jeep/wrangler/drivetrain.tres" id="6_fsmfb"]
+[ext_resource type="Resource" uid="uid://c0vvdt2w266qp" path="res://resources/cars/jeep/wrangler/engine.tres" id="7_ftblg"]
+[ext_resource type="Resource" uid="uid://i7vmrwfvp4qf" path="res://resources/cars/jeep/wrangler/differential_front.tres" id="8_f40ur"]
+[ext_resource type="Resource" uid="uid://txmr735onug6" path="res://resources/cars/jeep/wrangler/suspension_front.tres" id="9_evee1"]
+[ext_resource type="Resource" uid="uid://bpguewg5j2r2n" path="res://resources/cars/jeep/wrangler/tire.tres" id="10_4vh7x"]
+[ext_resource type="PackedScene" uid="uid://dip5v5sxwx7rg" path="res://assets/models/vehicles/jeep/wrangler/jeep_wrangler.glb" id="11_kcj0b"]
+[ext_resource type="Script" uid="uid://c00igpg14f54r" path="res://scripts/vehicle/car/panel.gd" id="12_sif40"]
+[ext_resource type="Resource" uid="uid://b0lblgwlaf44t" path="res://resources/cars/jeep/wrangler/differential_rear.tres" id="13_kq3ps"]
+[ext_resource type="Resource" uid="uid://btri3um0r4aw7" path="res://resources/cars/jeep/wrangler/suspension_rear.tres" id="14_7x74m"]
+[ext_resource type="Script" uid="uid://bqluerbjlelee" path="res://scripts/vehicle/car/definition.gd" id="15_m4ct6"]
+
+[sub_resource type="Resource" id="Resource_0fusu"]
+script = ExtResource("5_85m2w")
+words = Array[String](["HOOD_"])
+pieces = 2
+
+[sub_resource type="Resource" id="Resource_tpjid"]
+script = ExtResource("5_85m2w")
+part_name = "Tailgate"
+words = Array[String](["TAILGATE_"])
+pieces = 2
+
+[sub_resource type="Resource" id="Resource_uyimi"]
+script = ExtResource("5_85m2w")
+part_name = "FrontBumper"
+words = Array[String](["FRONTBUMPER_"])
+pieces = 3
+
+[sub_resource type="Resource" id="Resource_j0gdj"]
+script = ExtResource("5_85m2w")
+part_name = "RearBumper"
+words = Array[String](["REARBUMPER_"])
+pieces = 3
+
+[sub_resource type="Resource" id="Resource_4m5w4"]
+script = ExtResource("12_sif40")
+panel_name = "Hood"
+words = Array[String](["HOOD_"])
+hinge_grip_mps = 36.0
+latch_grip_mps = 14.0
+mass_kg = 18.0
+jam_deg = 12.0
+reach_m = Vector3(1, 0.8, 1.6)
+load_direction = Vector3(0, 0, 1)
+load_floor = 0.1
+
+[sub_resource type="Resource" id="Resource_6g1dl"]
+script = ExtResource("12_sif40")
+panel_name = "Tailgate"
+words = Array[String](["TAILGATE_"])
+mount_words = Array[String](["TAILGATE_PAINT"])
+hinge_edge = Vector3(1, 0, 0)
+hinge_axis = Vector3(0, 1, 0)
+hinge_nudge_m = Vector3(0, 0, 0.06)
+hinge_grip_mps = 40.0
+latch_grip_mps = 13.5
+mass_kg = 55.0
+open_direction = Vector3(0, 0, 1)
+open_limit_deg = 80.0
+jam_deg = 6.0
+reach_m = Vector3(1, 0.9, 1)
+load_direction = Vector3(0, 0, -1)
+load_floor = 0.1
+
+[sub_resource type="Resource" id="Resource_unedq"]
+script = ExtResource("12_sif40")
+panel_name = "Front Bumper"
+kind = 1
+words = Array[String](["FRONTBUMPER_"])
+latch_grip_mps = 20.0
+mass_kg = 32.0
+open_direction = Vector3(0, -0.4, -1)
+open_limit_deg = 25.0
+swing_front_deg = 10.0
+reach_m = Vector3(1.1, 0.9, 1)
+load_direction = Vector3(0, 0, 1)
+load_floor = 0.3
+
+[sub_resource type="Resource" id="Resource_g1ffx"]
+script = ExtResource("12_sif40")
+panel_name = "Rear Bumper"
+kind = 1
+words = Array[String](["REARBUMPER_"])
+latch_grip_mps = 20.0
+mass_kg = 28.0
+open_direction = Vector3(0, -0.4, 1)
+open_limit_deg = 25.0
+swing_front_deg = 10.0
+reach_m = Vector3(1.1, 0.9, 1)
+load_direction = Vector3(0, 0, -1)
+load_floor = 0.3
+
+[sub_resource type="Resource" id="Resource_mcu5i"]
+script = ExtResource("12_sif40")
+panel_name = "Windshield"
+kind = 2
+words = Array[String](["WINDSHIELD"])
+reach_m = Vector3(1, 0.8, 0.9)
+load_direction = Vector3(0, 0, 1)
+load_floor = 0.3
+break_mps = 12.0
+
+[resource]
+script = ExtResource("15_m4ct6")
+car_name = "Jeep Wrangler Rubicon 392"
+credits = "Model: Jeep Wrangler by vecarz (https://sketchfab.com/heynic), CC-BY-NC-SA 4.0"
+model = ExtResource("11_kcj0b")
+tire_word = "TIRE_"
+spinning_words = Array[String](["RIM_", "HUBFACE_", "HUBBACK_"])
+fixed_words = Array[String](["CALIPER_", "PAD_"])
+tire_detail = 0
+collision_parts = Array[ExtResource("5_85m2w")]([SubResource("Resource_0fusu"), SubResource("Resource_tpjid"), SubResource("Resource_uyimi"), SubResource("Resource_j0gdj")])
+body_pieces = 14
+not_body_words = Array[String](["TIRE_", "RIM_", "HUBFACE_", "HUBBACK_", "CALIPER_", "PAD_"])
+collision_clearance_m = 0.26
+approach_angle_deg = 17.0
+departure_angle_deg = 12.0
+collision = ExtResource("4_1852c")
+panels = Array[ExtResource("12_sif40")]([SubResource("Resource_4m5w4"), SubResource("Resource_6g1dl"), SubResource("Resource_unedq"), SubResource("Resource_g1ffx"), SubResource("Resource_mcu5i")])
+mass_kg = 2315.0
+wheelbase_m = 3.008
+front_track_m = 1.7
+rear_track_m = 1.7
+front_weight_share = 0.52
+center_of_mass_height_m = 0.76
+tire_radius_m = 0.415
+tire_width_m = 0.285
+rim_radius_m = 0.223
+front_ride_hz = 1.4
+rear_ride_hz = 1.55
+bump_damping_ratio = 0.28
+rebound_damping_ratio = 0.5
+torque_floor_nm = 300.0
+torque_peak_nm = 637.0
+torque_peak_rpm = 4300.0
+torque_bandwidth_rpm = 3414.0
+idle_rpm = 700.0
+rev_limiter_rpm = 6400.0
+max_rpm = 6500.0
+gear_ratios = Array[float]([-3.3, 0.0, 4.71, 3.13, 2.1, 1.67, 1.28, 1.0, 0.84, 0.67])
+final_drive = 3.73
+efficiency = 0.87
+automatic_upshift_rpm = 6300.0
+front_driven = true
+center_front_torque_share = 0.48
+drag_coefficient = 0.45
+frontal_area_m2 = 2.9
+automatic = true
+rolling_resistance = 0.015
+radiator_ahead_m = 0.48
+suspension_strength = 2.5
+camera_offset = Vector3(0, 1.25, 4.25)
+chassis = ExtResource("3_gy3pq")
+aero = ExtResource("1_y1g2r")
+engine = ExtResource("7_ftblg")
+drivetrain = ExtResource("6_fsmfb")
+front_differential = ExtResource("8_f40ur")
+rear_differential = ExtResource("13_kq3ps")
+center_differential = ExtResource("2_x7cw1")
+front_suspension = ExtResource("9_evee1")
+rear_suspension = ExtResource("14_7x74m")
+front_tire = ExtResource("10_4vh7x")
+rear_tire = ExtResource("10_4vh7x")

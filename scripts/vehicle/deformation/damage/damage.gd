@@ -9,6 +9,8 @@ signal repaired
 const MIN_DELTA_V_MPS: float = 0.3
 const FULL_DELTA_V_MPS: float = 15.6
 
+const IMPULSE_SLACK_MPS: float = 0.5
+
 const MAX_CONTACTS: int = 64
 
 const SPAWN_PROTECTION_MS: int = 3000
@@ -36,7 +38,11 @@ var peak_delta_v: float = 0.0
 
 var last_part: String = ""
 
+var impulse_scale: float = 1.0
+
 var _car: RigidBody3D
+var _velocity: Vector3
+
 var _child_count: int = -1
 
 var _spawn_ms: int = 0
@@ -54,6 +60,9 @@ func _init(car: RigidBody3D) -> void:
 func step() -> void:
 	_find_parts()
 
+	var changed_mps: float = (_car.linear_velocity - _velocity).length()
+	_velocity = _car.linear_velocity
+
 	if Time.get_ticks_msec() - _spawn_ms < SPAWN_PROTECTION_MS:
 		return
 
@@ -67,8 +76,10 @@ func step() -> void:
 	var floor_impulses: Dictionary[String, Vector3] = { }
 	var floor_points: Dictionary[String, PackedVector3Array] = { }
 
+	impulse_scale = _impulse_scale(state, changed_mps)
+
 	for i in range(state.get_contact_count()):
-		var impulse: Vector3 = state.get_contact_impulse(i)
+		var impulse: Vector3 = state.get_contact_impulse(i) * impulse_scale
 		var part_name: String = _part_at(state.get_contact_local_shape(i))
 
 		var on_floor: bool = absf(state.get_contact_local_normal(i).y) > FLOOR_NORMAL_Y
@@ -112,6 +123,18 @@ func step() -> void:
 
 		if _hit(part_name, parts[part_name], delta_v):
 			part_hit.emit(part_name, points[part_name], (to_car * impulse).normalized(), delta_v)
+
+
+func _impulse_scale(state: PhysicsDirectBodyState3D, changed_mps: float) -> float:
+	var total: Vector3 = Vector3.ZERO
+	for i in range(state.get_contact_count()):
+		total += state.get_contact_impulse(i)
+
+	var claimed_mps: float = total.length() / _car.mass
+	if claimed_mps <= changed_mps + IMPULSE_SLACK_MPS:
+		return 1.0
+
+	return (changed_mps + IMPULSE_SLACK_MPS) / claimed_mps
 
 
 func reset() -> void:

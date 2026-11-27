@@ -175,7 +175,7 @@ func _physics_process(delta: float) -> void:
 	aero.apply()
 
 	damage.step()
-	impacts.step()
+	impacts.step(damage.impulse_scale)
 	deformer.step()
 
 	wheel_damage.step(delta)
@@ -534,13 +534,15 @@ func _update_drivetrain_and_wheels(delta: float) -> void:
 	var target_engine_rpm: float = drivetrain_node.calculate_target_engine_rpm(driveline_speed)
 	var engine_torque: float = engine_node.update_engine(
 		delta,
-		assists.filter_throttle(throttle_input),
+		assists.filter_throttle(throttle_input) * _speed_limit_scale(forward_speed),
 		target_engine_rpm,
 		drivetrain_node.is_clutch_engaged(),
 		drivetrain_node.is_shifting,
 	)
 
-	var total_wheel_torque: float = drivetrain_node.calculate_wheel_drive_torque(engine_torque)
+	var total_wheel_torque: float = (
+		drivetrain_node.calculate_wheel_drive_torque(engine_torque) * engine_node.converter_gain
+	)
 
 	var engine_inertia: float = 0.0
 	if drivetrain_node.is_clutch_engaged() and engine_node.config and drivetrain_node.config:
@@ -577,6 +579,13 @@ func _update_drivetrain_and_wheels(delta: float) -> void:
 		w.update_squash(self, delta)
 
 	obstacles.solve(self, wheels, delta)
+
+
+func _speed_limit_scale(forward_speed: float) -> float:
+	if config.speed_limit_kmh <= 0.0:
+		return 1.0
+
+	return clampf((config.speed_limit_kmh - absf(forward_speed) * 3.6) * 0.5, 0.0, 1.0)
 
 
 func _update_gear_hold() -> void:

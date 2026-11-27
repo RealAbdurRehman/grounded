@@ -10,6 +10,8 @@ extends Resource
 
 @export var throttle_ramp_speed: float = 6.0
 
+@export var speed_limit_kmh: float = 0.0
+
 @export var max_steer_angle_deg: float = 32.0
 
 @export_group("Steering")

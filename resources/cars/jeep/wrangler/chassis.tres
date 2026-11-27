@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ChassisConfig" format=3 uid="uid://5wnwx5fw60u1"]
+
+[ext_resource type="Resource" uid="uid://c1frspktbxofw" path="res://resources/cars/jeep/wrangler/brakes_front.tres" id="1_lbjxj"]
+[ext_resource type="Resource" uid="uid://dshgy1sy84408" path="res://resources/cars/jeep/wrangler/brakes_rear.tres" id="2_2876p"]
+[ext_resource type="Script" uid="uid://bwprdmk5kupc6" path="res://scripts/vehicle/configs/chassis.gd" id="3_vl4o2"]
+
+[resource]
+script = ExtResource("3_vl4o2")
+vehicle_mass = 2315.0
+throttle_ramp_speed = 5.0
+speed_limit_kmh = 159.0
+max_steer_angle_deg = 36.0
+steer_rate_deg_s = 80.0
+steering_ratio = 14.9
+steering_inertia = 3.0
+steering_damping = 900.0
+steering_friction_nm = 12.0
+driver_strength_nm = 1100.0
+front_arb_stiffness = 24000.0
+rear_arb_stiffness = 9000.0
+front_brakes = ExtResource("1_lbjxj")
+rear_brakes = ExtResource("2_2876p")

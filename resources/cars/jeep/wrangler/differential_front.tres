@@ -1,0 +1,6 @@
+[gd_resource type="Resource" script_class="DifferentialConfig" format=3 uid="uid://i7vmrwfvp4qf"]
+
+[ext_resource type="Script" path="res://scripts/vehicle/configs/differential.gd" id="1_iwvkg"]
+
+[resource]
+script = ExtResource("1_iwvkg")

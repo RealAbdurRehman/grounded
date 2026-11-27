@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="DifferentialConfig" format=3 uid="uid://b5j1co424h5he"]
+
+[ext_resource type="Script" path="res://scripts/vehicle/configs/differential.gd" id="1_kyu1q"]
+
+[resource]
+script = ExtResource("1_kyu1q")
+type = 2
+preload_nm = 120.0
+power_lock = 0.45
+coast_lock = 0.2

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EngineConfig" format=3 uid="uid://c0vvdt2w266qp"]
+
+[ext_resource type="Script" path="res://scripts/vehicle/configs/engine.gd" id="1_305s5"]
+
+[resource]
+script = ExtResource("1_305s5")
+displacement = 300.0
+boost = 637.0
+cam_peak_rpm = 4300.0
+bandwidth = 3414.0
+max_rpm = 6500.0
+idle_rpm = 700.0
+rev_limiter_rpm = 6400.0
+engine_braking_factor = 90.0
+converter_stall_rpm = 2500.0
+converter_torque_ratio = 2.0

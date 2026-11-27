@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AeroConfig" format=3 uid="uid://d1vgwgq6yp3aa"]
+
+[ext_resource type="Script" path="res://scripts/vehicle/configs/aero.gd" id="1_2g0vp"]
+
+[resource]
+script = ExtResource("1_2g0vp")
+frontal_area = 2.9
+drag_coefficient = 0.45
+side_force_coefficient = 2.0
+center_of_pressure_m = 0.1
+side_force_height_m = 0.35
+downforce_coefficient = -0.1
+ground_effect_per_m = 0.0

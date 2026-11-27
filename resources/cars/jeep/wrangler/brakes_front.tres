@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="BrakeConfig" format=3 uid="uid://c1frspktbxofw"]
+
+[ext_resource type="Script" path="res://scripts/vehicle/configs/brakes.gd" id="1_1wvap"]
+
+[resource]
+script = ExtResource("1_1wvap")
+max_torque_nm = 3600.0

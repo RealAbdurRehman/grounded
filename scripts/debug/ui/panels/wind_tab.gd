@@ -74,6 +74,11 @@ func _build() -> void:
 	)
 
 
+func close() -> void:
+	if is_instance_valid(_view):
+		_view.queue_free()
+
+
 func update(delta: float) -> void:
 	_sample_timer += delta
 	if _sample_timer < SAMPLE_INTERVAL:

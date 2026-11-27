@@ -11,6 +11,14 @@ var _timer: float = 0.0
 var _elapsed_time: float = 0.0
 
 
+func _ready() -> void:
+	add_to_group("car_followers")
+
+
+func follow_car(_car: Vehicle) -> void:
+	stop_logging()
+
+
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("toggle_logging"):
 		toggle_logging()

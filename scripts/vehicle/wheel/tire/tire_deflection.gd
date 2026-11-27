@@ -119,6 +119,7 @@ static func setup_material(material: ShaderMaterial, config: SuspensionConfig) -
 	var width: float = config.width_m()
 	var per_side: float = 0.5 * BOOK_WIDTH_PER_STRAIN * width / config.sidewall_m()
 
+	material.set_shader_parameter("squash_on", true)
 	material.set_shader_parameter("squash_radius", config.wheel_radius)
 	material.set_shader_parameter("squash_rim_radius", config.rim_m())
 	material.set_shader_parameter("squash_half_width", width * 0.5)

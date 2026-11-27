@@ -1,0 +1,53 @@
+[gd_scene format=3 uid="uid://bsjikh70mf7nh"]
+
+[ext_resource type="PackedScene" uid="uid://dhxa64ynje1ai" path="res://scenes/vehicles/vehicle.tscn" id="1_m815r"]
+[ext_resource type="Resource" uid="uid://5wnwx5fw60u1" path="res://resources/cars/jeep/wrangler/chassis.tres" id="2_1q28e"]
+[ext_resource type="Resource" uid="uid://d1vgwgq6yp3aa" path="res://resources/cars/jeep/wrangler/aero.tres" id="3_dyywt"]
+[ext_resource type="Resource" uid="uid://bfvua1ayg7p3" path="res://resources/cars/jeep_wrangler.tres" id="4_0ui6k"]
+[ext_resource type="Resource" uid="uid://c0vvdt2w266qp" path="res://resources/cars/jeep/wrangler/engine.tres" id="5_4xqfm"]
+[ext_resource type="Resource" uid="uid://d2w622we8af07" path="res://resources/cars/jeep/wrangler/drivetrain.tres" id="6_tbwe7"]
+[ext_resource type="Resource" uid="uid://txmr735onug6" path="res://resources/cars/jeep/wrangler/suspension_front.tres" id="7_8tymj"]
+[ext_resource type="Resource" uid="uid://bpguewg5j2r2n" path="res://resources/cars/jeep/wrangler/tire.tres" id="8_fi3wq"]
+[ext_resource type="Resource" uid="uid://btri3um0r4aw7" path="res://resources/cars/jeep/wrangler/suspension_rear.tres" id="9_fto5s"]
+
+[node name="Vehicle" unique_id=429220544 instance=ExtResource("1_m815r")]
+config = ExtResource("2_1q28e")
+aero_config = ExtResource("3_dyywt")
+
+[node name="Body" parent="." index="0" unique_id=453940726]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.43107253, 0.2355367)
+definition = ExtResource("4_0ui6k")
+
+[node name="Engine" parent="." index="1" unique_id=1472005107]
+config = ExtResource("5_4xqfm")
+
+[node name="Drivetrain" parent="." index="2" unique_id=1236505186]
+config = ExtResource("6_tbwe7")
+transmission_type = 1
+
+[node name="WheelFL" parent="Wheels" parent_id_path=PackedInt32Array(2027221242) index="0" unique_id=796668443]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.85, 0.25, -1.504)
+suspension_config = ExtResource("7_8tymj")
+tire_model = ExtResource("8_fi3wq")
+rolling_resistance_coef = 0.015
+
+[node name="WheelFR" parent="Wheels" parent_id_path=PackedInt32Array(2027221242) index="1" unique_id=922442114]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.85, 0.25, -1.504)
+suspension_config = ExtResource("7_8tymj")
+tire_model = ExtResource("8_fi3wq")
+rolling_resistance_coef = 0.015
+
+[node name="WheelRL" parent="Wheels" parent_id_path=PackedInt32Array(2027221242) index="2" unique_id=398066511]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.85, 0.25, 1.504)
+suspension_config = ExtResource("9_fto5s")
+tire_model = ExtResource("8_fi3wq")
+rolling_resistance_coef = 0.015
+
+[node name="WheelRR" parent="Wheels" parent_id_path=PackedInt32Array(2027221242) index="3" unique_id=669380842]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.85, 0.25, 1.504)
+suspension_config = ExtResource("9_fto5s")
+tire_model = ExtResource("8_fi3wq")
+rolling_resistance_coef = 0.015
+
+[node name="CenterOfMass" parent="Markers" parent_id_path=PackedInt32Array(111010334) index="0" unique_id=779543473]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3650665, -0.06016)

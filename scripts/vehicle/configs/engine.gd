@@ -32,3 +32,6 @@ extends Resource
 
 ## How fast the engine RPM matches wheel speed.
 @export var clutch_blend_rate: float = 22.0
+
+@export var converter_stall_rpm: float = 0.0
+@export_range(1.0, 3.0, 0.05) var converter_torque_ratio: float = 1.0

@@ -62,6 +62,7 @@ class PanelState extends RefCounted:
 	var offsets: Array[Transform3D] = []
 
 	var bounds: AABB
+	var mount_bounds: AABB
 	var mounts: Array[Mount] = []
 
 	var wear: float = 0.0
@@ -119,6 +120,8 @@ func _init(car: RigidBody3D, model: Node3D, definitions: Array[CarPanel]) -> voi
 		state.def = def
 
 		var box_set: bool = false
+		var mount_box_set: bool = false
+
 		for node in model.find_children("*", "MeshInstance3D", true, false):
 			var piece := node as MeshInstance3D
 
@@ -133,8 +136,15 @@ func _init(car: RigidBody3D, model: Node3D, definitions: Array[CarPanel]) -> voi
 
 			box_set = true
 
+			if def.holds_mounts(piece):
+				state.mount_bounds = box if not mount_box_set else state.mount_bounds.merge(box)
+				mount_box_set = true
+
 		if state.nodes.is_empty():
 			continue
+
+		if not mount_box_set:
+			state.mount_bounds = state.bounds
 
 		state.strength = _roll_strength()
 
@@ -241,8 +251,8 @@ func repair() -> void:
 func _make_mounts(state: PanelState) -> void:
 	var def: CarPanel = state.def
 
-	var middle: Vector3 = state.bounds.get_center()
-	var half: Vector3 = state.bounds.size * 0.5
+	var middle: Vector3 = state.mount_bounds.get_center()
+	var half: Vector3 = state.mount_bounds.size * 0.5
 
 	if def.kind == CarPanel.Kind.HINGED:
 		var edge: Vector3 = def.hinge_edge.normalized()
@@ -251,7 +261,7 @@ func _make_mounts(state: PanelState) -> void:
 		var to_edge: float = _half_length(half, edge)
 		var along: float = _half_length(half, axis) * HINGE_SPREAD
 
-		var edge_middle: Vector3 = middle + edge * to_edge
+		var edge_middle: Vector3 = middle + edge * to_edge + def.hinge_nudge_m
 
 		state.mounts.append(_mount(def, edge_middle - axis * along, true))
 		state.mounts.append(_mount(def, edge_middle + axis * along, true))

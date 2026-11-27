@@ -32,6 +32,10 @@ func draw() -> void:
 	pass
 
 
+func close() -> void:
+	pass
+
+
 func wheels() -> Array[Wheel]:
 	return vehicle.wheels
 

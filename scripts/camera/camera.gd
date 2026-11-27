@@ -26,6 +26,8 @@ var _follow_pitch: float = 0.0
 
 
 func _ready() -> void:
+	add_to_group("car_followers")
+
 	_yaw = rotation.y
 	_pitch = rotation.x
 
@@ -83,6 +85,20 @@ func _physics_process(delta: float) -> void:
 		_process_debug_fly(delta)
 	elif current_mode == CameraMode.FOLLOW and is_instance_valid(target_vehicle):
 		_process_follow_car(delta)
+
+
+func follow_car(car: Vehicle) -> void:
+	target_vehicle = car
+
+	var definition: CarDefinition = (car.get_node("Body") as CarBody).definition
+	follow_offset = definition.camera_offset
+	max_follow_distance = maxf(follow_offset.length() + 0.8, 5.0)
+
+	_follow_yaw = 0.0
+	_follow_pitch = 0.0
+
+	if current_mode == CameraMode.FOLLOW:
+		_process_follow_car(1.0)
 
 
 func _process_debug_fly(delta: float) -> void:

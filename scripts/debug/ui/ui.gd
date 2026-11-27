@@ -13,6 +13,7 @@ var _reset_layout: bool = false
 
 var _locked_flag: Array = [true]
 var _show_vectors: Array = [true]
+var _show_garage: Array = [false]
 var _time_scale: Array = [1.0]
 
 var _ui_scale: float = 1.0
@@ -24,14 +25,34 @@ var _right_w: float = 0.0
 var _bar_h: float = 0.0
 
 var _dashboard: VehiclePanel
+var _garage: GaragePanel
 var _tabs: Array = []
 
 
 func _ready() -> void:
 	process_priority = 100
+	add_to_group("car_followers")
 
 	await get_tree().physics_frame
 
+	_garage = GaragePanel.new(vehicle, telemetry, weight_transfer)
+	_build_tabs()
+
+
+func follow_car(car: Vehicle) -> void:
+	vehicle = car
+	if _dashboard == null:
+		return
+
+	_garage.vehicle = car
+
+	for tab in _tabs:
+		tab[1].close()
+
+	_build_tabs()
+
+
+func _build_tabs() -> void:
 	UITheme.set_wheels(vehicle.wheels)
 	_dashboard = VehiclePanel.new(vehicle, telemetry, weight_transfer)
 
@@ -80,6 +101,7 @@ func _process(delta: float) -> void:
 	_draw_toolbar()
 	_draw_dashboard()
 	_draw_tuning()
+	_draw_garage()
 
 	UITheme.pop()
 
@@ -96,7 +118,7 @@ func _update_layout() -> void:
 	_bar_h = unit * 2.9
 
 
-func _begin_panel(title: String, rect: Rect2, extra_flags: int = 0) -> bool:
+func _begin_panel(title: String, rect: Rect2, extra_flags: int = 0, open: Array = []) -> bool:
 	var flags: int = extra_flags
 
 	if _locked:
@@ -112,7 +134,7 @@ func _begin_panel(title: String, rect: Rect2, extra_flags: int = 0) -> bool:
 		ImGui.SetNextWindowPos(rect.position, condition)
 		ImGui.SetNextWindowSize(rect.size, condition)
 
-	return ImGui.Begin(title, [], flags)
+	return ImGui.Begin(title, open, flags)
 
 
 func _draw_toolbar() -> void:
@@ -129,17 +151,19 @@ func _draw_toolbar() -> void:
 		ImGui.Checkbox("Force vectors", _show_vectors)
 		ImGui.SameLine()
 		ImGui.Checkbox("Lock layout", _locked_flag)
+		ImGui.SameLine()
+		ImGui.Checkbox("Garage", _show_garage)
 
 		_toolbar_divider()
 		ImGui.TextDisabled("Time")
 		ImGui.SameLine()
-		ImGui.SetNextItemWidth(unit * 7.0)
+		ImGui.SetNextItemWidth(unit * 5.0)
 		ImGui.SliderFloatEx("##time_scale", _time_scale, 0.05, 1.0, "%.2fx", 0)
 
 		_toolbar_divider()
 		ImGui.TextDisabled("UI scale")
 		ImGui.SameLine()
-		ImGui.SetNextItemWidth(unit * 6.0)
+		ImGui.SetNextItemWidth(unit * 4.0)
 		ImGui.SliderFloatEx("##ui_scale", _ui_scale_edit, 0.8, 1.4, "%.2f", 0)
 		if ImGui.IsItemDeactivatedAfterEdit():
 			_ui_scale = _ui_scale_edit[0]
@@ -157,6 +181,21 @@ func _toolbar_divider() -> void:
 	ImGui.AlignTextToFramePadding()
 	ImGui.TextDisabled("|")
 	ImGui.SameLineEx(0.0, ImGui.GetFontSize() * 0.9)
+
+
+func _draw_garage() -> void:
+	if not _show_garage[0]:
+		return
+
+	var unit: float = ImGui.GetFontSize()
+	var width: float = unit * 26.0
+	var middle: float = (_left_w + _display.x - _right_w) * 0.5
+	var rect := Rect2(middle - width * 0.5, unit, width, 0.0)
+
+	if _begin_panel("Garage", rect, 0, _show_garage):
+		_garage.draw()
+
+	ImGui.End()
 
 
 func _draw_dashboard() -> void:

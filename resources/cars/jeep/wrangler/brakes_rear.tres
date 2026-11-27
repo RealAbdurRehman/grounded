@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="BrakeConfig" format=3 uid="uid://dshgy1sy84408"]
+
+[ext_resource type="Script" path="res://scripts/vehicle/configs/brakes.gd" id="1_4my62"]
+
+[resource]
+script = ExtResource("1_4my62")
+max_torque_nm = 2300.0
+handbrake_torque_nm = 2600.0

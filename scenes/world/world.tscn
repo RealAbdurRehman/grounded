@@ -3,9 +3,8 @@
 [ext_resource type="PackedScene" uid="uid://db4473gxoh8sk" path="res://scenes/ui/telemetry.tscn" id="1_5qq27"]
 [ext_resource type="Texture2D" uid="uid://cbv4iwr77qvoy" path="res://assets/textures/surfaces/grass/diff.jpg" id="1_v5dby"]
 [ext_resource type="Texture2D" uid="uid://c4iuxf2c8214a" path="res://assets/textures/surfaces/grass/nor.jpg" id="3_bq33v"]
-[ext_resource type="PackedScene" uid="uid://dr8e42tbw6xk2" path="res://scenes/vehicle/vehicle.tscn" id="3_j2gmx"]
+[ext_resource type="PackedScene" uid="uid://dg7jd7552pl25" path="res://scenes/vehicles/subaru/impreza.tscn" id="3_j2gmx"]
 [ext_resource type="Texture2D" uid="uid://c7ma8ggfipg" path="res://assets/textures/surfaces/grass/arm.jpg" id="4_j2gmx"]
-[ext_resource type="Resource" uid="uid://k66f2m40gcqr" path="res://resources/assists/default.tres" id="5_dlabj"]
 [ext_resource type="Script" uid="uid://dvp5aua86h7p4" path="res://scripts/camera/camera.gd" id="6_t5ptc"]
 [ext_resource type="Shader" uid="uid://c1yjkv4u8c2k2" path="res://shaders/world/ground.gdshader" id="10_jyr8v"]
 [ext_resource type="Texture2D" uid="uid://cbp36dfkn5lf0" path="res://assets/textures/surfaces/asphalt/diff.jpg" id="11_5o5dd"]
@@ -652,24 +651,11 @@ shadow_enabled = true
 [node name="WorldEnvironment" type="WorldEnvironment" parent="Environment" unique_id=1347009838]
 environment = SubResource("Environment_t5ptc")
 
-[node name="Vehicle" parent="." unique_id=429220544 node_paths=PackedStringArray("engine_node", "drivetrain_node", "center_of_mass_node") instance=ExtResource("3_j2gmx")]
+[node name="Vehicle" parent="." unique_id=429220544 instance=ExtResource("3_j2gmx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 525)
-engine_node = NodePath("Engine")
-drivetrain_node = NodePath("Drivetrain")
-center_of_mass_node = NodePath("Markers/CenterOfMass")
-assists_config = ExtResource("5_dlabj")
 
-[node name="WheelFL" parent="Vehicle/Wheels" parent_id_path=PackedInt32Array(429220544, 2027221242) index="0" unique_id=796668443]
-can_steer = true
-
-[node name="WheelFR" parent="Vehicle/Wheels" parent_id_path=PackedInt32Array(429220544, 2027221242) index="1" unique_id=922442114]
-can_steer = true
-
-[node name="WheelRL" parent="Vehicle/Wheels" parent_id_path=PackedInt32Array(429220544, 2027221242) index="2" unique_id=398066511]
-has_handbrake = true
-
-[node name="WheelRR" parent="Vehicle/Wheels" parent_id_path=PackedInt32Array(429220544, 2027221242) index="3" unique_id=669380842]
-has_handbrake = true
+[node name="Body" parent="Vehicle" index="0" unique_id=453940726]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.30301532, 0.028686523)
 
 [node name="Tests" type="Node3D" parent="." unique_id=1518008125]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -53.848, 0.6, 500)

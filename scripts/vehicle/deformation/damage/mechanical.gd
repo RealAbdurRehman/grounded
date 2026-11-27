@@ -531,7 +531,10 @@ func _place_parts() -> void:
 	var front: Vector3 = _axle_middle(_vehicle.front_axle())
 	var rear: Vector3 = _axle_middle(_vehicle.rear_axle())
 
-	_add_box(front + Vector3(0.0, 0.09, -0.72), Vector3(0.36, 0.16, 0.03), 0.25)
+	var body := _vehicle.get_node(^"Body") as CarBody
+	var radiator_z: float = -body.definition.radiator_ahead_m
+
+	_add_box(front + Vector3(0.0, 0.09, radiator_z), Vector3(0.36, 0.16, 0.03), 0.25)
 	_add_box(front + Vector3(0.0, 0.4, -0.12), Vector3(0.26, 0.05, 0.2), 0.25)
 	_add_box(front + Vector3(0.0, 0.09, -0.3), Vector3(0.34, 0.12, 0.19), 0.5)
 	_add_box(front + Vector3(0.0, -0.09, -0.3), Vector3(0.18, 0.03, 0.18), 0.25)

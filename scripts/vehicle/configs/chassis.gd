@@ -14,6 +14,10 @@ extends Resource
 
 @export var max_steer_angle_deg: float = 32.0
 
+@export_group("Drifting")
+@export var line_lock: bool = true
+@export var handbrake_frees_driveline: bool = true
+
 @export_group("Steering")
 ## -1 for reverse ackermann, +1 for true ackermann, 0 for parallel steering.
 @export_range(-1.0, 1.0, 0.05) var ackermann_factor: float = 0.8

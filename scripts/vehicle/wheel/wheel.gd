@@ -69,6 +69,9 @@ var angular_velocity_rad_s: float = 0.0
 var slip_ratio: float = 0.0
 var slip_angle_rad: float = 0.0
 
+var sliding_power_w: float = 0.0
+var ground_speed_mps: float = 0.0
+
 var camber_rad: float = 0.0
 var toe_rad: float = 0.0
 
@@ -631,6 +634,9 @@ func update_wheel(
 
 	_step_tire_state(delta, rolling_w, sliding_w, maxf(air_speed, wheel_surface_speed))
 
+	sliding_power_w = sliding_w
+	ground_speed_mps = Vector2(v_long, v_lat).length()
+
 	var strut_up: Vector3 = global_transform.basis.orthonormalized().y
 	var strut_extra_n: float = suspension_force_n - normal_load_n + _stop_force_n
 
@@ -847,6 +853,9 @@ func _handle_airborne(
 
 	slip_ratio = 0.0
 	slip_angle_rad = 0.0
+
+	sliding_power_w = 0.0
+	ground_speed_mps = 0.0
 
 	grip_limit_n = 0.0
 

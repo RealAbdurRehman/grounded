@@ -23,6 +23,7 @@ const LOOSE_SHAFT_DRAG_NM: float = 15.0
 @export var transmission_type: TransmissionType = TransmissionType.MANUAL_SEQUENTIAL
 
 var is_shifting: bool = false
+var hold_gear: bool = false
 
 var current_gear_index: int = 2
 
@@ -76,7 +77,7 @@ func is_in_gear() -> bool:
 
 
 func is_clutch_engaged() -> bool:
-	return (not is_shifting) and is_in_gear()
+	return (not is_shifting) and is_in_gear() and not _wheel_share.is_empty()
 
 
 func get_gear_name() -> String:
@@ -461,6 +462,9 @@ func auto_downshift_rpm_at(throttle: float) -> float:
 
 
 func _handle_automatic_shifting(engine_rpm: float, at_rev_limiter: bool, throttle: float) -> void:
+	if hold_gear:
+		return
+
 	var up_rpm: float = auto_upshift_rpm_at(throttle)
 	var down_rpm: float = auto_downshift_rpm_at(throttle)
 

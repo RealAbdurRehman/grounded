@@ -13,9 +13,6 @@ const RESTITUTION: float = 0.1 # 0.1 is realistic.
 const MIN_WIDTH_M: float = 0.5
 const MAX_WIDTH_M: float = 1.8
 
-## How deep the car can crush on impact.
-const CRUMPLE_ZONE_M: float = 1.2
-
 ## No point on the body is pushed further than this.
 const MAX_OFFSET_M: float = 0.6
 
@@ -30,6 +27,8 @@ const BUCKLE_REACH: float = 1.6
 
 const FOLD_SHARE: float = 0.1
 const CRINKLE_SHARE: float = 0.25
+
+const ROUGH_MAX_CRUSH_M: float = 0.12
 
 const BROAD_LUMPS_PER_M: float = 7.0
 const FINE_LUMPS_PER_M: float = 22.0
@@ -59,9 +58,6 @@ const BUDGET_USEC: int = 2000
 const MAX_JOBS: int = 8
 
 const FORGIVEN_DELTA_V_MPS: float = 3.0
-
-const CRUSH_SHARE: float = 0.25
-const SOFT_MAX_CRUSH_M: float = 0.12
 
 const SAME_CRASH_S: float = 0.03
 const SAME_CRASH_M: float = 1.2
@@ -216,6 +212,10 @@ var prepared: int = 0
 var _car: RigidBody3D
 var _all_bounds: AABB
 
+var _crush_share: float = 0.25
+var _max_crush_m: float = 0.12
+var _crumple_zone_m: float = 1.2
+
 var _queue: Array[Piece] = []
 var _jobs: Array[Job] = []
 
@@ -247,6 +247,12 @@ func _init(car: RigidBody3D, model: Node3D) -> void:
 
 	if model == null:
 		return
+
+	var body := car.get_node_or_null(^"Body") as CarBody
+	if body != null and body.definition != null:
+		_crush_share = body.definition.crush_share
+		_max_crush_m = body.definition.max_crush_m
+		_crumple_zone_m = body.definition.crumple_zone_m
 
 	car.tree_exiting.connect(_stop_threads)
 	var to_car_root: Transform3D = car.global_transform.affine_inverse()
@@ -671,8 +677,8 @@ func _crush_m(delta_v: float, width_m: float) -> float:
 
 	var crush: float = (sqrt(2.0 * CRUSH_B_N_PER_M2 * per_width) - CRUSH_A_N_PER_M) / CRUSH_B_N_PER_M2
 
-	var shown: float = crush * CRUSH_SHARE
-	return SOFT_MAX_CRUSH_M * (1.0 - exp(-shown / SOFT_MAX_CRUSH_M))
+	var shown: float = crush * _crush_share
+	return _max_crush_m * (1.0 - exp(-shown / _max_crush_m))
 
 
 func _work() -> void:
@@ -753,7 +759,7 @@ func _dent_slab(piece: Piece, job: Job, x: int) -> void:
 				var rest: Vector3 = rest_of[w]
 
 				var behind: float = maxf(rest.dot(push) - plane, 0.0)
-				var spread: float = 1.0 - behind / CRUMPLE_ZONE_M
+				var spread: float = 1.0 - behind / _crumple_zone_m
 				if spread <= 0.0:
 					continue
 
@@ -788,7 +794,9 @@ func _dent_slab(piece: Piece, job: Job, x: int) -> void:
 
 					if ridge > 0.0:
 						var fade: float = 1.0 - lateral / crease_squared
-						rise = crush * BUCKLE_SHARE * ridge * fade * parallel * parallel
+						var ridged: float = minf(crush, ROUGH_MAX_CRUSH_M)
+
+						rise = ridged * BUCKLE_SHARE * ridge * fade * parallel * parallel
 
 				if give < 0.0005 and rise < 0.0005:
 					continue
@@ -804,8 +812,9 @@ func _dent_slab(piece: Piece, job: Job, x: int) -> void:
 					var bow: Vector3 = away.normalized() * clampf(away.length() / 0.3, 0.0, 1.0)
 					var fold: float = 1.0 + rough_of[w * 2 + 1] * FOLD_SHARE
 
-					offset += push * (give * (1.0 + rough * CRINKLE_SHARE))
-					offset += bow * (give * BOW_SHARE * parallel * fold)
+					var uneven: float = minf(give, ROUGH_MAX_CRUSH_M)
+					offset += push * (give + uneven * rough * CRINKLE_SHARE)
+					offset += bow * (uneven * BOW_SHARE * parallel * fold)
 
 				if rise >= 0.0005:
 					var outward: Vector3 = Vector3.UP
@@ -1338,7 +1347,7 @@ func _crushed_by(point: Vector3, jobs: Array[Job]) -> Vector3:
 
 	for job in jobs:
 		var behind: float = maxf(point.dot(job.push) - job.plane, 0.0)
-		var spread: float = 1.0 - behind / CRUMPLE_ZONE_M
+		var spread: float = 1.0 - behind / _crumple_zone_m
 		if spread <= 0.0:
 			continue
 

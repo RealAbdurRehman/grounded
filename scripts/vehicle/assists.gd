@@ -13,6 +13,8 @@ var esc_active: bool = false
 
 var throttle_scale: float = 0.0
 
+var suppressed: bool = false
+
 var yaw_rate_target: float = 0.0
 var yaw_rate_error: float = 0.0
 
@@ -77,7 +79,7 @@ func brake_torque(wheel: Wheel) -> float:
 func _update_traction_control(delta: float, throttle: float) -> void:
 	var cfg: AssistsConfig = config
 
-	if not cfg.tcs_enabled or throttle < 0.05:
+	if not cfg.tcs_enabled or suppressed or throttle < 0.05:
 		_tcs_throttle = move_toward(_tcs_throttle, 1.0, cfg.tcs_restore_rate * 4.0 * delta)
 		_release_brakes(_tcs_brake_nm, delta)
 
@@ -141,7 +143,7 @@ func _update_stability_control(delta: float, forward_speed: float) -> void:
 	var cfg: AssistsConfig = config
 
 	var handbrake_up: bool = cfg.esc_off_with_handbrake and _handbrake > 0.05
-	if not cfg.esc_enabled or handbrake_up or forward_speed < cfg.esc_min_speed:
+	if (not cfg.esc_enabled or suppressed or handbrake_up or forward_speed < cfg.esc_min_speed):
 		_esc_throttle = move_toward(_esc_throttle, 1.0, 2.0 * delta)
 		_release_brakes(_esc_brake_nm, delta)
 

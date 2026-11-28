@@ -11,6 +11,23 @@ const PLAYER_WHEEL_LIMIT: int = 8
 
 const OBSTACLE_STEER_FILTER_S: float = 0.05
 
+const LINE_LOCK_START_MPS: float = 1.5
+const LINE_LOCK_END_MPS: float = 4.0
+
+const HANDBRAKE_FREES_AT: float = 0.5
+
+const SETTLE_MAX_SPEED_MPS: float = 5.0
+const SETTLE_SLIP_MPS: float = 0.5
+const SETTLE_FULL_SLIP_MPS: float = 3.0
+
+const SETTLE_TORQUE_NM: float = 3000.0
+
+const SLIDE_START_RAD: float = 0.1
+const SLIDE_FULL_RAD: float = 0.2
+const SLIDE_MIN_SPEED_MPS: float = 4.0
+
+const COUNTERSTEER_RATE: float = 3.0
+
 
 class WheelPair extends RefCounted:
 	var left: Wheel
@@ -68,7 +85,13 @@ var wheel_damage: WheelDamage
 var mechanical_damage: MechanicalDamage
 var impacts: ImpactResponse
 
+var tire_smoke: TireSmoke
+
 var obstacles: ObstacleSolver = ObstacleSolver.new()
+
+var is_line_locked: bool = false
+
+var countersteer: float = 0.0
 
 var wheels: Array[Wheel] = []
 var axles: Array[Array] = []
@@ -145,6 +168,9 @@ func _ready() -> void:
 	wheel_damage.loaded.connect(mechanical_damage.on_wheel_load)
 	damage.repaired.connect(mechanical_damage.repair)
 
+	tire_smoke = TireSmoke.new(self)
+	add_child(tire_smoke)
+
 
 func _sync_center_of_mass() -> void:
 	var local_com: Vector3 = to_local(center_of_mass_node.global_position)
@@ -172,6 +198,7 @@ func _physics_process(delta: float) -> void:
 	_compute_anti_roll_bars()
 	_update_drivetrain_and_wheels(delta)
 
+	tire_smoke.step(delta)
 	aero.apply()
 
 	damage.step()
@@ -205,8 +232,10 @@ func _handle_inputs(delta: float) -> void:
 
 	handbrake_input = move_toward(handbrake_input, handbrake_target, delta * handbrake_rate)
 
+	_update_line_lock(throttle_target, brake_target)
+
 	var override: float = 0.0
-	if config.brake_overrides_throttle:
+	if config.brake_overrides_throttle and not is_line_locked:
 		override = clampf((brake_input - 0.1) / 0.3, 0.0, 1.0)
 
 	var final_throttle_target: float = throttle_target * (1.0 - override)
@@ -217,8 +246,56 @@ func _handle_inputs(delta: float) -> void:
 		throttle_rate *= 2.0
 
 	throttle_input = move_toward(throttle_input, final_throttle_target, delta * throttle_rate)
-
 	_update_steering(delta)
+
+
+func _update_line_lock(throttle_target: float, brake_target: float) -> void:
+	var limit: float = LINE_LOCK_END_MPS if is_line_locked else LINE_LOCK_START_MPS
+
+	is_line_locked = (
+		config.line_lock and throttle_target > 0.5 and brake_target > 0.3
+		and drivetrain_node.is_in_gear() and linear_velocity.length() < limit
+	)
+
+
+func _handbrake_pulled() -> bool:
+	return (
+		config.handbrake_frees_driveline and not handbrake_latched
+		and handbrake_input > HANDBRAKE_FREES_AT
+	)
+
+
+func _driveline_wheels() -> Array[Wheel]:
+	var driven: Array[Wheel] = []
+	for axle in axles:
+		for w: Wheel in axle:
+			if w.is_driven and not w.detached:
+				driven.append(w)
+
+	if not (is_line_locked or _handbrake_pulled()):
+		return driven
+
+	var kept: Array[Wheel] = []
+	for w in driven:
+		var wanted: bool = not w.is_front if is_line_locked else not w.has_handbrake
+		if wanted:
+			kept.append(w)
+
+	if kept.is_empty() and is_line_locked:
+		return driven
+
+	return kept
+
+
+func _spin_settle_torque_nm(wheel: Wheel) -> float:
+	var speed: float = linear_velocity.length()
+	if throttle_demand > 0.05 or not wheel.is_driven or speed > SETTLE_MAX_SPEED_MPS:
+		return 0.0
+
+	var rim_mps: float = (absf(wheel.angular_velocity_rad_s) * wheel.suspension_config.wheel_radius)
+	var spare: float = rim_mps - speed - SETTLE_SLIP_MPS
+
+	return clampf(spare / SETTLE_FULL_SLIP_MPS, 0.0, 1.0) * SETTLE_TORQUE_NM
 
 
 func _find_wheels() -> void:
@@ -401,12 +478,14 @@ func _update_steering(delta: float) -> void:
 
 	var lock_rad: float = deg_to_rad(config.max_steer_angle_deg) * mechanical_damage.steer_lock_scale()
 	steer_cap_rad = _speed_steer_cap_rad(linear_velocity.length(), lock_rad)
+	steer_cap_rad = _countersteer_cap_rad(steer_cap_rad, lock_rad)
 
 	var target_rad: float = steer_input * steer_cap_rad
 
 	var cap_fraction: float = clampf(steer_cap_rad / lock_rad, 0.15, 1.0)
 	var rate_rad_s: float = deg_to_rad(config.steer_rate_deg_s) * cap_fraction
 	rate_rad_s *= mechanical_damage.steer_rate_scale()
+	rate_rad_s *= lerpf(1.0, COUNTERSTEER_RATE, countersteer)
 
 	steering.strength_scale = mechanical_damage.steer_strength_scale()
 	steering.extra_friction_nm = mechanical_damage.steer_friction_nm()
@@ -462,6 +541,32 @@ func _speed_steer_cap_rad(speed: float, lock_rad: float) -> float:
 	return lerpf(lock_rad, grip_cap_rad, sensitivity)
 
 
+func _countersteer_cap_rad(cap_rad: float, lock_rad: float) -> float:
+	countersteer = 0.0
+
+	var rear: Vector3 = (axles[-1][0].global_position + axles[-1][-1].global_position) * 0.5
+	var slide_rad: float = _travel_angle_rad(rear)
+	if slide_rad * steer_input <= 0.0:
+		return cap_rad
+
+	var front_rad: float = _travel_angle_rad(_steer_reference.global_position)
+	var needed_rad: float = minf(absf(front_rad) + cap_rad, lock_rad)
+	countersteer = smoothstep(SLIDE_START_RAD, SLIDE_FULL_RAD, absf(slide_rad))
+
+	return lerpf(cap_rad, maxf(cap_rad, needed_rad), countersteer)
+
+
+func _travel_angle_rad(point: Vector3) -> float:
+	var com: Vector3 = to_global(center_of_mass)
+	var velocity: Vector3 = linear_velocity + angular_velocity.cross(point - com)
+	var moving: Vector3 = global_basis.orthonormalized().inverse() * velocity
+
+	if -moving.z < SLIDE_MIN_SPEED_MPS:
+		return 0.0
+
+	return atan2(-moving.x, -moving.z)
+
+
 func _ackermann_angle_rad(centre_rad: float, wheel: Wheel) -> float:
 	var lever: float = _steer_lever_m.get(wheel, _steer_reference_lever_m)
 	var x_offset: float = _steer_x_offset.get(wheel, 0.0)
@@ -496,17 +601,27 @@ func _set_axle_arb(left: Wheel, right: Wheel, stiffness: float) -> void:
 
 
 func _update_drivetrain_and_wheels(delta: float) -> void:
+	var driven_wheels: Array[Wheel] = _driveline_wheels()
+
 	var driver_brake_nm: Dictionary[Wheel, float] = { }
 	for w in wheels:
-		driver_brake_nm[w] = 0.0 if w.detached else brake_input * brakes_for(w).max_torque_nm
+		var brake_nm: float = brake_input * brakes_for(w).max_torque_nm
+		if is_line_locked:
+			brake_nm = (
+				0.0
+				if w in driven_wheels
+				else brake_input
+				* config \
+						.front_brakes \
+						.max_torque_nm
+			)
 
+		driver_brake_nm[w] = 0.0 if w.detached else brake_nm
+
+	assists.suppressed = is_line_locked
 	assists.update(delta, throttle_input, driver_brake_nm, handbrake_input)
 
-	var driven_wheels: Array[Wheel] = []
-	for axle in axles:
-		for w: Wheel in axle:
-			if w.is_driven and not w.detached:
-				driven_wheels.append(w)
+	drivetrain_node.hold_gear = is_line_locked
 
 	drivetrain_node.setup_driveline(driven_wheels)
 	drivetrain_node.set_loose_wheels(mechanical_damage.broken_axles())
@@ -565,8 +680,9 @@ func _update_drivetrain_and_wheels(delta: float) -> void:
 		var w_reflected: float = engine_inertia * drivetrain_node.get_wheel_share(w)
 
 		var w_brake_torque: float = (
-			assists.brake_torque(w) * mechanical_damage.brake_factor(w) + get_handbrake_torque_nm(w)
-			+ get_gear_hold_torque_nm(w) + mechanical_damage.seized_torque_nm(w)
+			assists.brake_torque(w) * mechanical_damage.brake_factor(w)
+			+ get_handbrake_torque_nm(w) + get_gear_hold_torque_nm(w)
+			+ mechanical_damage.seized_torque_nm(w) + _spin_settle_torque_nm(w)
 		)
 
 		if w.detached:

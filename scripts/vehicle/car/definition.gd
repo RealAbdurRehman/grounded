@@ -40,6 +40,10 @@ extends Resource
 @export_group("Damage")
 @export var panels: Array[CarPanel] = []
 
+@export_range(0.05, 1.0, 0.05) var crush_share: float = 0.25
+@export_range(0.02, 0.6, 0.01) var max_crush_m: float = 0.12
+@export_range(0.3, 2.5, 0.05) var crumple_zone_m: float = 1.2
+
 @export_group("Size and weight")
 @export var mass_kg: float = 1400.0
 

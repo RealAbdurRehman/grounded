@@ -25,6 +25,10 @@ static var _by_body: Dictionary = { }
 ## Length of the longest bumps.
 @export_range(0.3, 10.0, 0.1) var bump_length_m: float = 2.0
 
+@export_group("Effects")
+## Tire smoke scale.
+@export_range(0.0, 1.0, 0.05) var smoke_scale: float = 0.0
+
 @export_group("Heat")
 ## How well heat transfers between the tire and the surface compared to asphalt.
 @export_range(0.0, 3.0, 0.05) var heat_transfer_scale: float = 1.0
@@ -80,6 +84,9 @@ static func _build_presets() -> void:
 	_add(&"sand", "Sand", 0.75, 5.0, 0.03, 2.5, 0.4, 0.8, 200.0)
 	_add(&"snow", "Snow", 0.25, 2.0, 0.02, 3.0, 0.3, 0.0, 0.0)
 	_add(&"ice", "Ice", 0.11, 1.0, 0.0, 2.0, 1.2, 0.0, 0.0)
+
+	_presets[&"asphalt"].smoke_scale = 1.0
+	_presets[&"concrete"].smoke_scale = 0.85
 
 	_presets[&"gravel"].slide_drop_scale = 0.35
 	_presets[&"dirt"].slide_drop_scale = 0.2

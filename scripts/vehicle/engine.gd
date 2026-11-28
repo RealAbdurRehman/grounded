@@ -68,7 +68,6 @@ func update_engine(
 		)
 	elif not is_clutch_engaged:
 		var net_torque: float = 0.0
-
 		if effective_throttle > 0.01:
 			net_torque = calculate_raw_torque(current_rpm) * effective_throttle * power_factor
 		else:
